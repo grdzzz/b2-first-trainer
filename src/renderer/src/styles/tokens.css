@@ -1,0 +1,143 @@
+/*
+ * Tokens del sistema de diseño. Único archivo con colores, tipografía, espaciado, radios, sombras y movimiento.
+ * Contrastes comprobados para WCAG AA (texto normal ≥ 4.5:1 sobre --bg y --surface).
+ */
+:root {
+  /* Tipografía */
+  --font-serif: 'Newsreader Variable', 'Newsreader', Georgia, 'Times New Roman', serif;
+  --font-sans: 'Inter Variable', 'Inter', 'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'Cascadia Code', Consolas, 'Courier New', monospace;
+  --font-scale: 1;
+
+  --text-xs: 0.75rem;
+  --text-sm: 0.8125rem;
+  --text-base: 0.9375rem;
+  --text-md: 1.0625rem;
+  --text-lg: 1.25rem;
+  --text-xl: 1.625rem;
+  --text-2xl: 2.125rem;
+  --text-3xl: 2.75rem;
+  --leading-tight: 1.2;
+  --leading-normal: 1.55;
+
+  /* Espaciado (escala de 4 px) */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+
+  /* Radios */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --radius-full: 999px;
+
+  /* Movimiento */
+  --dur-fast: 150ms;
+  --dur-base: 200ms;
+  --dur-slow: 250ms;
+  --ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
+
+  /* Layout */
+  --sidebar-width: 232px;
+  --content-max: 1120px;
+  --focus-ring-width: 3px;
+
+  /* ---------- Tema claro ---------- */
+  --bg: #f6f5f1;
+  --bg-sunken: #efede7;
+  --surface: #ffffff;
+  --surface-raised: #ffffff;
+  --surface-hover: #f3f2ee;
+  --border: #e3e1da;
+  --border-strong: #cdcac1;
+  --text: #1b1c1f;
+  --text-muted: #5b5d63;
+  --text-subtle: #66686e;
+  --text-on-accent: #ffffff;
+
+  --accent: #2e46c0;
+  --accent-hover: #2639a3;
+  --accent-soft: #e9ecfb;
+  --accent-text: #2a3fae;
+
+  --success: #17734a;
+  --success-soft: #e3f3ea;
+  --danger: #b3261e;
+  --danger-soft: #fbe9e7;
+  --warning: #8a5a00;
+  --warning-soft: #fdf1d8;
+
+  --paper-reading: #2e46c0;
+  --paper-writing: #8a3a8f;
+  --paper-listening: #0f7468;
+  --paper-speaking: #a2520c;
+
+  --focus-ring: #2e46c0;
+  --overlay: rgba(20, 21, 26, 0.38);
+  --shadow-sm: 0 1px 2px rgba(23, 24, 28, 0.06), 0 1px 1px rgba(23, 24, 28, 0.04);
+  --shadow-md: 0 4px 14px rgba(23, 24, 28, 0.07), 0 1px 3px rgba(23, 24, 28, 0.05);
+  --shadow-lg: 0 18px 48px rgba(23, 24, 28, 0.16), 0 4px 12px rgba(23, 24, 28, 0.08);
+  --pdf-filter: none;
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  --bg: #141518;
+  --bg-sunken: #101114;
+  --surface: #1c1d21;
+  --surface-raised: #23252a;
+  --surface-hover: #26282d;
+  --border: #2e3036;
+  --border-strong: #41444c;
+  --text: #ecebe6;
+  --text-muted: #a9abb2;
+  --text-subtle: #9a9ca3;
+  --text-on-accent: #10132a;
+
+  --accent: #8fa1ff;
+  --accent-hover: #a9b6ff;
+  --accent-soft: #232a4d;
+  --accent-text: #a6b4ff;
+
+  --success: #5ccf94;
+  --success-soft: #16301f;
+  --danger: #ff8f86;
+  --danger-soft: #3a1a18;
+  --warning: #f0c36a;
+  --warning-soft: #3a2c10;
+
+  --paper-reading: #8fa1ff;
+  --paper-writing: #df9be3;
+  --paper-listening: #5fd0c0;
+  --paper-speaking: #f2a766;
+
+  --focus-ring: #a9b6ff;
+  --overlay: rgba(0, 0, 0, 0.55);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 6px 18px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 20px 52px rgba(0, 0, 0, 0.55);
+  --pdf-filter: invert(0.88) hue-rotate(180deg) contrast(0.92);
+  color-scheme: dark;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-fast: 0ms;
+    --dur-base: 0ms;
+    --dur-slow: 0ms;
+  }
+}
+
+@media (forced-colors: active) {
+  :root {
+    --focus-ring: Highlight;
+  }
+}

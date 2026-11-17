@@ -1,0 +1,23 @@
+{
+  "format": "b2-first-key",
+  "version": 1,
+  "papers": {
+    "reading": {
+      "1": "B",
+      "2": "D",
+      "9": "which",
+      "10": ["at", "in"],
+      "17": "unbelievable",
+      "25": ["was not allowed to", "wasn't allowed to"],
+      "31": "C",
+      "37": "F",
+      "43": "A"
+    },
+    "listening": {
+      "1": "A",
+      "9": "garden",
+      "19": "E",
+      "24": "B"
+    }
+  }
+}
