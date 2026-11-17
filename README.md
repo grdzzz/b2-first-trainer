@@ -77,7 +77,27 @@ Este comando comprueba los tipos, compila y genera en `dist/`:
 
 `npm run build` solo compila (en `out/`), sin empaquetar.
 
-> **Generarlo desde Linux o macOS:** electron-builder necesita **Wine** (incluido el de 32 bits) para incrustar el icono en el `.exe`. En Windows no hace falta nada más.
+### Linux
+
+```bash
+npm run build:linux
+```
+
+Genera `dist/B2-First-Trainer-<versión>-x86_64.AppImage`, un único archivo que funciona en la mayoría de distribuciones de 64 bits. Para abrirlo:
+
+```bash
+chmod +x B2-First-Trainer-1.0.0-x86_64.AppImage
+```
+
+```bash
+./B2-First-Trainer-1.0.0-x86_64.AppImage
+```
+
+- Si se queja de **FUSE**, instala `libfuse2` (en Ubuntu 24.04 el paquete es `libfuse2t64`) o arráncalo con `APPIMAGE_EXTRACT_AND_RUN=1 ./B2-First-Trainer-1.0.0-x86_64.AppImage`.
+- Si se cierra con un error de **sandbox** (frecuente en Ubuntu 23.10 y posteriores), añade `--no-sandbox` al final del comando.
+- En Linux, los datos se guardan en `~/.config/B2 First Trainer/data`.
+
+> **Generar el `.exe` desde Linux o macOS:** electron-builder necesita **Wine** (incluido el de 32 bits) para incrustar el icono en el `.exe`. En Windows no hace falta nada más.
 
 ## Formato de la clave de respuestas
 
