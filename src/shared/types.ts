@@ -45,6 +45,8 @@ export interface Part {
   /** Tipo de tarea (se usa en estadísticas de fallos), p. ej. "Open cloze". */
   category: string
   instructions?: string
+  /** Página (1..n) donde empieza la parte dentro del PDF común del paper. */
+  pdfPage?: number
   files: PartFiles
   questions: Question[]
 }

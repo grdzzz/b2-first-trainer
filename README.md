@@ -8,6 +8,7 @@ Aplicación de escritorio para Windows 10 y 11 para practicar el examen **Cambri
 
 - **Biblioteca de exámenes.** Crea un examen con la estructura habitual del B2 First (Reading & Use of English, Writing, Listening y Speaking). Puedes cambiar el número de partes, el número de preguntas, el tipo de respuesta, las opciones, los puntos y el tiempo de cada paper.
 - **Importación de archivos.** Puedes importar un PDF para todo el paper o uno por parte, y audio (mp3, m4a, wav, ogg, webm, flac…) para Listening. Los archivos se copian a la carpeta de datos de la app.
+- **Detección automática desde el PDF.** Al importar el PDF de un paper, la app lee su texto y propone las partes y su página, los números de pregunta, el tipo de tarea, el número de opciones y los puntos. También el tiempo, el límite de palabras y las consignas de Writing y Speaking, y la clave si el PDF incluye una sección «Answer key». Muestra lo que ha encontrado y solo lo aplica si confirmas. Funciona con PDF digitales (con texto seleccionable), no con escaneos. Se puede repetir con el botón «Detectar desde el PDF».
 - **Claves de respuestas** en JSON o en texto simple. Se importan desde un archivo o se pegan en un editor con vista previa y avisos. Si una parte no tiene clave, puedes hacerla igualmente, pero no se corrige.
 - **Tres modos:**
   - **Examen:** temporizador con el tiempo oficial del paper completo, sin pistas. Se entrega al terminar o cuando se acaba el tiempo.
@@ -234,3 +235,4 @@ examples/        claves de ejemplo con respuestas ficticias
 - Las preguntas con varias respuestas válidas se corrigen como acierto o fallo. No hay puntuación parcial (por ejemplo, 1 de 2 puntos en Key word transformation).
 - El porcentaje es tu nota sobre los puntos corregibles. No se convierte a la Cambridge English Scale.
 - Los PDF se muestran como imagen, sin selección de texto ni búsqueda.
+- La detección automática se basa en las instrucciones habituales de Cambridge («Part 1», «For questions 1–8…»). Con PDF de otras editoriales o escaneados puede no encontrar nada o equivocarse; siempre se puede corregir a mano.

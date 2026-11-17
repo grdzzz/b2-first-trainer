@@ -1428,6 +1428,60 @@ input[type='range'] {
   gap: var(--space-1);
 }
 
+/* ---------- Detección ---------- */
+.page-input {
+  width: 4.25rem;
+}
+
+.detect-summary {
+  color: var(--text-muted);
+}
+
+.detect-summary strong {
+  color: var(--text);
+}
+
+.table-scroll {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.detect-table td {
+  vertical-align: top;
+}
+
+.detect-cat {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: 550;
+}
+
+.detect-cat .ok {
+  color: var(--success);
+  flex-shrink: 0;
+}
+
+.detect-cat .warn {
+  color: var(--warning);
+  flex-shrink: 0;
+}
+
+.detect-prompt {
+  display: block;
+  margin-top: var(--space-1);
+  color: var(--text-subtle);
+  font-size: var(--text-xs);
+  line-height: 1.4;
+}
+
+.detect-options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
 /* ---------- Modal ---------- */
 .modal {
   border: 0;
@@ -1886,6 +1940,15 @@ input[type='range'] {
   border-left: 3px solid var(--paper-color, var(--accent));
 }
 
+.task-prompt summary {
+  cursor: pointer;
+  width: fit-content;
+}
+
+.task-prompt summary:hover {
+  color: var(--text);
+}
+
 .task-prompt-text {
   white-space: pre-wrap;
   margin-top: var(--space-1);
@@ -1975,6 +2038,7 @@ input[type='range'] {
 }
 
 .pdf-scroll {
+  position: relative;
   flex: 1;
   overflow: auto;
   padding: var(--space-4);

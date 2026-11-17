@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ArrowLeft, Download, FileAudio, FileText, KeyRound, Play, Plus, RotateCcw, Timer, Trash2, X } from 'lucide-react'
+import { ArrowLeft, Download, FileAudio, FileText, KeyRound, Play, Plus, RotateCcw, ScanSearch, Timer, Trash2, X } from 'lucide-react'
 import type { Attempt, AttemptMode, Exam, FileRef, Paper, Part, PartFiles, QuestionKind } from '@shared/types'
 import { PAPER_ORDER } from '@shared/types'
 import { B2_FIRST_TEMPLATE, buildPaper, buildPart, partHasKey, renumberPaper, resizePart } from '@shared/template'
-import { exportKeyJson } from '@shared/keys'
+import { applyKey, exportKeyJson, parseKeyText } from '@shared/keys'
+import { applyDetection, detectStructure, type Detection } from '@shared/detect'
+import { extractPdfLines } from '../lib/pdf'
+import { DetectModal } from '../components/DetectModal'
 import { pendingMistakes } from '@shared/stats'
 import { createAttempt } from '@shared/attempts'
 import { errorMessage, useApp } from '../lib/store'
@@ -13,6 +16,7 @@ import { PaperIcon, paperLabel } from '../components/PaperBadge'
 import { formatDate, t, tn } from '../i18n'
 
 type KeyScope = { paperId: string; partId?: string } | null
+type DetectState = { paperId: string; detection: Detection | null; error?: string } | null
 
 export function ExamScreen({ examId }: { examId: string }) {
   const app = useApp()
@@ -20,6 +24,7 @@ export function ExamScreen({ examId }: { examId: string }) {
   const [exam, setExam] = useState<Exam | undefined>(stored)
   const [keyScope, setKeyScope] = useState<KeyScope>(null)
   const [starting, setStarting] = useState<Paper | null>(null)
+  const [detect, setDetect] = useState<DetectState>(null)
   const [confirm, setConfirm] = useState<{ title: string; message: string; action(): void } | null>(null)
   const pending = useRef<Exam | null>(null)
   const timer = useRef<number | undefined>(undefined)
@@ -61,16 +66,35 @@ export function ExamScreen({ examId }: { examId: string }) {
   const updatePart = (paperId: string, partId: string, fn: (p: Part) => Part, immediate = false) =>
     updatePaper(paperId, (p) => ({ ...p, parts: p.parts.map((x) => (x.id === partId ? fn(x) : x)) }), immediate)
 
-  const importFile = async (kind: 'pdf' | 'audio', current: PartFiles, apply: (files: PartFiles) => void) => {
+  const importFile = async (kind: 'pdf' | 'audio', current: PartFiles, apply: (files: PartFiles) => void): Promise<FileRef | null> => {
     try {
       const ref = await window.api.importExamFile(exam.id, kind)
-      if (!ref) return
+      if (!ref) return null
       const old = current[kind]
       apply({ ...current, [kind]: ref })
       if (old) void window.api.removeExamFile(exam.id, old.storedName).catch(() => undefined)
       app.notify('success', t('exam.fileImported', { name: ref.name }))
+      return ref
     } catch (e) {
       app.notify('error', t('exam.importFailed', { error: errorMessage(e) }))
+      return null
+    }
+  }
+
+  /** Lee el PDF y propone la estructura. En modo automático solo abre la ventana si encuentra algo. */
+  const runDetection = async (paper: Paper, file: FileRef, auto: boolean) => {
+    if (!auto) setDetect({ paperId: paper.id, detection: null })
+    try {
+      const pages = await extractPdfLines(await window.api.readExamFile(exam.id, file.storedName))
+      const detection = detectStructure(pages, paper.type)
+      if (auto && detection.parts.length === 0) {
+        if (!detection.hasText) app.notify('info', t('detect.scanned'))
+        return
+      }
+      setDetect({ paperId: paper.id, detection })
+    } catch (e) {
+      if (auto) app.notify('error', t('detect.error', { error: errorMessage(e) }))
+      else setDetect({ paperId: paper.id, detection: null, error: errorMessage(e) })
     }
   }
   const removeFile = (kind: 'pdf' | 'audio', current: PartFiles, apply: (files: PartFiles) => void) => {
@@ -126,6 +150,7 @@ export function ExamScreen({ examId }: { examId: string }) {
           onImport={importFile}
           onRemoveFile={removeFile}
           onStart={() => setStarting(paper)}
+          onDetect={(file, auto) => void runDetection(paper, file, auto)}
           onDelete={() =>
             setConfirm({
               title: t('exam.deletePaperTitle'),
@@ -197,6 +222,23 @@ export function ExamScreen({ examId }: { examId: string }) {
         />
       )}
 
+      {detect && exam.papers.some((p) => p.id === detect.paperId) && (
+        <DetectModal
+          paper={exam.papers.find((p) => p.id === detect.paperId)!}
+          detection={detect.detection}
+          error={detect.error}
+          onClose={() => setDetect(null)}
+          onApply={({ applyTime, applyKey: withKey }) => {
+            const det = detect.detection!
+            let next: Exam = { ...exam, papers: exam.papers.map((p) => (p.id === detect.paperId ? applyDetection(p, det, { applyTime }) : p)) }
+            if (withKey && det.keyText) next = applyKey(next, parseKeyText(det.keyText), { paperId: detect.paperId }).exam
+            update(next, true)
+            setDetect(null)
+            app.notify('success', t('detect.applied'))
+          }}
+        />
+      )}
+
       <datalist id="category-suggestions">
         {CATEGORY_SUGGESTIONS.map((c) => <option key={c} value={c} />)}
       </datalist>
@@ -224,14 +266,15 @@ interface PaperEditorProps {
   onChange(fn: (p: Paper) => Paper, immediate?: boolean): void
   onPartChange(partId: string, fn: (p: Part) => Part, immediate?: boolean): void
   onEditKey(partId?: string): void
-  onImport(kind: 'pdf' | 'audio', current: PartFiles, apply: (f: PartFiles) => void): void
+  onImport(kind: 'pdf' | 'audio', current: PartFiles, apply: (f: PartFiles) => void): Promise<FileRef | null>
   onRemoveFile(kind: 'pdf' | 'audio', current: PartFiles, apply: (f: PartFiles) => void): void
   onStart(): void
+  onDetect(file: FileRef, auto: boolean): void
   onDelete(): void
   onDeletePart(part: Part): void
 }
 
-function PaperEditor({ exam, paper, attempts, onChange, onPartChange, onEditKey, onImport, onRemoveFile, onStart, onDelete, onDeletePart }: PaperEditorProps) {
+function PaperEditor({ exam, paper, attempts, onChange, onPartChange, onEditKey, onImport, onRemoveFile, onStart, onDetect, onDelete, onDeletePart }: PaperEditorProps) {
   const auto = paper.type === 'reading' || paper.type === 'listening'
   const keyed = paper.parts.filter(partHasKey).length
   const pending = useMemo(() => pendingMistakes(exam, paper.id, attempts).length, [exam, paper.id, attempts])
@@ -269,7 +312,21 @@ function PaperEditor({ exam, paper, attempts, onChange, onPartChange, onEditKey,
       </header>
 
       <div className="paper-meta">
-        <FileSlot label={t('exam.paperPdf')} kind="pdf" file={paper.files.pdf} onImport={() => onImport('pdf', paper.files, setPaperFiles)} onRemove={() => onRemoveFile('pdf', paper.files, setPaperFiles)} />
+        <FileSlot
+          label={t('exam.paperPdf')}
+          kind="pdf"
+          file={paper.files.pdf}
+          onImport={async () => {
+            const ref = await onImport('pdf', paper.files, setPaperFiles)
+            if (ref) onDetect(ref, true)
+          }}
+          onRemove={() => onRemoveFile('pdf', paper.files, setPaperFiles)}
+        />
+        {paper.files.pdf && (
+          <button type="button" className="btn btn-secondary btn-sm" onClick={() => onDetect(paper.files.pdf!, false)} title={t('detect.buttonHint')}>
+            <ScanSearch size={15} aria-hidden /> {t('detect.button')}
+          </button>
+        )}
         {paper.type === 'listening' && (
           <FileSlot label={t('exam.paperAudio')} kind="audio" file={paper.files.audio} onImport={() => onImport('audio', paper.files, setPaperFiles)} onRemove={() => onRemoveFile('audio', paper.files, setPaperFiles)} />
         )}
@@ -396,6 +453,12 @@ function PartEditor({ paper, part, onChange, onStructureChange, onEditKey, onImp
         </div>
         <div className="part-meta">
           <span className="text-subtle text-sm">{t('exam.range', { range })}</span>
+          {paper.files.pdf && !part.files.pdf && (
+            <label className="inline-field text-sm" title={t('exam.pageHint')}>
+              <span>{t('exam.page')}</span>
+              <input type="number" className="input input-sm page-input" min={1} max={999} value={part.pdfPage ?? ''} placeholder="—" onChange={(e) => onChange((p) => ({ ...p, pdfPage: Number(e.target.value) > 0 ? Math.min(999, Math.floor(Number(e.target.value))) : undefined }))} />
+            </label>
+          )}
           <FileSlot compact label={t('exam.partPdf')} kind="pdf" file={part.files.pdf} onImport={() => onImport('pdf')} onRemove={() => onRemoveFile('pdf')} />
           {paper.type === 'listening' && <FileSlot compact label={t('exam.partAudio')} kind="audio" file={part.files.audio} onImport={() => onImport('audio')} onRemove={() => onRemoveFile('audio')} />}
           {gradable && (

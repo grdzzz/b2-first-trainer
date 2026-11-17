@@ -158,7 +158,9 @@ export const es = {
     maxWords: 'Máx. palabras',
     addPart: 'Añadir parte',
     newPart: 'Nueva parte',
-    addPaper: 'Añadir paper:'
+    addPaper: 'Añadir paper:',
+    page: 'Pág.',
+    pageHint: 'Página del PDF del paper donde empieza esta parte'
   },
   keyEditor: {
     titlePaper: 'Clave · {paper}',
@@ -178,6 +180,28 @@ export const es = {
     clear: 'Borrar clave',
     save: 'Guardar clave',
     saved: 'Clave guardada ({n} respuestas)'
+  },
+  detect: {
+    button: 'Detectar desde el PDF',
+    buttonHint: 'Lee el PDF y propone partes, preguntas, tipos, tiempo y consignas',
+    title: 'Estructura detectada · {paper}',
+    description: 'Revisa lo que se ha leído del PDF antes de aplicarlo. Después podrás corregir cualquier dato a mano.',
+    reading: 'Leyendo el PDF…',
+    error: 'No se ha podido leer el PDF: {error}',
+    scanned: 'El PDF no tiene texto seleccionable (parece un escaneo), así que no se puede detectar la estructura. Configúrala a mano.',
+    nothing: 'No se han encontrado encabezados «Part 1», «Part 2»… en este PDF. Configura las partes a mano.',
+    parts: { one: '1 parte', other: '{count} partes' },
+    time: 'tiempo {min} min',
+    key: { one: 'clave con 1 respuesta', other: 'clave con {count} respuestas' },
+    colPart: 'Parte',
+    colPage: 'Pág.',
+    recognized: 'Tipo reconocido',
+    unrecognized: 'Tipo no reconocido: revísalo',
+    applyTime: 'Usar el tiempo del PDF: {min} min (ahora {current} min)',
+    applyKey: { one: 'Aplicar la clave encontrada (1 respuesta)', other: 'Aplicar la clave encontrada ({count} respuestas)' },
+    replaceNote: 'Se sustituirán las partes de este paper. Se conservan los archivos de cada parte y la clave de las preguntas que no cambian.',
+    apply: 'Aplicar',
+    applied: 'Estructura aplicada'
   },
   start: {
     title: 'Empezar · {paper}',

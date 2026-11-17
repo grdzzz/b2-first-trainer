@@ -1,17 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { FileWarning, Minus, Moon, Plus, ScanLine } from 'lucide-react'
-import { GlobalWorkerOptions, getDocument, type PDFDocumentProxy } from 'pdfjs-dist'
-import workerSource from 'pdfjs-dist/build/pdf.worker.min.mjs?raw'
+import type { PDFDocumentProxy } from 'pdfjs-dist'
+import { openPdf } from '../lib/pdf'
 import { t } from '../i18n'
-
-// El worker de pdf.js se crea desde un Blob para que funcione igual en desarrollo y empaquetado (file://).
-let workerReady = false
-function ensureWorker() {
-  if (workerReady) return
-  const url = URL.createObjectURL(new Blob([workerSource], { type: 'text/javascript' }))
-  GlobalWorkerOptions.workerPort = new Worker(url, { type: 'module' })
-  workerReady = true
-}
 
 interface Props {
   /** Carga los bytes del PDF. */
@@ -19,11 +10,13 @@ interface Props {
   /** Cambia cuando cambia el documento. */
   sourceKey: string
   title: string
+  /** Página a la que saltar (p. ej. el inicio de la parte actual). */
+  initialPage?: number
 }
 
 const ZOOMS = [0.6, 0.75, 0.9, 1, 1.15, 1.3, 1.5, 1.75, 2, 2.5]
 
-export function PdfViewer({ load, sourceKey, title }: Props) {
+export function PdfViewer({ load, sourceKey, title, initialPage }: Props) {
   const [doc, setDoc] = useState<PDFDocumentProxy | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [zoomIdx, setZoomIdx] = useState(3)
@@ -45,10 +38,7 @@ export function PdfViewer({ load, sourceKey, title }: Props) {
     setError(null)
     ;(async () => {
       try {
-        ensureWorker()
-        const bytes = await load()
-        // pdf.js transfiere el buffer al worker: se pasa una copia.
-        loaded = await getDocument({ data: bytes.slice(), isEvalSupported: false, enableXfa: false }).promise
+        loaded = await openPdf(await load())
         if (cancelled) void loaded.destroy()
         else setDoc(loaded)
       } catch (e) {
@@ -93,6 +83,16 @@ export function PdfViewer({ load, sourceKey, title }: Props) {
     })
     setPage(current)
   }, [doc])
+
+  // Salta a la página indicada cuando el documento está listo o cambia la parte.
+  useEffect(() => {
+    if (!doc || !initialPage || width === 0) return
+    const id = window.setTimeout(() => {
+      const el = scroller.current?.querySelector<HTMLElement>(`[data-page="${Math.min(initialPage, doc.numPages)}"]`)
+      if (el && scroller.current) scroller.current.scrollTo({ top: el.offsetTop - 16 })
+    }, 60)
+    return () => window.clearTimeout(id)
+  }, [doc, initialPage, width > 0])
 
   const zoom = ZOOMS[zoomIdx]
   const pageWidth = Math.max(200, (width - 32) * zoom)

@@ -274,7 +274,7 @@ function AttemptRunner({ initial, exam, paper }: { initial: Attempt; exam: Exam;
                 />
               )}
               {pdf ? (
-                <PdfViewer key={pdf.storedName} sourceKey={pdf.storedName} title={pdf.name} load={() => window.api.readExamFile(exam.id, pdf.storedName)} />
+                <PdfViewer key={pdf.storedName} sourceKey={pdf.storedName} title={pdf.name} initialPage={part?.files.pdf ? undefined : part?.pdfPage} load={() => window.api.readExamFile(exam.id, pdf.storedName)} />
               ) : (
                 <div className="empty-state">
                   <FileQuestion size={28} aria-hidden />
@@ -510,11 +510,12 @@ function ShortQuestion({ q, attempt, active, onActivate, onAnswer }: QuestionVie
 function PromptField({ q, attempt, onAnswer }: Pick<QuestionViewProps, 'q' | 'attempt' | 'onAnswer'>) {
   const ans = attempt.answers[q.id]
   if (q.prompt) {
+    // Las consignas largas (p. ej. las tres tareas de Writing Part 2) empiezan plegadas: ya se ven en el PDF.
     return (
-      <div className="task-prompt">
-        <p className="field-label">{t('attempt.task')}</p>
+      <details className="task-prompt" open={q.prompt.length <= 400}>
+        <summary className="field-label">{t('attempt.task')}</summary>
         <p className="task-prompt-text">{q.prompt}</p>
-      </div>
+      </details>
     )
   }
   return (
