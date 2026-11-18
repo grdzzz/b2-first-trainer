@@ -1,5 +1,6 @@
 // Contrato entre el proceso principal y la interfaz (expuesto como window.api por el preload).
 import type { Attempt, Exam, FileRef, Settings } from './types'
+import type { UpdateStatus } from './updates'
 
 export interface ListResult<T> {
   items: T[]
@@ -47,6 +48,13 @@ export interface BridgeApi {
   /** Copia la carpeta de datos a una carpeta elegida por el usuario. */
   backupData(): Promise<string | null>
   setThemeSource(theme: 'system' | 'light' | 'dark'): Promise<void>
+
+  getUpdateStatus(): Promise<UpdateStatus>
+  checkForUpdates(): Promise<UpdateStatus>
+  /** Cierra la app, instala la versión descargada y la vuelve a abrir. */
+  installUpdate(): Promise<void>
+  openDownloadPage(): Promise<void>
+  onUpdateStatus(handler: (status: UpdateStatus) => void): () => void
 
   /** El proceso principal avisa de que la ventana se va a cerrar; la interfaz guarda y confirma. */
   onBeforeClose(handler: () => Promise<void> | void): () => void

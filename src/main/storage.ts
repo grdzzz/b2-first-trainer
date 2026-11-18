@@ -343,6 +343,7 @@ export function mergeSettings(raw: Partial<Settings> | null | undefined): Settin
     fontScale,
     language: 'es',
     autosaveSeconds: autosave,
+    checkUpdates: typeof r.checkUpdates === 'boolean' ? r.checkUpdates : DEFAULT_SETTINGS.checkUpdates,
     grading: {
       ignoreCase: typeof g.ignoreCase === 'boolean' ? g.ignoreCase : DEFAULT_SETTINGS.grading.ignoreCase,
       ignoreExtraSpaces: typeof g.ignoreExtraSpaces === 'boolean' ? g.ignoreExtraSpaces : DEFAULT_SETTINGS.grading.ignoreExtraSpaces,

@@ -1,14 +1,18 @@
+import { lazy, Suspense } from 'react'
 import { BarChart3, History, Library, Settings as SettingsIcon, TriangleAlert } from 'lucide-react'
 import { AppProvider, useApp, useThemeEffect, type Route } from './lib/store'
 import { Toasts } from './components/Toasts'
 import { HomeScreen } from './screens/HomeScreen'
 import { LibraryScreen } from './screens/LibraryScreen'
-import { ExamScreen } from './screens/ExamScreen'
-import { AttemptScreen } from './screens/AttemptScreen'
-import { ResultsScreen } from './screens/ResultsScreen'
+import { UpdateBanner } from './components/UpdateBanner'
 import { HistoryScreen } from './screens/HistoryScreen'
 import { SettingsScreen } from './screens/SettingsScreen'
 import { t } from './i18n'
+
+// Las pantallas pesadas (visor de PDF, grabadora…) se cargan solo cuando se abren: la app arranca antes.
+const ExamScreen = lazy(() => import('./screens/ExamScreen').then((m) => ({ default: m.ExamScreen })))
+const AttemptScreen = lazy(() => import('./screens/AttemptScreen').then((m) => ({ default: m.AttemptScreen })))
+const ResultsScreen = lazy(() => import('./screens/ResultsScreen').then((m) => ({ default: m.ResultsScreen })))
 
 export function App() {
   return (
@@ -81,11 +85,14 @@ function Shell() {
               </li>
             ))}
           </ul>
+          <UpdateBanner />
           <p className="sidebar-foot">{t('app.offline')}</p>
         </nav>
       )}
       <main id="main" className="main" tabIndex={-1}>
-        <Screen route={route} />
+        <Suspense fallback={<div className="screen-loading" aria-busy="true" />}>
+          <Screen route={route} />
+        </Suspense>
       </main>
       <Toasts />
     </div>

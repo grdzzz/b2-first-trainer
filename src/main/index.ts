@@ -2,10 +2,16 @@ import { app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme, session, shell 
 import path from 'node:path'
 import { promises as fs } from 'node:fs'
 import { DataStore } from './storage'
+import { checkForUpdates, getUpdateStatus, initUpdater, installUpdate } from './updater'
+import { DOWNLOAD_PAGE_URL } from '../shared/updates'
 import type { IpcResult, ImportKind } from '../shared/api'
 import type { Attempt, Exam, Settings } from '../shared/types'
 
 const isDev = !app.isPackaged && !!process.env.ELECTRON_RENDERER_URL
+
+// Mismo identificador que el instalador: agrupa bien la ventana y el icono anclado en la barra de tareas.
+const APP_ID = 'local.b2firsttrainer.app'
+if (process.platform === 'win32') app.setAppUserModelId(APP_ID)
 
 // Una sola instancia: evita que dos ventanas escriban a la vez en los mismos archivos.
 if (!app.requestSingleInstanceLock()) {
@@ -110,6 +116,16 @@ function registerIpc(): void {
     if (t === 'system' || t === 'light' || t === 'dark') nativeTheme.themeSource = t
   })
 
+  handle('updates:status', () => getUpdateStatus())
+  handle('updates:check', () => checkForUpdates())
+  handle('updates:install', () =>
+    installUpdate(() => {
+      // El intento en curso ya está guardado (autoguardado); se cierra sin esperar.
+      closeConfirmed = true
+    })
+  )
+  handle('updates:openDownloadPage', () => shell.openExternal(DOWNLOAD_PAGE_URL))
+
   ipcMain.on('app:close-ready', () => {
     closeConfirmed = true
     mainWindow?.close()
@@ -198,6 +214,7 @@ app.whenReady().then(async () => {
 
   registerIpc()
   createWindow()
+  initUpdater(() => mainWindow, settings.checkUpdates)
   if (isDev) mainWindow?.webContents.on('before-input-event', (_e, input) => {
     if (input.key === 'F12' && input.type === 'keyDown') mainWindow?.webContents.toggleDevTools()
   })

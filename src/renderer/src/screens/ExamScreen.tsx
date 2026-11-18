@@ -5,7 +5,6 @@ import { PAPER_ORDER } from '@shared/types'
 import { B2_FIRST_TEMPLATE, buildPaper, buildPart, partHasKey, renumberPaper, resizePart } from '@shared/template'
 import { applyKey, exportKeyJson, parseKeyText } from '@shared/keys'
 import { applyDetection, detectStructure, type Detection } from '@shared/detect'
-import { extractPdfLines } from '../lib/pdf'
 import { DetectModal } from '../components/DetectModal'
 import { pendingMistakes } from '@shared/stats'
 import { createAttempt } from '@shared/attempts'
@@ -85,6 +84,7 @@ export function ExamScreen({ examId }: { examId: string }) {
   const runDetection = async (paper: Paper, file: FileRef, auto: boolean) => {
     if (!auto) setDetect({ paperId: paper.id, detection: null })
     try {
+      const { extractPdfLines } = await import('../lib/pdf')
       const pages = await extractPdfLines(await window.api.readExamFile(exam.id, file.storedName))
       const detection = detectStructure(pages, paper.type)
       if (auto && detection.parts.length === 0) {

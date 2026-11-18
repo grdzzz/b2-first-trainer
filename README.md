@@ -74,7 +74,7 @@ npm run build:win
 Este comando comprueba los tipos, compila y genera en `dist/`:
 
 - `B2-First-Trainer-<versión>-portable.exe`: ejecutable portable, no necesita instalación.
-- `B2-First-Trainer-<versión>-setup.exe`: instalador por usuario. No pide administrador y permite elegir la carpeta.
+- `B2-First-Trainer-<versión>-setup.exe`: instalador por usuario (recomendado). No pide administrador, permite elegir la carpeta y se actualiza solo.
 
 `npm run build` solo compila (en `out/`), sin empaquetar.
 
@@ -99,6 +99,29 @@ chmod +x B2-First-Trainer-1.0.0-x86_64.AppImage
 - En Linux, los datos se guardan en `~/.config/B2 First Trainer/data`.
 
 > **Generar el `.exe` desde Linux o macOS:** electron-builder necesita **Wine** (incluido el de 32 bits) para incrustar el icono en el `.exe`. En Windows no hace falta nada más.
+
+## Instalar en Windows y actualizaciones
+
+**Usa el instalador** (`B2-First-Trainer-<versión>-setup.exe`), que se descarga desde la [rama `descargas`](https://github.com/grdzzz/first/tree/descargas). Frente a la versión portable:
+
+- **Arranca mucho más rápido.** La portable descomprime unos 100 MB en una carpeta temporal cada vez que se abre.
+- **El acceso directo de la barra de tareas funciona bien.** Ancla la app desde el menú Inicio o desde la propia ventana abierta (clic derecho › «Anclar a la barra de tareas»). La portable se ejecuta desde una carpeta temporal distinta cada vez, por eso su acceso anclado falla.
+- **Se actualiza sola.** Al abrirla comprueba si hay una versión nueva en la rama `descargas`, la descarga en segundo plano y muestra «Reiniciar y actualizar». Se puede desactivar o comprobar a mano en Ajustes › Actualizaciones. Sin internet no pasa nada: la app sigue funcionando.
+
+Se instala solo para tu usuario (no pide administrador). Tus datos se conservan al instalar, actualizar o pasar de la portable a la instalada.
+
+### Publicar una versión nueva
+
+1. Sube el número de `version` en `package.json`. La app solo se actualiza si la versión publicada es mayor que la instalada.
+2. Ejecuta:
+
+   ```bash
+   npm run release:win
+   ```
+
+   Pasa los tests, genera el instalador y ejecuta `scripts/publish-descargas.sh`. El script sustituye el contenido de la rama `descargas` por el instalador nuevo, su `.blockmap` y `latest.yml` (de ahí lee la app las actualizaciones). La rama solo guarda la última versión. El instalador debe ocupar menos de 100 MB, el límite de GitHub; se usa la compresión máxima.
+
+La versión portable y la de Linux no se instalan solas: avisan de que hay una versión nueva y abren la página de descarga.
 
 ## Formato de la clave de respuestas
 

@@ -177,6 +177,8 @@ export interface Settings {
   grading: GradingOptions
   /** Segundos entre autoguardados. */
   autosaveSeconds: number
+  /** Buscar actualizaciones al iniciar (necesita internet; sin conexión no pasa nada). */
+  checkUpdates: boolean
 }
 
 export interface GradingOptions {
@@ -191,7 +193,8 @@ export const DEFAULT_SETTINGS: Settings = {
   fontScale: 1,
   language: 'es',
   grading: { ignoreCase: false, ignoreExtraSpaces: false, ignoreAccents: false },
-  autosaveSeconds: 3
+  autosaveSeconds: 3,
+  checkUpdates: true
 }
 
 export const PAPER_ORDER: PaperType[] = ['reading', 'writing', 'listening', 'speaking']

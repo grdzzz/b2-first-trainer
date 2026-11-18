@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
-import { FolderOpen, HardDriveDownload, Monitor, Moon, Sun } from 'lucide-react'
+import { Download, FolderOpen, HardDriveDownload, Monitor, Moon, RefreshCw, Sun } from 'lucide-react'
 import type { AppInfo } from '@shared/api'
 import type { ThemePreference } from '@shared/types'
 import { errorMessage, useApp } from '../lib/store'
-import { t } from '../i18n'
+import { formatDate, t } from '../i18n'
+import { useUpdateStatus } from '../lib/updates'
+import type { UpdateStatus } from '@shared/updates'
 
 const THEMES: Array<{ id: ThemePreference; icon: typeof Sun }> = [
   { id: 'system', icon: Monitor },
@@ -106,7 +108,69 @@ export function SettingsScreen() {
         <p className="text-subtle text-sm">{t('settings.restoreHint')}</p>
       </section>
 
+      <UpdatesSection version={info?.version} />
+
       {info && <p className="text-subtle text-sm about">{t('settings.about', { version: info.version, electron: info.electron })}</p>}
     </div>
+  )
+}
+
+function statusText(s: UpdateStatus): string {
+  switch (s.state) {
+    case 'checking':
+      return t('updates.checking')
+    case 'up-to-date':
+      return t('updates.upToDate', { date: formatDate(s.checkedAt, { timeStyle: 'short' }) })
+    case 'downloading':
+      return t('updates.downloading', { version: s.version, percent: s.percent })
+    case 'ready':
+      return t('updates.ready', { version: s.version })
+    case 'available-manual':
+      return t('updates.availableManual', { version: s.version })
+    case 'error':
+      return t('updates.error', { error: s.message })
+    case 'unsupported':
+      return t('updates.dev')
+    default:
+      return t('updates.idle')
+  }
+}
+
+function UpdatesSection({ version }: { version?: string }) {
+  const { settings, updateSettings } = useApp()
+  const status = useUpdateStatus()
+  return (
+    <section className="card settings-section" aria-labelledby="s-updates">
+      <h2 id="s-updates" className="section-title">{t('updates.title')}</h2>
+      <div className="setting">
+        <div>
+          <p className="setting-name">{t('updates.version', { version: version ?? '…' })}</p>
+          <p className="setting-desc" aria-live="polite">{statusText(status)}</p>
+        </div>
+        <div className="row-gap">
+          {status.state === 'ready' ? (
+            <button type="button" className="btn btn-primary" onClick={() => void window.api.installUpdate()}>
+              <RefreshCw size={16} aria-hidden /> {t('updates.restart')}
+            </button>
+          ) : status.state === 'available-manual' ? (
+            <button type="button" className="btn btn-primary" onClick={() => void window.api.openDownloadPage()}>
+              <Download size={16} aria-hidden /> {t('updates.download')}
+            </button>
+          ) : (
+            <button type="button" className="btn btn-secondary" disabled={status.state === 'checking' || status.state === 'downloading'} onClick={() => void window.api.checkForUpdates()}>
+              <RefreshCw size={16} aria-hidden /> {t('updates.checkNow')}
+            </button>
+          )}
+        </div>
+      </div>
+      <label className="setting setting-toggle">
+        <div>
+          <span className="setting-name">{t('updates.auto')}</span>
+          <span className="setting-desc">{t('updates.autoDesc')}</span>
+        </div>
+        <input type="checkbox" className="toggle" checked={settings.checkUpdates} onChange={(e) => void updateSettings({ checkUpdates: e.target.checked })} />
+      </label>
+      <p className="text-subtle text-sm">{t('updates.portableNote')}</p>
+    </section>
   )
 }

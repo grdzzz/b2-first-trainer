@@ -342,6 +342,24 @@ export const es = {
     deleteTitle: '¿Eliminar este intento?',
     deleteMessage: 'Se borrarán sus respuestas y grabaciones. No se puede deshacer.'
   },
+  updates: {
+    title: 'Actualizaciones',
+    version: 'Versión {version}',
+    idle: 'Aún no se ha comprobado.',
+    checking: 'Buscando actualizaciones…',
+    upToDate: 'Tienes la última versión (comprobado a las {date}).',
+    downloading: 'Descargando la versión {version}… {percent}%',
+    ready: 'Versión {version} lista para instalar.',
+    availableManual: 'Hay una versión nueva: {version}.',
+    error: 'No se ha podido comprobar: {error}',
+    dev: 'Las actualizaciones solo funcionan en la app empaquetada.',
+    restart: 'Reiniciar y actualizar',
+    download: 'Descargar',
+    checkNow: 'Buscar ahora',
+    auto: 'Buscar actualizaciones al abrir',
+    autoDesc: 'Necesita internet solo para esto; sin conexión la app funciona igual.',
+    portableNote: 'Solo la versión instalada (el instalador «setup») se actualiza sola. La portable y la de Linux avisan y te llevan a la descarga. Tus datos se conservan al actualizar.'
+  },
   settings: {
     eyebrow: 'Preferencias',
     title: 'Ajustes',
