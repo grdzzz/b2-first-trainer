@@ -350,6 +350,46 @@ export const es = {
     deleteTitle: '¿Eliminar este intento?',
     deleteMessage: 'Se borrarán sus respuestas y grabaciones. No se puede deshacer.'
   },
+  ai: {
+    title: 'Corrección con IA',
+    intro: 'Copia todas tus respuestas de una vez, pégalas en ChatGPT o Claude y pega aquí su respuesta: la app pondrá la nota y los comentarios en cada tarea.',
+    corrected: { one: 'Corregida {count} de {total} tareas. Puedes volver a pegar una corrección nueva cuando quieras.', other: 'Corregidas {count} de {total} tareas. Puedes volver a pegar una corrección nueva cuando quieras.' },
+    step1: 'Copia el texto con todas tus respuestas',
+    step2: 'Pégalo en ChatGPT o Claude.ai y envíalo',
+    step2Hint: 'Contestará con un bloque de código. Cópialo entero (botón «Copiar» del bloque) o toda la respuesta.',
+    step3: 'Pega aquí su respuesta',
+    copyAll: 'Copiar todo para corregir',
+    paste: 'Pegar corrección',
+    emptyWriting: 'Las tareas {tasks} están vacías: se corregirán como sin respuesta.',
+    emptySpeaking: 'Las tareas {tasks} no tienen transcripción. Transcríbelas antes de copiar (botón «Transcribir» de cada parte).',
+    pasteTitle: 'Pegar la corrección de la IA',
+    pasteDescription: 'Pega la respuesta completa del chat. La app la revisa antes de aplicarla.',
+    replyLabel: 'Respuesta del chat',
+    pasteClipboard: 'Pegar del portapapeles',
+    previewEmpty: 'Pega la respuesta para ver qué se va a aplicar.',
+    noCorrection: 'sin corrección',
+    errorsCount: { one: '1 error', other: '{count} errores' },
+    apply: 'Aplicar corrección',
+    applied: 'Corrección aplicada',
+    general: 'Comentario general',
+    badge: 'Corregido con IA',
+    feedbackTitle: 'Corrección de la IA',
+    chosen: 'pregunta {n}',
+    tips: 'Consejos',
+    improved: 'Ver versión mejorada',
+    model: 'Ver respuesta modelo'
+  },
+  transcribe: {
+    button: 'Transcribir',
+    again: 'Volver a transcribir',
+    working: 'Transcribiendo…',
+    downloading: 'Descargando modelo… {pct} %',
+    modelTitle: 'Modelo de transcripción',
+    modelText: 'Para transcribir sin internet, la app necesita descargar una vez el modelo Whisper (77 MB). Después funciona siempre offline.',
+    download: 'Descargar y transcribir',
+    downloadFailed: 'No se ha podido descargar el modelo: {error}',
+    empty: 'No se ha reconocido ninguna palabra en la grabación.'
+  },
   cambridge: {
     scale: 'Cambridge English Scale (estimada)',
     grade: 'Grade {band} · {cefr}',
@@ -405,6 +445,11 @@ export const es = {
     backupDone: 'Copia creada en {path}',
     backupFailed: 'No se ha podido crear la copia: {error}',
     restoreHint: 'Para restaurar una copia, cierra la app y copia su contenido dentro de la carpeta de datos.',
-    about: 'B2 First Trainer {version} · Electron {electron}'
+    about: 'B2 First Trainer {version} · Electron {electron}',
+    transcription: 'Transcripción de Speaking',
+    whisperModel: 'Modelo Whisper (en tu ordenador)',
+    whisperInstalled: 'Instalado ({mb} MB). Transcribe sin internet.',
+    whisperMissing: 'No instalado. Se descarga la primera vez que pulses «Transcribir» (77 MB, una sola vez).',
+    whisperRemove: 'Borrar modelo'
   }
 }

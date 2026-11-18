@@ -41,7 +41,19 @@ jobs:
       - name: Generar instalador
         run: npx electron-builder --win nsis --x64 --publish never
 
-      - name: Publicar en la rama descargas
+      - name: Subir el instalador a GitHub Releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          SETUP="dist/B2-First-Trainer-${VERSION}-setup.exe"
+          gh release delete "v${VERSION}" --repo "$GITHUB_REPOSITORY" --yes --cleanup-tag 2>/dev/null || true
+          gh release create "v${VERSION}" "$SETUP" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+            --title "B2 First Trainer ${VERSION}" \
+            --notes "Instalador para Windows. La app instalada se actualiza sola a esta versión."
+          echo "RELEASE_DOWNLOAD_URL=https://github.com/${GITHUB_REPOSITORY}/releases/download/v${VERSION}" >> "$GITHUB_ENV"
+
+      - name: Publicar latest.yml en la rama descargas
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"

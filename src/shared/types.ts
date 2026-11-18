@@ -138,6 +138,19 @@ export interface AttemptResult {
   questions: QuestionResult[]
 }
 
+/** Corrección de una tarea de Writing/Speaking devuelta por un chat de IA (pegada por el alumno). */
+export interface AiFeedback {
+  /** Criterio → 0..5 (solo los que la IA ha podido valorar). */
+  scores: Record<string, number>
+  summary?: string
+  errors: Array<{ original: string; correction: string; explanation: string }>
+  tips: string[]
+  improved?: string
+  /** Writing Part 2: pregunta que eligió el alumno. */
+  chosenTask?: string
+  receivedAt: string
+}
+
 export interface Attempt {
   id: string
   schemaVersion: number
@@ -164,6 +177,10 @@ export interface Attempt {
   /** Autoevaluación por pregunta (Writing/Speaking). */
   selfAssessments: Record<string, SelfAssessment>
   result?: AttemptResult
+  /** Corrección de IA por pregunta (Writing/Speaking). */
+  aiFeedback?: Record<string, AiFeedback>
+  /** Comentario general de la IA para todo el intento. */
+  aiGeneral?: string
 }
 
 export type ThemePreference = 'system' | 'light' | 'dark'

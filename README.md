@@ -20,6 +20,8 @@ Aplicación de escritorio para Windows 10 y 11 para practicar el examen **Cambri
   - Redacción, con contador de palabras.
   - Speaking, con grabación del micrófono, reproducción y autoevaluación con los criterios de Cambridge.
 - **Corrección automática** de todo lo que tiene clave. Muestra la puntuación por parte, las respuestas falladas y la respuesta correcta.
+- **Corrección con IA en bloque** (Writing y Speaking). En los resultados, «Copiar todo para corregir» copia en un solo texto todas las tareas del intento (consigna, tu texto o transcripción, nivel B2 y criterios de Cambridge) y el formato de respuesta. Lo pegas en ChatGPT o Claude.ai, copias su respuesta y la pegas con «Pegar corrección». La app la revisa, te muestra qué va a aplicar y reparte en cada tarea la nota por criterio, los errores con su corrección, los consejos y una versión mejorada. No llama a ninguna API. La pronunciación no se puede valorar con texto: ese criterio lo puntúas tú.
+- **Transcripción local de Speaking (Whisper).** El botón «Transcribir» convierte tu grabación en texto sin internet. La primera vez descarga el modelo Whisper base.en (77 MB, verificado con SHA-256) desde la *release* `whisper-base-en-v1` del repositorio. Después funciona siempre offline: unos segundos por grabación. Se puede borrar en Ajustes.
 - **«Copiar para corregir»** (Writing y Speaking) genera un texto listo para pegar en un chat de IA. Incluye la consigna, tu texto o transcripción, el nivel objetivo (B2) y los criterios de Cambridge. No llama a ninguna API.
 - **Progreso:** exámenes realizados, nota media por paper, gráfico de evolución, tipos de pregunta con más fallos e historial de intentos con fecha, duración y nota.
 - **Interfaz:** temas claro y oscuro (por defecto sigue el de Windows), tamaño de texto ajustable, foco siempre visible, contrastes WCAG AA y animaciones que respetan «reducir movimiento».
@@ -120,6 +122,8 @@ Se instala solo para tu usuario (no pide administrador). Tus datos se conservan 
    ```
 
    Pasa los tests, genera el instalador y ejecuta `scripts/publish-descargas.sh`. El script sustituye el contenido de la rama `descargas` por el instalador nuevo, su `.blockmap` y `latest.yml` (de ahí lee la app las actualizaciones). La rama solo guarda la última versión. El instalador debe ocupar menos de 100 MB, el límite de GitHub; se usa la compresión máxima.
+
+El instalador se publica como *release* de GitHub (`v<versión>`), sin el límite de 100 MB por archivo de las ramas. La rama `descargas` solo guarda `latest.yml`, que apunta a esa release; así las versiones ya instaladas siguen encontrando las actualizaciones.
 
 **Desde GitHub (recomendado):** en la pestaña *Actions* del repositorio, ejecuta el flujo «Publicar versión de Windows» (`.github/workflows/release-windows.yml`). Compila en un Windows real, pasa los tests y publica en la rama `descargas`. No necesita Wine.
 
@@ -254,6 +258,9 @@ examples/        claves de ejemplo con respuestas ficticias
 **Tipografías e iconos incluidos:** Inter y Newsreader (vía `@fontsource-variable`) e iconos Lucide. Todo se empaqueta en la app y no se carga nada de internet.
 
 ## Limitaciones conocidas
+
+- La corrección con IA depende del chat que uses: es una estimación útil para practicar, no la nota de un examinador oficial. Si el chat no respeta el formato, la app avisa y no aplica nada.
+- Whisper base.en entiende bien el inglés de estudiantes, pero puede equivocarse con palabras poco claras: revisa la transcripción antes de copiarla.
 
 - No hay corrección automática de Writing ni de Speaking: se usa la autoevaluación y «Copiar para corregir».
 - No hay transcripción automática de voz, porque requeriría servicios en línea o modelos pesados. La transcripción se escribe a mano.

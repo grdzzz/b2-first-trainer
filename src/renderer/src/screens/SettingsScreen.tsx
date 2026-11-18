@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Download, FolderOpen, HardDriveDownload, Monitor, Moon, RefreshCw, Sun } from 'lucide-react'
 import type { AppInfo } from '@shared/api'
 import type { ThemePreference } from '@shared/types'
@@ -108,6 +108,8 @@ export function SettingsScreen() {
         <p className="text-subtle text-sm">{t('settings.restoreHint')}</p>
       </section>
 
+      <TranscriptionSection />
+
       <UpdatesSection version={info?.version} />
 
       {info && <p className="text-subtle text-sm about">{t('settings.about', { version: info.version, electron: info.electron })}</p>}
@@ -171,6 +173,44 @@ function UpdatesSection({ version }: { version?: string }) {
         <input type="checkbox" className="toggle" checked={settings.checkUpdates} onChange={(e) => void updateSettings({ checkUpdates: e.target.checked })} />
       </label>
       <p className="text-subtle text-sm">{t('updates.portableNote')}</p>
+    </section>
+  )
+}
+
+function TranscriptionSection() {
+  const { notify } = useApp()
+  const [status, setStatus] = useState<{ installed: boolean; sizeBytes: number } | null>(null)
+  const refresh = useCallback(() => {
+    window.api.whisperStatus().then(setStatus).catch(() => setStatus(null))
+  }, [])
+  useEffect(refresh, [refresh])
+  return (
+    <section className="card settings-section" aria-labelledby="s-transcription">
+      <h2 id="s-transcription" className="section-title">{t('settings.transcription')}</h2>
+      <div className="setting">
+        <div>
+          <p className="setting-name">{t('settings.whisperModel')}</p>
+          <p className="setting-desc">
+            {status === null ? '…' : status.installed ? t('settings.whisperInstalled', { mb: Math.round(status.sizeBytes / 1e6) }) : t('settings.whisperMissing')}
+          </p>
+        </div>
+        {status?.installed && (
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={async () => {
+              try {
+                await window.api.removeWhisper()
+                refresh()
+              } catch (e) {
+                notify('error', errorMessage(e))
+              }
+            }}
+          >
+            {t('settings.whisperRemove')}
+          </button>
+        )}
+      </div>
     </section>
   )
 }

@@ -41,6 +41,14 @@ const api: BridgeApi = {
     ipcRenderer.on('updates:status', listener)
     return () => ipcRenderer.removeListener('updates:status', listener)
   },
+  whisperStatus: () => call('whisper:status'),
+  downloadWhisper: () => call('whisper:download'),
+  removeWhisper: () => call('whisper:remove'),
+  onWhisperProgress: (handler) => {
+    const listener = (_e: Electron.IpcRendererEvent, p: { received: number; total: number }) => handler(p)
+    ipcRenderer.on('whisper:progress', listener)
+    return () => ipcRenderer.removeListener('whisper:progress', listener)
+  },
   onBeforeClose: (handler) => {
     const listener = async () => {
       try {

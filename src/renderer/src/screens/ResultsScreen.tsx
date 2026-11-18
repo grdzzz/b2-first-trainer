@@ -1,16 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { ArrowLeft, Check, Minus, RotateCcw, Trash2, X } from 'lucide-react'
-import type { SelfAssessment as SA } from '@shared/types'
+import type { Attempt, SelfAssessment as SA } from '@shared/types'
 import { regrade, createAttempt } from '@shared/attempts'
 import { pendingMistakes, formatDuration } from '@shared/stats'
-import { buildSpeakingCorrectionPrompt, buildWritingCorrectionPrompt } from '@shared/aiPrompt'
 import { countWords } from '@shared/grading'
 import { errorMessage, useApp } from '../lib/store'
 import { PaperBadge } from '../components/PaperBadge'
 import { CambridgeBadge } from '../components/CambridgeBadge'
 import { ProgressRing } from '../components/ProgressRing'
 import { SelfAssessment } from '../components/SelfAssessment'
-import { CopyButton } from '../components/CopyButton'
+import { AiCorrectionPanel } from '../components/AiCorrectionPanel'
+import { AiFeedbackView } from '../components/AiFeedbackView'
+import { TranscribeButton } from '../components/TranscribeButton'
 import { AudioPlayer } from '../components/AudioPlayer'
 import { ConfirmDialog } from '../components/Modal'
 import { modeLabel } from '../lib/format'
@@ -24,28 +25,43 @@ export function ResultsScreen({ attemptId }: { attemptId: string }) {
   const [confirmDelete, setConfirmDelete] = useState(false)
   const paper = exam?.papers.find((p) => p.id === attempt?.paperId)
   const pending = useMemo(() => (exam && paper ? pendingMistakes(exam, paper.id, app.attempts) : []), [exam, paper, app.attempts])
-  // La autoevaluación se edita en local y se guarda con un pequeño retardo (evita perder pulsaciones).
-  const [sa, setSa] = useState<Record<string, SA>>(attempt?.selfAssessments ?? {})
-  const saPending = useRef<Record<string, SA> | null>(null)
-  const saTimer = useRef<number | undefined>(undefined)
-  const latest = useRef({ attempt, exam, grading: app.settings.grading, saveAttempt: app.saveAttempt, notify: app.notify })
-  latest.current = { attempt, exam, grading: app.settings.grading, saveAttempt: app.saveAttempt, notify: app.notify }
-  const flushSa = useRef(async () => {
-    window.clearTimeout(saTimer.current)
-    const next = saPending.current
-    saPending.current = null
-    const { attempt: a, exam: ex, grading, saveAttempt, notify } = latest.current
-    if (!next || !a) return
-    const updated = { ...a, selfAssessments: next }
+  // Borrador local (autoevaluación, transcripciones, corrección de IA). Se guarda con un pequeño retardo
+  // para no perder pulsaciones y siempre al salir de la pantalla.
+  const [draft, setDraft] = useState<Attempt | undefined>(attempt)
+  const draftRef = useRef(draft)
+  const dirty = useRef(false)
+  const saveTimer = useRef<number | undefined>(undefined)
+  const latest = useRef({ exam, grading: app.settings.grading, saveAttempt: app.saveAttempt, notify: app.notify })
+  latest.current = { exam, grading: app.settings.grading, saveAttempt: app.saveAttempt, notify: app.notify }
+  const flush = useRef(async () => {
+    window.clearTimeout(saveTimer.current)
+    const d = draftRef.current
+    if (!dirty.current || !d) return
+    dirty.current = false
+    const { exam: ex, grading, saveAttempt, notify } = latest.current
     try {
-      await saveAttempt(ex ? regrade(updated, ex, grading) : updated)
+      const saved = await saveAttempt(ex ? regrade(d, ex, grading) : d)
+      // Solo el resultado recalculado viene del guardado; lo editado sigue siendo el borrador.
+      setDraft((cur) => (cur ? { ...cur, result: saved.result } : cur))
     } catch (e) {
+      dirty.current = true
       notify('error', t('errors.saveFailed', { error: errorMessage(e) }))
     }
   })
-  useEffect(() => () => void flushSa.current(), [])
+  useEffect(() => () => void flush.current(), [])
+  const updateDraft = (fn: (a: Attempt) => Attempt, immediate = false) => {
+    setDraft((cur) => {
+      if (!cur) return cur
+      const next = fn(cur)
+      draftRef.current = next
+      return next
+    })
+    dirty.current = true
+    window.clearTimeout(saveTimer.current)
+    saveTimer.current = window.setTimeout(() => void flush.current(), immediate ? 0 : 500)
+  }
 
-  if (!attempt || !attempt.result) {
+  if (!attempt || !attempt.result || !draft) {
     return (
       <div className="page">
         <p>{t('results.notFound')}</p>
@@ -53,16 +69,12 @@ export function ResultsScreen({ attemptId }: { attemptId: string }) {
       </div>
     )
   }
-  const r = attempt.result
+  const r = draft.result ?? attempt.result
   const auto = attempt.paperType === 'reading' || attempt.paperType === 'listening'
 
-  const setSelf = (qid: string, v: SA) => {
-    const next = { ...sa, [qid]: v }
-    setSa(next)
-    saPending.current = next
-    window.clearTimeout(saTimer.current)
-    saTimer.current = window.setTimeout(() => void flushSa.current(), 500)
-  }
+  const setSelf = (qid: string, v: SA) => updateDraft((a) => ({ ...a, selfAssessments: { ...a.selfAssessments, [qid]: v } }))
+  const setTranscript = (qid: string, transcript: string, immediate = false) =>
+    updateDraft((a) => ({ ...a, answers: { ...a.answers, [qid]: { ...a.answers[qid], transcript } } }), immediate)
 
   const startReview = async () => {
     if (!exam || !paper || pending.length === 0) return
@@ -177,25 +189,36 @@ export function ResultsScreen({ attemptId }: { attemptId: string }) {
         </section>
       )}
 
+      {!auto && paper && (
+        <AiCorrectionPanel
+          attempt={draft}
+          paper={paper}
+          onApply={(next) => {
+            updateDraft(() => next, true)
+            app.notify('success', t('ai.applied'))
+          }}
+        />
+      )}
+
       {!auto &&
         paperQuestions
           .filter(({ q }) => r.questions.some((x) => x.questionId === q.id))
           .map(({ q, part }) => {
-            const ans = attempt.answers[q.id]
+            const ans = draft.answers[q.id]
             const prompt = q.prompt ?? ans?.prompt ?? ''
+            const fb = draft.aiFeedback?.[q.id]
             return (
               <section key={q.id} className="card result-production">
                 <header className="row-between">
                   <h2 className="section-title">{t('attempt.partShort', { n: part.number })} · {part.title}</h2>
-                  <CopyButton
-                    getText={() =>
-                      attempt.paperType === 'writing'
-                        ? buildWritingCorrectionPrompt({ examName: attempt.examName, taskTitle: `Part ${part.number}: ${part.title}`, taskPrompt: prompt, studentText: ans?.value ?? '', minWords: q.minWords, maxWords: q.maxWords })
-                        : buildSpeakingCorrectionPrompt({ examName: attempt.examName, partTitle: `Part ${part.number}: ${part.title}`, taskPrompt: prompt, transcript: ans?.transcript ?? '', durationSec: ans?.recording?.durationSec })
-                    }
-                  />
+                  {fb && <span className="pill">{t('ai.badge')}</span>}
                 </header>
-                {prompt && <div className="task-prompt"><p className="field-label">{t('attempt.task')}</p><p className="task-prompt-text">{prompt}</p></div>}
+                {prompt && (
+                  <details className="task-prompt" open={prompt.length <= 400}>
+                    <summary className="field-label">{t('attempt.task')}</summary>
+                    <p className="task-prompt-text">{prompt}</p>
+                  </details>
+                )}
                 {attempt.paperType === 'writing' ? (
                   <>
                     <div className="essay-readonly">{ans?.value?.trim() ? ans.value : <span className="text-subtle">{t('results.blank')}</span>}</div>
@@ -208,10 +231,23 @@ export function ResultsScreen({ attemptId }: { attemptId: string }) {
                     ) : (
                       <p className="text-subtle">{t('results.noRecording')}</p>
                     )}
-                    {ans?.transcript && <div className="essay-readonly">{ans.transcript}</div>}
+                    <div className="transcript-field">
+                      <div className="row-between">
+                        <label className="field-label" htmlFor={`tr-${q.id}`}>{t('attempt.transcript')}</label>
+                        {ans?.recording && (
+                          <TranscribeButton
+                            hasText={!!ans.transcript?.trim()}
+                            load={() => window.api.readRecording(attempt.id, ans.recording!.file.storedName)}
+                            onText={(text) => setTranscript(q.id, text, true)}
+                          />
+                        )}
+                      </div>
+                      <textarea id={`tr-${q.id}`} className="input" rows={4} value={ans?.transcript ?? ''} onChange={(e) => setTranscript(q.id, e.target.value)} placeholder={t('attempt.transcriptPlaceholder')} />
+                    </div>
                   </>
                 )}
-                <SelfAssessment paperType={attempt.paperType} idPrefix={`r-${q.id}`} value={sa[q.id]} onChange={(v) => setSelf(q.id, v)} />
+                {fb && <AiFeedbackView fb={fb} kind={q.kind === 'speaking' ? 'speaking' : 'essay'} />}
+                <SelfAssessment paperType={attempt.paperType} idPrefix={`r-${q.id}`} value={draft.selfAssessments[q.id]} onChange={(v) => setSelf(q.id, v)} />
               </section>
             )
           })}

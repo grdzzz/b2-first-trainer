@@ -11,13 +11,13 @@ function cspPlugin(): Plugin {
     transformIndexHtml(html) {
       const csp = [
         "default-src 'self'",
-        "script-src 'self'",
+        "script-src 'self' 'wasm-unsafe-eval' b2ft-asset:",
         "style-src 'self' 'unsafe-inline'",
         "img-src 'self' data: blob:",
         "media-src 'self' blob:",
         "font-src 'self' data:",
         "worker-src 'self' blob:",
-        "connect-src 'self' blob: data:",
+        "connect-src 'self' blob: data: b2ft-asset:",
         "object-src 'none'",
         "base-uri 'none'",
         "form-action 'none'"
@@ -41,6 +41,7 @@ export default defineConfig({
     base: './',
     resolve: { alias: { '@shared': resolve('src/shared'), '@': resolve('src/renderer/src') } },
     plugins: [react(), cspPlugin()],
+    worker: { format: 'es' },
     build: { target: 'chrome120', rollupOptions: { input: resolve('src/renderer/index.html') } }
   }
 })

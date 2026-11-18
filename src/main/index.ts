@@ -3,6 +3,7 @@ import path from 'node:path'
 import { promises as fs } from 'node:fs'
 import { DataStore } from './storage'
 import { checkForUpdates, getUpdateStatus, initUpdater, installUpdate } from './updater'
+import { downloadWhisper, handleAssetProtocol, registerAssetScheme, removeWhisper, whisperStatus } from './whisper'
 import { DOWNLOAD_PAGE_URL } from '../shared/updates'
 import type { IpcResult, ImportKind } from '../shared/api'
 import type { Attempt, Exam, Settings } from '../shared/types'
@@ -12,6 +13,9 @@ const isDev = !app.isPackaged && !!process.env.ELECTRON_RENDERER_URL
 // Mismo identificador que el instalador: agrupa bien la ventana y el icono anclado en la barra de tareas.
 const APP_ID = 'local.b2firsttrainer.app'
 if (process.platform === 'win32') app.setAppUserModelId(APP_ID)
+
+// Protocolo interno para el modelo de transcripción y su motor .wasm (debe registrarse antes de 'ready').
+registerAssetScheme()
 
 // Una sola instancia: evita que dos ventanas escriban a la vez en los mismos archivos.
 if (!app.requestSingleInstanceLock()) {
@@ -126,6 +130,14 @@ function registerIpc(): void {
   )
   handle('updates:openDownloadPage', () => shell.openExternal(DOWNLOAD_PAGE_URL))
 
+  handle('whisper:status', () => whisperStatus())
+  handle('whisper:download', () =>
+    downloadWhisper((received, total) => {
+      if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('whisper:progress', { received, total })
+    })
+  )
+  handle('whisper:remove', () => removeWhisper())
+
   ipcMain.on('app:close-ready', () => {
     closeConfirmed = true
     mainWindow?.close()
@@ -212,6 +224,7 @@ app.whenReady().then(async () => {
   })
   session.defaultSession.setPermissionCheckHandler((_wc, permission) => permission === 'media')
 
+  handleAssetProtocol()
   registerIpc()
   createWindow()
   initUpdater(() => mainWindow, settings.checkUpdates)

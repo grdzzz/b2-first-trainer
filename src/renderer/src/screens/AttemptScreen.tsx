@@ -11,6 +11,7 @@ import { AudioPlayer } from '../components/AudioPlayer'
 import { Recorder } from '../components/Recorder'
 import { SelfAssessment } from '../components/SelfAssessment'
 import { CopyButton } from '../components/CopyButton'
+import { TranscribeButton } from '../components/TranscribeButton'
 import { ConfirmDialog } from '../components/Modal'
 import { PaperBadge } from '../components/PaperBadge'
 import { modeLabel } from '../lib/format'
@@ -583,10 +584,19 @@ function SpeakingQuestion({ q, part, paper, exam, attempt, onAnswer, onSelf, onA
         onSaved={(recording) => onAnswer({ recording })}
         onRemoved={() => onAnswer({ recording: undefined })}
       />
-      <label className="field">
-        <span className="field-label">{t('attempt.transcript')}</span>
-        <textarea className="input" rows={4} value={ans?.transcript ?? ''} onChange={(e) => onAnswer({ transcript: e.target.value })} placeholder={t('attempt.transcriptPlaceholder')} />
-      </label>
+      <div className="transcript-field">
+        <div className="row-between">
+          <label className="field-label" htmlFor={`tr-${q.id}`}>{t('attempt.transcript')}</label>
+          {ans?.recording && (
+            <TranscribeButton
+              hasText={!!ans.transcript?.trim()}
+              load={() => window.api.readRecording(attempt.id, ans.recording!.file.storedName)}
+              onText={(transcript) => onAnswer({ transcript })}
+            />
+          )}
+        </div>
+        <textarea id={`tr-${q.id}`} className="input" rows={4} value={ans?.transcript ?? ''} onChange={(e) => onAnswer({ transcript: e.target.value })} placeholder={t('attempt.transcriptPlaceholder')} />
+      </div>
       <div className="row-end">
         <CopyButton
           getText={() =>

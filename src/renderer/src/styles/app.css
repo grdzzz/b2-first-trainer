@@ -3065,3 +3065,224 @@ input[type='range'] {
   background: var(--brand-gradient);
   filter: brightness(1.08);
 }
+
+/* ---------- Corrección con IA ---------- */
+.ai-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  background: radial-gradient(120% 160% at 0% 0%, color-mix(in srgb, var(--paper-writing) 10%, var(--surface)) 0%, var(--surface) 55%);
+}
+
+.ai-panel-head {
+  display: flex;
+  gap: var(--space-4);
+  align-items: flex-start;
+}
+
+.ai-panel-head .section-title {
+  margin-bottom: var(--space-1);
+}
+
+.ai-icon {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  flex-shrink: 0;
+  border-radius: var(--radius-md);
+  background: var(--brand-gradient);
+  color: #fff;
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+.ai-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.ai-steps li {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+
+.ai-step-n {
+  display: grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  font-weight: 700;
+  font-size: var(--text-sm);
+}
+
+.ai-step-title {
+  font-weight: 600;
+}
+
+.ai-general {
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-md);
+  background: var(--bg-sunken);
+}
+
+.ai-preview-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  font-size: var(--text-sm);
+}
+
+.ai-feedback {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  border-radius: var(--radius-lg);
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--border));
+  background: color-mix(in srgb, var(--accent-soft) 45%, var(--surface));
+}
+
+.ai-feedback-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: 650;
+  color: var(--accent-text);
+}
+
+.ai-summary {
+  line-height: 1.6;
+}
+
+.ai-errors,
+.ai-tips {
+  list-style: none;
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.ai-errors li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.ai-wrong {
+  color: var(--danger);
+  text-decoration: line-through;
+  text-decoration-color: color-mix(in srgb, var(--danger) 50%, transparent);
+}
+
+.ai-right {
+  color: var(--success);
+  font-weight: 600;
+}
+
+.ai-arrow {
+  color: var(--text-subtle);
+}
+
+.ai-why {
+  flex-basis: 100%;
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+.ai-tips li {
+  display: flex;
+  gap: var(--space-2);
+  align-items: flex-start;
+}
+
+.ai-tips svg {
+  flex-shrink: 0;
+  margin-top: 3px;
+  color: var(--warning);
+}
+
+.ai-improved summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--accent-text);
+  width: fit-content;
+}
+
+.ai-improved .essay-readonly {
+  margin-top: var(--space-3);
+  background: var(--surface);
+}
+
+/* ---------- Transcripción ---------- */
+.transcript-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.transcribe {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-2);
+}
+
+.transcribe-model {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-width: 420px;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
+.spin {
+  animation: spin 900ms linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spin {
+    animation: none;
+  }
+}
+
+@media (max-width: 1000px) {
+  .ai-steps li {
+    grid-template-columns: auto 1fr;
+  }
+  .ai-steps li > .btn {
+    grid-column: 2;
+    justify-self: start;
+  }
+}

@@ -1,6 +1,7 @@
 // Contrato entre el proceso principal y la interfaz (expuesto como window.api por el preload).
 import type { Attempt, Exam, FileRef, Settings } from './types'
 import type { UpdateStatus } from './updates'
+import type { WhisperStatus } from './whisper'
 
 export interface ListResult<T> {
   items: T[]
@@ -55,6 +56,12 @@ export interface BridgeApi {
   installUpdate(): Promise<void>
   openDownloadPage(): Promise<void>
   onUpdateStatus(handler: (status: UpdateStatus) => void): () => void
+
+  whisperStatus(): Promise<WhisperStatus>
+  /** Descarga el modelo de transcripción (una sola vez). */
+  downloadWhisper(): Promise<WhisperStatus>
+  removeWhisper(): Promise<void>
+  onWhisperProgress(handler: (p: { received: number; total: number }) => void): () => void
 
   /** El proceso principal avisa de que la ventana se va a cerrar; la interfaz guarda y confirma. */
   onBeforeClose(handler: () => Promise<void> | void): () => void
