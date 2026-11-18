@@ -31,15 +31,20 @@ export interface CambridgeResult {
 
 export function cambridgeResult(percent: number): CambridgeResult {
   const scale = percentToScale(percent)
-  if (scale >= 180) return { scale, band: 'A', cefr: 'C1' }
-  if (scale >= 173) return { scale, band: 'B', cefr: 'B2' }
-  if (scale >= 160) return { scale, band: 'C', cefr: 'B2' }
-  if (scale >= 140) return { scale, band: 'B1', cefr: 'B1' }
-  return { scale, band: 'none', cefr: '—' }
+  return { scale, ...bandOfScale(scale) }
 }
 
 /** Nota global: media de los papers con nota (en el examen real se promedian los cuatro). */
 export function overallScale(paperPercents: Array<number | null>): number | null {
   const scales = paperPercents.filter((p): p is number => p !== null).map(percentToScale)
   return scales.length ? Math.round(scales.reduce((a, b) => a + b, 0) / scales.length) : null
+}
+
+/** Banda y nivel a partir de una puntuación ya en la escala (122–190). */
+export function bandOfScale(scale: number): Omit<CambridgeResult, 'scale'> {
+  if (scale >= 180) return { band: 'A', cefr: 'C1' }
+  if (scale >= 173) return { band: 'B', cefr: 'B2' }
+  if (scale >= 160) return { band: 'C', cefr: 'B2' }
+  if (scale >= 140) return { band: 'B1', cefr: 'B1' }
+  return { band: 'none', cefr: '—' }
 }

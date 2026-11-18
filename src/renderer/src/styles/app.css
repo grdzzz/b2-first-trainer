@@ -2292,6 +2292,8 @@ input[type='range'] {
 }
 
 .player-play {
+  color: #fff !important;
+  background: var(--brand-gradient) !important;
   display: grid;
   place-items: center;
   width: 2.75rem;
@@ -2757,4 +2759,309 @@ input[type='range'] {
   .nav-item.is-active {
     outline: 2px solid Highlight;
   }
+}
+
+/* =====================================================================
+   Pasada visual 1.3: inicio, biblioteca, resultados, práctica y navegación
+   ===================================================================== */
+
+/* ---------- Navegación ---------- */
+.brand-mark {
+  background: var(--brand-gradient);
+  color: #fff;
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+.nav-item {
+  position: relative;
+}
+
+.nav-item.is-active::before {
+  content: '';
+  position: absolute;
+  left: -16px;
+  top: 8px;
+  bottom: 8px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--accent);
+}
+
+/* ---------- Inicio ---------- */
+.home-header {
+  align-items: center;
+  padding-bottom: var(--space-2);
+}
+
+.home-header .eyebrow::first-letter {
+  text-transform: uppercase;
+}
+
+.home-sub {
+  margin-top: var(--space-2);
+  max-width: 60ch;
+}
+
+.stat {
+  position: relative;
+  padding-top: var(--space-5);
+}
+
+.stat-icon {
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  margin-bottom: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
+.stats-row .stat:nth-child(2) .stat-icon {
+  background: color-mix(in srgb, var(--paper-listening) 14%, transparent);
+  color: var(--paper-listening);
+}
+
+.stats-row .stat:nth-child(3) .stat-icon {
+  background: color-mix(in srgb, var(--paper-speaking) 14%, transparent);
+  color: var(--paper-speaking);
+}
+
+.paper-card {
+  border-top: 0;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--paper-color) 9%, var(--surface)) 0%, var(--surface) 55%);
+  overflow: hidden;
+  position: relative;
+}
+
+.paper-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 4px;
+  background: var(--paper-color);
+}
+
+.paper-card-foot {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  margin-top: auto;
+}
+
+.paper-card-foot > span:empty {
+  display: block;
+  height: 1.9rem;
+}
+
+.overall-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) minmax(220px, 380px);
+  align-items: center;
+  gap: var(--space-8);
+}
+
+.overall-card .overall-band {
+  align-items: stretch;
+  max-width: none;
+}
+
+.overall-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  align-items: flex-start;
+}
+
+.overall-text .eyebrow {
+  margin: 0;
+}
+
+.overall-card .overall-scale {
+  font-size: 2.6rem;
+  margin: 0;
+}
+
+@media (max-width: 1100px) {
+  .overall-card {
+    grid-template-columns: auto 1fr;
+  }
+  .overall-card .overall-band {
+    grid-column: 1 / -1;
+  }
+}
+
+/* ---------- Anillo de progreso ---------- */
+.ring {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.ring svg {
+  display: block;
+}
+
+.ring-arc {
+  transition: stroke-dashoffset 700ms var(--ease-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ring-arc {
+    transition: none;
+  }
+}
+
+.ring-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.ring-caption {
+  margin-top: var(--space-1);
+  font-size: var(--text-xs);
+  color: var(--text-subtle);
+}
+
+.ring .score-big {
+  font-size: 3rem;
+}
+
+.score-hero {
+  gap: var(--space-8);
+}
+
+/* ---------- Biblioteca ---------- */
+.exam-card {
+  overflow: hidden;
+}
+
+.exam-card:hover {
+  transform: translateY(-2px);
+}
+
+.exam-cover {
+  position: relative;
+  height: 92px;
+  background:
+    radial-gradient(120% 140% at 0% 0%, hsl(var(--hue) 70% 62% / 0.9) 0%, transparent 60%),
+    radial-gradient(120% 140% at 100% 100%, hsl(calc(var(--hue) + 50) 65% 55% / 0.85) 0%, transparent 65%),
+    hsl(calc(var(--hue) + 20) 55% 45%);
+}
+
+:root[data-theme='dark'] .exam-cover {
+  filter: saturate(0.85) brightness(0.8);
+}
+
+.exam-monogram {
+  position: absolute;
+  left: var(--space-6);
+  bottom: -22px;
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  color: var(--text);
+  font-family: var(--font-serif);
+  font-size: var(--text-lg);
+  font-weight: 600;
+  box-shadow: var(--shadow-md);
+}
+
+.exam-best {
+  position: absolute;
+  right: var(--space-4);
+  bottom: var(--space-3);
+}
+
+.exam-best .cam-badge {
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  backdrop-filter: blur(4px);
+}
+
+.exam-card-main {
+  padding-top: var(--space-8);
+}
+
+.exam-card-delete {
+  background: color-mix(in srgb, var(--surface) 80%, transparent);
+}
+
+/* ---------- Práctica ---------- */
+.attempt-progress {
+  height: 3px;
+  background: var(--bg-sunken);
+  flex-shrink: 0;
+}
+
+.attempt-progress > span {
+  display: block;
+  height: 100%;
+  background: var(--brand-gradient);
+  transition: width var(--dur-slow) var(--ease-out);
+}
+
+.option {
+  border-radius: 999px;
+  min-width: 2.75rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.option.is-selected {
+  background: var(--brand-gradient);
+  border-color: transparent;
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 35%, transparent);
+  color: #fff;
+}
+
+.q-num {
+  display: grid;
+  place-items: center;
+  min-width: 2.25rem;
+  height: 2.25rem;
+  margin-top: 2px;
+  padding: 0;
+  border-radius: var(--radius-md);
+  background: var(--bg-sunken);
+  font-size: var(--text-base);
+}
+
+.question.is-active .q-num {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
+.question.is-correct .q-num {
+  background: var(--success);
+  color: var(--surface);
+}
+
+.question.is-wrong .q-num {
+  background: var(--danger);
+  color: var(--surface);
+}
+
+/* ---------- Detalles globales ---------- */
+.card {
+  transition: box-shadow var(--dur-base) var(--ease-out), border-color var(--dur-base) var(--ease-out);
+}
+
+.btn-primary {
+  background: var(--brand-gradient);
+  color: #fff;
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 28%, transparent);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--brand-gradient);
+  filter: brightness(1.08);
 }

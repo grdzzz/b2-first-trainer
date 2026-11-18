@@ -80,6 +80,13 @@
   --paper-listening: #0f7468;
   --paper-speaking: #a2520c;
 
+  --band-A: var(--success);
+  --band-B: var(--accent);
+  --band-C: var(--accent);
+  --band-B1: var(--warning);
+  --band-none: var(--text-subtle);
+  --brand-gradient: linear-gradient(135deg, #3a54d6 0%, #22359a 100%);
+
   --focus-ring: #2e46c0;
   --overlay: rgba(20, 21, 26, 0.38);
   --shadow-sm: 0 1px 2px rgba(23, 24, 28, 0.06), 0 1px 1px rgba(23, 24, 28, 0.04);
@@ -118,6 +125,8 @@
   --paper-writing: #df9be3;
   --paper-listening: #5fd0c0;
   --paper-speaking: #f2a766;
+
+  --brand-gradient: linear-gradient(135deg, #4f63e6 0%, #2f3fae 100%);
 
   --focus-ring: #a9b6ff;
   --overlay: rgba(0, 0, 0, 0.55);

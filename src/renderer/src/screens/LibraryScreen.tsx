@@ -6,6 +6,7 @@ import { createExam, partHasKey } from '@shared/template'
 import { errorMessage, useApp } from '../lib/store'
 import { Modal, ConfirmDialog } from '../components/Modal'
 import { PaperBadge, paperLabel } from '../components/PaperBadge'
+import { CambridgeBadge } from '../components/CambridgeBadge'
 import { formatDate, t, tn } from '../i18n'
 
 export function LibraryScreen() {
@@ -37,9 +38,17 @@ export function LibraryScreen() {
       ) : (
         <ul className="exam-grid">
           {exams.map((exam) => {
-            const done = attempts.filter((a) => a.examId === exam.id && a.status === 'finished').length
+            const finished = attempts.filter((a) => a.examId === exam.id && a.status === 'finished')
+            const done = finished.length
+            const best = finished.filter((a) => a.mode !== 'review' && a.result?.percent != null).reduce<number | null>((m, a) => Math.max(m ?? 0, a.result!.percent!), null)
+            const hue = Array.from(exam.id).reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) % 360, 7)
+            const initials = exam.name.trim().split(/\s+/).filter((w) => /[\p{L}\p{N}]/u.test(w)).slice(0, 2).map((w) => w[0]!.toUpperCase()).join('') || 'B2'
             return (
               <li key={exam.id} className="card exam-card">
+                <div className="exam-cover" style={{ ['--hue' as string]: hue }} aria-hidden>
+                  <span className="exam-monogram">{initials}</span>
+                  {best !== null && <span className="exam-best"><CambridgeBadge percent={best} size="sm" /></span>}
+                </div>
                 <button type="button" className="exam-card-main" onClick={() => navigate({ name: 'exam', examId: exam.id })}>
                   <span className="exam-card-title">{exam.name}</span>
                   <span className="text-subtle text-sm">{t('library.imported', { date: formatDate(exam.importedAt) })} · {tn('library.attempts', done)}</span>

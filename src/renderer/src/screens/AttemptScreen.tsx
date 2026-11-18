@@ -259,6 +259,10 @@ function AttemptRunner({ initial, exam, paper }: { initial: Attempt; exam: Exam;
         </button>
       </header>
 
+      <div className="attempt-progress" role="progressbar" aria-label={t('attempt.progress')} aria-valuemin={0} aria-valuemax={allQuestions.length} aria-valuenow={allQuestions.length - unanswered}>
+        <span style={{ width: `${allQuestions.length ? ((allQuestions.length - unanswered) / allQuestions.length) * 100 : 0}%` }} />
+      </div>
+
       <div className={`attempt-body${paperHasMaterial ? '' : ' no-material'}`} style={{ ['--split' as string]: `${split * 100}%` }}>
         {paperHasMaterial && (
           <>

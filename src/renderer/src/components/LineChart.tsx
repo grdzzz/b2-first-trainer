@@ -26,6 +26,14 @@ export function LineChart({ series, height = 220 }: Props) {
   return (
     <figure className="chart">
       <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={t('home.chartLabel')} preserveAspectRatio="none">
+        <defs>
+          {entries.map(([type]) => (
+            <linearGradient key={type} id={`area-${type}`} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={`var(--paper-${type})`} stopOpacity="0.22" />
+              <stop offset="100%" stopColor={`var(--paper-${type})`} stopOpacity="0" />
+            </linearGradient>
+          ))}
+        </defs>
         {[0, 25, 50, 75, 100].map((v) => (
           <g key={v}>
             <line x1={pad.l} x2={W - pad.r} y1={y(v)} y2={y(v)} className="chart-grid" />
@@ -36,6 +44,13 @@ export function LineChart({ series, height = 220 }: Props) {
         {maxX !== minX && <text x={W - pad.r} y={H - 6} className="chart-axis" textAnchor="end">{formatDate(new Date(maxX).toISOString())}</text>}
         {entries.map(([type, pts]) => (
           <g key={type} style={{ color: `var(--paper-${type})` }}>
+            {pts.length > 1 && (
+              <path
+                d={`M ${x(pts[0].date)},${y(0)} ${pts.map((p) => `L ${x(p.date)},${y(p.percent)}`).join(' ')} L ${x(pts[pts.length - 1].date)},${y(0)} Z`}
+                fill={`url(#area-${type})`}
+                stroke="none"
+              />
+            )}
             {pts.length > 1 && <polyline fill="none" stroke="currentColor" strokeWidth={2.25} strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" points={pts.map((p) => `${x(p.date)},${y(p.percent)}`).join(' ')} />}
             {pts.map((p) => (
               <circle key={p.attemptId} cx={x(p.date)} cy={y(p.percent)} r={3.5} fill="var(--surface)" stroke="currentColor" strokeWidth={2} vectorEffect="non-scaling-stroke">

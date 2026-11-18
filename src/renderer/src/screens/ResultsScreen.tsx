@@ -8,6 +8,7 @@ import { countWords } from '@shared/grading'
 import { errorMessage, useApp } from '../lib/store'
 import { PaperBadge } from '../components/PaperBadge'
 import { CambridgeBadge } from '../components/CambridgeBadge'
+import { ProgressRing } from '../components/ProgressRing'
 import { SelfAssessment } from '../components/SelfAssessment'
 import { CopyButton } from '../components/CopyButton'
 import { AudioPlayer } from '../components/AudioPlayer'
@@ -103,9 +104,13 @@ export function ResultsScreen({ attemptId }: { attemptId: string }) {
       </header>
 
       <section className="score-hero card">
-        <div className="score-big">
-          {r.percent === null ? <span className="text-subtle">—</span> : <>{formatNumber(r.percent, 0)}<span className="score-unit">%</span></>}
-        </div>
+        {r.percent === null ? (
+          <div className="score-big"><span className="text-subtle">—</span></div>
+        ) : (
+          <ProgressRing value={r.percent} size={156} stroke={12} color={r.percent >= 60 ? 'var(--success)' : r.percent >= 40 ? 'var(--accent)' : 'var(--warning)'} label={`${Math.round(r.percent)} %`}>
+            <span className="score-big">{formatNumber(r.percent, 0)}<span className="score-unit">%</span></span>
+          </ProgressRing>
+        )}
         {r.percent !== null && (
           <div className="score-cam">
             <span className="score-cam-label">{t('cambridge.scale')}</span>

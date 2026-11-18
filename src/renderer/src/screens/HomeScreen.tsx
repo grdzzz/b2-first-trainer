@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
-import { ArrowRight, Clock, FolderPlus, PlayCircle, Trash2 } from 'lucide-react'
+import { ArrowRight, BookOpenCheck, CheckCircle2, Clock, FolderPlus, Play, PlayCircle, Timer, Trash2 } from 'lucide-react'
 import { progressSummary } from '@shared/stats'
-import { overallScale } from '@shared/cambridge'
+import { bandOfScale, overallScale } from '@shared/cambridge'
+import { ProgressRing } from '../components/ProgressRing'
 import { CambridgeBadge } from '../components/CambridgeBadge'
 import { PAPER_ORDER } from '@shared/types'
 import { errorMessage, useApp } from '../lib/store'
@@ -19,14 +20,25 @@ export function HomeScreen() {
   const recent = attempts.filter((a) => a.status === 'finished').slice(0, 5)
   const maxWeak = summary.weakCategories.slice(0, 6)
   const overall = overallScale(summary.averages.map((a) => a.average))
+  const lastExamId = attempts.find((a) => a.status === 'finished' && exams.some((e) => e.id === a.examId))?.examId ?? exams[0]?.id
+  const hour = new Date().getHours()
+  const greeting = hour < 6 ? t('home.greetNight') : hour < 14 ? t('home.greetMorning') : hour < 21 ? t('home.greetAfternoon') : t('home.greetNight')
 
   return (
     <div className="page">
-      <header className="page-header">
+      <header className="page-header home-header">
         <div>
-          <p className="eyebrow">{t('home.eyebrow')}</p>
-          <h1 className="h1">{t('home.title')}</h1>
+          <p className="eyebrow">{formatDate(new Date().toISOString(), { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+          <h1 className="h1">{greeting}</h1>
+          <p className="text-muted home-sub">
+            {overall !== null ? t('home.subWithScore', { score: overall }) : exams.length ? t('home.subStart') : t('home.subEmpty')}
+          </p>
         </div>
+        {lastExamId && (
+          <button type="button" className="btn btn-primary btn-lg" onClick={() => navigate({ name: 'exam', examId: lastExamId })}>
+            <Play size={18} aria-hidden /> {t('home.practice')}
+          </button>
+        )}
       </header>
 
       {exams.length === 0 && (
@@ -66,14 +78,17 @@ export function HomeScreen() {
 
       <section className="stats-row" aria-label={t('home.summary')}>
         <div className="stat">
+          <span className="stat-icon" aria-hidden><CheckCircle2 size={20} /></span>
           <span className="stat-value">{summary.finishedCount}</span>
           <span className="stat-label">{t('home.attemptsDone')}</span>
         </div>
         <div className="stat">
+          <span className="stat-icon" aria-hidden><BookOpenCheck size={20} /></span>
           <span className="stat-value">{summary.examsPracticed}</span>
           <span className="stat-label">{t('home.examsPracticed')}</span>
         </div>
         <div className="stat">
+          <span className="stat-icon" aria-hidden><Timer size={20} /></span>
           <span className="stat-value">
             {summary.totalMinutes < 60 ? <>{summary.totalMinutes}<span className="stat-unit"> {t('home.minutes')}</span></> : <>{formatNumber(summary.totalMinutes / 60, 1)}<span className="stat-unit"> h</span></>}
           </span>
@@ -83,15 +98,16 @@ export function HomeScreen() {
 
       {overall !== null && (
         <section className="card overall-card" aria-labelledby="overall-title">
-          <div>
+          <ProgressRing value={((overall - 122) / 68) * 100} size={132} stroke={11} color={`var(--band-${bandOfScale(overall).band})`} label={t('cambridge.overall')}>
+            <span className="overall-scale tabular">{overall}</span>
+            <span className="ring-caption">/ 190</span>
+          </ProgressRing>
+          <div className="overall-text">
             <p className="eyebrow" id="overall-title">{t('cambridge.overall')}</p>
-            <p className="overall-scale tabular">{overall}</p>
+            <CambridgeBadge scale={overall} showScale={false} />
             <p className="text-muted text-sm">{t('cambridge.overallHint')}</p>
           </div>
           <div className="overall-band">
-            <span className={`cam-badge cam-${overall >= 180 ? 'A' : overall >= 173 ? 'B' : overall >= 160 ? 'C' : overall >= 140 ? 'B1' : 'none'} cam-md`}>
-              <span className="cam-label">{overall >= 180 ? t('cambridge.grade', { band: 'A', cefr: 'C1' }) : overall >= 173 ? t('cambridge.grade', { band: 'B', cefr: 'B2' }) : overall >= 160 ? t('cambridge.grade', { band: 'C', cefr: 'B2' }) : overall >= 140 ? t('cambridge.b1') : t('cambridge.none')}</span>
-            </span>
             <div className="scale-track" aria-hidden>
               <span className="scale-mark" style={{ left: `${((overall - 122) / 68) * 100}%` }} />
               <span className="scale-tick" style={{ left: `${((160 - 122) / 68) * 100}%` }}>160</span>
@@ -116,8 +132,10 @@ export function HomeScreen() {
                   {a.average === null ? <span className="text-subtle">—</span> : <>{formatNumber(a.average, 0)}<span className="stat-unit">%</span></>}
                 </div>
                 <div className="meter" aria-hidden><span style={{ width: `${a.average ?? 0}%` }} /></div>
-                {a.average !== null && <CambridgeBadge percent={a.average} size="sm" />}
-                <span className="text-subtle text-sm">{tn('home.attemptsCount', a.attempts)}</span>
+                <div className="paper-card-foot">
+                  {a.average !== null ? <CambridgeBadge percent={a.average} size="sm" /> : <span />}
+                  <span className="text-subtle text-sm">{tn('home.attemptsCount', a.attempts)}</span>
+                </div>
               </div>
             )
           })}

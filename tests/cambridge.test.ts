@@ -23,3 +23,12 @@ describe('Cambridge English Scale', () => {
     expect(overallScale([null])).toBeNull()
   })
 })
+
+describe('bandOfScale', () => {
+  it('coincide con cambridgeResult', async () => {
+    const { bandOfScale } = await import('@shared/cambridge')
+    expect(bandOfScale(185)).toEqual({ band: 'A', cefr: 'C1' })
+    expect(bandOfScale(160)).toEqual({ band: 'C', cefr: 'B2' })
+    expect(bandOfScale(139)).toEqual({ band: 'none', cefr: '—' })
+  })
+})
