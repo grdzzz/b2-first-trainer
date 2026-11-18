@@ -6,7 +6,7 @@ cd "$(dirname "$0")/.."
 ROOT=$(pwd)
 VERSION=$(node -p "require('./package.json').version")
 SETUP="dist/B2-First-Trainer-${VERSION}-setup.exe"
-for f in "$SETUP" "$SETUP.blockmap" dist/latest.yml; do
+for f in "$SETUP" dist/latest.yml; do
   [ -f "$f" ] || { echo "Falta $f. Ejecuta antes: npx electron-builder --win nsis --x64 --publish never" >&2; exit 1; }
 done
 SIZE=$(stat -c %s "$SETUP")
@@ -19,7 +19,8 @@ git worktree add --detach "$WORK" >/dev/null
   cd "$WORK"
   git checkout -q --orphan descargas-tmp
   git rm -rfq . >/dev/null 2>&1 || true
-  cp "$ROOT/$SETUP" "$ROOT/$SETUP.blockmap" "$ROOT/dist/latest.yml" .
+  cp "$ROOT/$SETUP" "$ROOT/dist/latest.yml" .
+  [ -f "$ROOT/$SETUP.blockmap" ] && cp "$ROOT/$SETUP.blockmap" . || true
   cat > README.md <<MD
 # Descargas · B2 First Trainer ${VERSION}
 

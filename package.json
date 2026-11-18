@@ -86,7 +86,7 @@
       "artifactName": "B2-First-Trainer-${version}-setup.exe",
       "deleteAppDataOnUninstall": false,
       "runAfterFinish": true,
-      "differentialPackage": true
+      "differentialPackage": false
     },
     "linux": {
       "target": [
@@ -102,7 +102,6 @@
       "artifactName": "B2-First-Trainer-${version}-x86_64.AppImage",
       "synopsis": "Práctica del examen Cambridge B2 First"
     },
-    "compression": "maximum",
     "publish": [
       {
         "provider": "generic",
