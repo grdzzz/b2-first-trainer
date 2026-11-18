@@ -1,0 +1,54 @@
+# Publica el modelo Whisper (base.en, cuantizado) como "release" del repositorio, para que la app lo
+# descargue de aquí una sola vez y luego transcriba sin internet. Se ejecuta a mano una vez por versión del modelo.
+name: Publicar modelo Whisper
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  model:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      REPO_ID: Xenova/whisper-base.en
+      TAG: whisper-base-en-v1
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Descargar archivos del modelo
+        run: |
+          set -euo pipefail
+          mkdir -p model && cd model
+          base="https://huggingface.co/${REPO_ID}/resolve/main"
+          for f in config.json generation_config.json preprocessor_config.json tokenizer.json tokenizer_config.json \
+                   onnx/encoder_model_quantized.onnx onnx/decoder_model_merged_quantized.onnx; do
+            out=$(basename "$f")
+            curl -fsSL --retry 3 -o "$out" "$base/$f"
+            echo "$f -> $out ($(stat -c %s "$out") bytes)"
+          done
+          python3 - <<'PY'
+          import hashlib, json, os
+          files = {
+            "config.json": "config.json", "generation_config.json": "generation_config.json",
+            "preprocessor_config.json": "preprocessor_config.json", "tokenizer.json": "tokenizer.json",
+            "tokenizer_config.json": "tokenizer_config.json",
+            "encoder_model_quantized.onnx": "onnx/encoder_model_quantized.onnx",
+            "decoder_model_merged_quantized.onnx": "onnx/decoder_model_merged_quantized.onnx",
+          }
+          manifest = {"model": "whisper-base.en", "source": os.environ["REPO_ID"], "files": []}
+          for asset, dest in files.items():
+              data = open(asset, "rb").read()
+              manifest["files"].append({"asset": asset, "path": dest, "size": len(data), "sha256": hashlib.sha256(data).hexdigest()})
+          json.dump(manifest, open("manifest.json", "w"), indent=2)
+          print(json.dumps(manifest, indent=2))
+          PY
+
+      - name: Crear la release con el modelo
+        run: |
+          set -euo pipefail
+          gh release delete "$TAG" --repo "$GITHUB_REPOSITORY" --yes --cleanup-tag 2>/dev/null || true
+          gh release create "$TAG" model/* --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+            --title "Modelo Whisper base.en (transcripción local)" \
+            --notes "Modelo de transcripción que la app descarga una vez para Speaking. Fuente: ${REPO_ID} (licencia MIT de OpenAI Whisper)."

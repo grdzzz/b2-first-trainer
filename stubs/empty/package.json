@@ -1,0 +1,6 @@
+{
+  "name": "empty-native-stub",
+  "version": "0.0.0",
+  "description": "Sustituye dependencias nativas de @huggingface/transformers que la app no usa (solo se usa su versión web).",
+  "main": "index.js"
+}
