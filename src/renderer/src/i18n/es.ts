@@ -342,6 +342,15 @@ export const es = {
     deleteTitle: '¿Eliminar este intento?',
     deleteMessage: 'Se borrarán sus respuestas y grabaciones. No se puede deshacer.'
   },
+  cambridge: {
+    scale: 'Cambridge English Scale (estimada)',
+    grade: 'Grade {band} · {cefr}',
+    b1: 'Nivel B1',
+    none: 'Sin certificado',
+    hint: 'Estimación a partir del porcentaje: 60 % ≈ 160 (aprobado B2), 75 % ≈ 173, 80 % ≈ 180 (C1).',
+    overall: 'Nota global estimada',
+    overallHint: 'Media de tus papers en la Cambridge English Scale. 160 = aprobado B2 · 180 = C1.'
+  },
   updates: {
     title: 'Actualizaciones',
     version: 'Versión {version}',

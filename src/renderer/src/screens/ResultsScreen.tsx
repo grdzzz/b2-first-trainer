@@ -7,6 +7,7 @@ import { buildSpeakingCorrectionPrompt, buildWritingCorrectionPrompt } from '@sh
 import { countWords } from '@shared/grading'
 import { errorMessage, useApp } from '../lib/store'
 import { PaperBadge } from '../components/PaperBadge'
+import { CambridgeBadge } from '../components/CambridgeBadge'
 import { SelfAssessment } from '../components/SelfAssessment'
 import { CopyButton } from '../components/CopyButton'
 import { AudioPlayer } from '../components/AudioPlayer'
@@ -105,6 +106,12 @@ export function ResultsScreen({ attemptId }: { attemptId: string }) {
         <div className="score-big">
           {r.percent === null ? <span className="text-subtle">—</span> : <>{formatNumber(r.percent, 0)}<span className="score-unit">%</span></>}
         </div>
+        {r.percent !== null && (
+          <div className="score-cam">
+            <span className="score-cam-label">{t('cambridge.scale')}</span>
+            <CambridgeBadge percent={r.percent} />
+          </div>
+        )}
         <div className="score-meta">
           {r.maxScore > 0 ? <p className="h-small">{t('results.points', { score: formatNumber(r.score, 1), max: formatNumber(r.maxScore, 1) })}</p> : <p className="text-muted">{auto ? t('results.noKeyAtAll') : t('results.selfHint')}</p>}
           <div className="part-scores">

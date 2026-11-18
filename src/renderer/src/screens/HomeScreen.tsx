@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react'
 import { ArrowRight, Clock, FolderPlus, PlayCircle, Trash2 } from 'lucide-react'
 import { progressSummary } from '@shared/stats'
+import { overallScale } from '@shared/cambridge'
+import { CambridgeBadge } from '../components/CambridgeBadge'
 import { PAPER_ORDER } from '@shared/types'
 import { errorMessage, useApp } from '../lib/store'
 import { ConfirmDialog } from '../components/Modal'
@@ -16,6 +18,7 @@ export function HomeScreen() {
   const inProgress = attempts.filter((a) => a.status === 'in-progress')
   const recent = attempts.filter((a) => a.status === 'finished').slice(0, 5)
   const maxWeak = summary.weakCategories.slice(0, 6)
+  const overall = overallScale(summary.averages.map((a) => a.average))
 
   return (
     <div className="page">
@@ -78,6 +81,26 @@ export function HomeScreen() {
         </div>
       </section>
 
+      {overall !== null && (
+        <section className="card overall-card" aria-labelledby="overall-title">
+          <div>
+            <p className="eyebrow" id="overall-title">{t('cambridge.overall')}</p>
+            <p className="overall-scale tabular">{overall}</p>
+            <p className="text-muted text-sm">{t('cambridge.overallHint')}</p>
+          </div>
+          <div className="overall-band">
+            <span className={`cam-badge cam-${overall >= 180 ? 'A' : overall >= 173 ? 'B' : overall >= 160 ? 'C' : overall >= 140 ? 'B1' : 'none'} cam-md`}>
+              <span className="cam-label">{overall >= 180 ? t('cambridge.grade', { band: 'A', cefr: 'C1' }) : overall >= 173 ? t('cambridge.grade', { band: 'B', cefr: 'B2' }) : overall >= 160 ? t('cambridge.grade', { band: 'C', cefr: 'B2' }) : overall >= 140 ? t('cambridge.b1') : t('cambridge.none')}</span>
+            </span>
+            <div className="scale-track" aria-hidden>
+              <span className="scale-mark" style={{ left: `${((overall - 122) / 68) * 100}%` }} />
+              <span className="scale-tick" style={{ left: `${((160 - 122) / 68) * 100}%` }}>160</span>
+              <span className="scale-tick" style={{ left: `${((180 - 122) / 68) * 100}%` }}>180</span>
+            </div>
+          </div>
+        </section>
+      )}
+
       <section aria-labelledby="avg-title">
         <h2 id="avg-title" className="section-title">{t('home.averages')}</h2>
         <div className="paper-grid">
@@ -93,6 +116,7 @@ export function HomeScreen() {
                   {a.average === null ? <span className="text-subtle">—</span> : <>{formatNumber(a.average, 0)}<span className="stat-unit">%</span></>}
                 </div>
                 <div className="meter" aria-hidden><span style={{ width: `${a.average ?? 0}%` }} /></div>
+                {a.average !== null && <CambridgeBadge percent={a.average} size="sm" />}
                 <span className="text-subtle text-sm">{tn('home.attemptsCount', a.attempts)}</span>
               </div>
             )
