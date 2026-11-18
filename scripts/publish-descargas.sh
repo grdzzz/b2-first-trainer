@@ -9,7 +9,7 @@ SETUP="dist/B2-First-Trainer-${VERSION}-setup.exe"
 for f in "$SETUP" dist/latest.yml; do
   [ -f "$f" ] || { echo "Falta $f. Ejecuta antes: npx electron-builder --win nsis --x64 --publish never" >&2; exit 1; }
 done
-SIZE=$(stat -c %s "$SETUP")
+SIZE=$(wc -c < "$SETUP" | tr -d " ")
 [ "$SIZE" -lt 99000000 ] || { echo "El instalador ocupa $SIZE bytes: supera el límite de GitHub (100 MB)." >&2; exit 1; }
 
 WORK=$(mktemp -d)

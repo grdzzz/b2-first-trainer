@@ -121,6 +121,8 @@ Se instala solo para tu usuario (no pide administrador). Tus datos se conservan 
 
    Pasa los tests, genera el instalador y ejecuta `scripts/publish-descargas.sh`. El script sustituye el contenido de la rama `descargas` por el instalador nuevo, su `.blockmap` y `latest.yml` (de ahí lee la app las actualizaciones). La rama solo guarda la última versión. El instalador debe ocupar menos de 100 MB, el límite de GitHub; se usa la compresión máxima.
 
+**Desde GitHub (recomendado):** en la pestaña *Actions* del repositorio, ejecuta el flujo «Publicar versión de Windows» (`.github/workflows/release-windows.yml`). Compila en un Windows real, pasa los tests y publica en la rama `descargas`. No necesita Wine.
+
 La versión portable y la de Linux no se instalan solas: avisan de que hay una versión nueva y abren la página de descarga.
 
 ## Formato de la clave de respuestas
