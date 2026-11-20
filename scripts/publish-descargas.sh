@@ -24,7 +24,7 @@ else
   [ -f "$SETUP" ] || { echo "Falta $SETUP." >&2; exit 1; }
   SIZE=$(wc -c < "$SETUP" | tr -d " ")
   [ "$SIZE" -lt 99000000 ] || { echo "El instalador ocupa $SIZE bytes: supera el límite de GitHub (100 MB). Publica con RELEASE_DOWNLOAD_URL." >&2; exit 1; }
-  DOWNLOAD="https://github.com/grdzzz/first/raw/descargas/${SETUP_NAME}"
+  DOWNLOAD="https://github.com/grdzzz/b2-first-trainer/raw/descargas/${SETUP_NAME}"
 fi
 
 WORK=$(mktemp -d)
@@ -43,7 +43,7 @@ git worktree add --detach "$WORK" >/dev/null
 # Descargas · B2 First Trainer ${VERSION}
 
 Todas las versiones (Windows, macOS y Linux) están en la página de la última release:
-**https://github.com/grdzzz/first/releases/latest**
+**https://github.com/grdzzz/b2-first-trainer/releases/latest**
 
 **Instalador para Windows:** [${SETUP_NAME}](${DOWNLOAD})
 

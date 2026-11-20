@@ -7,7 +7,7 @@ import path from 'node:path'
 import type { WhisperStatus } from '../shared/whisper'
 import { WHISPER_MODEL_ID } from '../shared/whisper'
 
-const MODEL_BASE_URL = process.env.B2FT_WHISPER_URL || 'https://github.com/grdzzz/first/releases/download/whisper-base-en-v1'
+const MODEL_BASE_URL = process.env.B2FT_WHISPER_URL || 'https://github.com/grdzzz/b2-first-trainer/releases/download/whisper-base-en-v1'
 
 interface ManifestFile {
   asset: string

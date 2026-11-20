@@ -46,7 +46,7 @@ jobs:
           | **macOS con procesador Intel** | `B2-First-Trainer-macOS-Intel.dmg` |
           | **Linux (64 bits)** | `B2-First-Trainer-Linux.AppImage` |
 
-          Instrucciones de instalación en el [README](https://github.com/grdzzz/first#descargar).
+          Instrucciones de instalación en el [README](https://github.com/grdzzz/b2-first-trainer#descargar).
           MD
 
   windows:

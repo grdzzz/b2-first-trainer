@@ -1,8 +1,8 @@
 // Tipos y utilidades de actualización (lógica pura).
 
 /** Dónde se publican las versiones: rama `descargas` del repositorio (pública). */
-export const UPDATE_BASE_URL = 'https://raw.githubusercontent.com/grdzzz/first/descargas'
-export const DOWNLOAD_PAGE_URL = 'https://github.com/grdzzz/first/releases/latest'
+export const UPDATE_BASE_URL = 'https://raw.githubusercontent.com/grdzzz/b2-first-trainer/descargas'
+export const DOWNLOAD_PAGE_URL = 'https://github.com/grdzzz/b2-first-trainer/releases/latest'
 
 export type UpdateStatus =
   | { state: 'idle' }

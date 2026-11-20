@@ -1,5 +1,7 @@
 # B2 First Trainer
 
+[![Última versión](https://img.shields.io/github/v/release/grdzzz/b2-first-trainer?label=versi%C3%B3n&color=2e46c0)](https://github.com/grdzzz/b2-first-trainer/releases/latest) ![Windows · macOS · Linux](https://img.shields.io/badge/Windows%20%C2%B7%20macOS%20%C2%B7%20Linux-escritorio-555)
+
 Aplicación de escritorio para **Windows, macOS y Linux** para practicar el examen **Cambridge B2 First** con tus propios materiales. Funciona sin conexión: no tiene cuentas, ni nube, ni servicios de pago.
 
 > La app **no incluye contenido de exámenes**. Tú importas tus propios PDF, audios y claves de respuestas.
@@ -10,12 +12,12 @@ Estos enlaces descargan siempre **la última versión**:
 
 | Sistema | Descarga |
 |---|---|
-| 🪟 **Windows 10 y 11** | [**Descargar instalador (.exe)**](https://github.com/grdzzz/first/releases/latest/download/B2-First-Trainer-Windows-Setup.exe) |
-| 🍎 **macOS con chip Apple (M1, M2, M3, M4)** | [**Descargar (.dmg)**](https://github.com/grdzzz/first/releases/latest/download/B2-First-Trainer-macOS-AppleSilicon.dmg) |
-| 🍎 **macOS con procesador Intel** | [**Descargar (.dmg)**](https://github.com/grdzzz/first/releases/latest/download/B2-First-Trainer-macOS-Intel.dmg) |
-| 🐧 **Linux (64 bits)** | [**Descargar (.AppImage)**](https://github.com/grdzzz/first/releases/latest/download/B2-First-Trainer-Linux.AppImage) |
+| 🪟 **Windows 10 y 11** | [**Descargar instalador (.exe)**](https://github.com/grdzzz/b2-first-trainer/releases/latest/download/B2-First-Trainer-Windows-Setup.exe) |
+| 🍎 **macOS con chip Apple (M1, M2, M3, M4)** | [**Descargar (.dmg)**](https://github.com/grdzzz/b2-first-trainer/releases/latest/download/B2-First-Trainer-macOS-AppleSilicon.dmg) |
+| 🍎 **macOS con procesador Intel** | [**Descargar (.dmg)**](https://github.com/grdzzz/b2-first-trainer/releases/latest/download/B2-First-Trainer-macOS-Intel.dmg) |
+| 🐧 **Linux (64 bits)** | [**Descargar (.AppImage)**](https://github.com/grdzzz/b2-first-trainer/releases/latest/download/B2-First-Trainer-Linux.AppImage) |
 
-Todas las versiones, con sus notas, están en [**Releases**](https://github.com/grdzzz/first/releases/latest), en la columna derecha de esta página.
+Todas las versiones, con sus notas, están en [**Releases**](https://github.com/grdzzz/b2-first-trainer/releases/latest), en la columna derecha de esta página.
 
 **¿Qué Mac tengo?** Menú Apple (la manzana, arriba a la izquierda) › «Acerca de este Mac». Si pone «Chip Apple M…», descarga la versión Apple; si pone «Procesador Intel…», la versión Intel.
 

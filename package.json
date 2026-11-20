@@ -109,7 +109,7 @@
     "publish": [
       {
         "provider": "generic",
-        "url": "https://raw.githubusercontent.com/grdzzz/first/descargas",
+        "url": "https://raw.githubusercontent.com/grdzzz/b2-first-trainer/descargas",
         "channel": "latest"
       }
     ],
