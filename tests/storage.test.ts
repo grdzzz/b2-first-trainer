@@ -132,3 +132,62 @@ describe('DataStore', () => {
     expect(await readdir(path.join(out, 'exams'))).toHaveLength(1)
   })
 })
+
+import { copyAppData, hasAppData, otherDeviceLock, releaseLock, resolveChosenFolder, writeLock } from '../src/main/storage'
+import { mkdir, utimes } from 'node:fs/promises'
+
+describe('carpetas sincronizadas', () => {
+  it('ignora copias en conflicto: prefiere el archivo normal y si no, la copia más reciente', async () => {
+    const s = new DataStore(dir)
+    await s.init()
+    const exam = createExam('Original', ['reading'])
+    await s.saveExam(exam)
+    await writeFile(path.join(s.examsDir, `${exam.id}-PORTATIL.json`), JSON.stringify({ ...exam, name: 'Copia en conflicto' }))
+    let r = await s.listExams()
+    expect(r.items.map((e) => e.name)).toEqual(['Original'])
+    // Sin el archivo normal, se usa la copia más reciente
+    await rm(path.join(s.examsDir, `${exam.id}.json`))
+    await writeFile(path.join(s.examsDir, `${exam.id} (1).json`), JSON.stringify({ ...exam, name: 'Más reciente' }))
+    const old = new Date(Date.now() - 60000)
+    await utimes(path.join(s.examsDir, `${exam.id}-PORTATIL.json`), old, old)
+    r = await s.listExams()
+    expect(r.items.map((e) => e.name)).toEqual(['Más reciente'])
+  })
+
+  it('elige carpeta: usa datos existentes o propone la subcarpeta «B2 First Trainer»', async () => {
+    const empty = path.join(dir, 'OneDrive')
+    await mkdir(empty)
+    expect(await resolveChosenFolder(empty)).toEqual({ target: path.join(empty, 'B2 First Trainer'), hasData: false })
+    const s = new DataStore(path.join(empty, 'B2 First Trainer'))
+    await s.init()
+    await s.saveSettings({ ...DEFAULT_SETTINGS })
+    expect(await resolveChosenFolder(empty)).toEqual({ target: path.join(empty, 'B2 First Trainer'), hasData: true })
+    expect(await resolveChosenFolder(path.join(empty, 'B2 First Trainer'))).toEqual({ target: path.join(empty, 'B2 First Trainer'), hasData: true })
+  })
+
+  it('copia los datos completos sin tocar el original y se niega a sobrescribir', async () => {
+    const src = new DataStore(path.join(dir, 'local'))
+    await src.init()
+    await src.saveExam(createExam('E', ['reading']))
+    await writeFile(path.join(src.root, 'basura.tmp'), 'x')
+    const dest = path.join(dir, 'nube', 'B2 First Trainer')
+    const r = await copyAppData(src.root, dest)
+    expect(r.files).toBe(1)
+    expect(await hasAppData(dest)).toBe(true)
+    expect(await hasAppData(src.root)).toBe(true)
+    await expect(copyAppData(src.root, dest)).rejects.toThrow(/ya contiene/)
+    await expect(copyAppData(src.root, path.join(src.root, 'dentro'))).rejects.toThrow(/dentro/)
+  })
+
+  it('bloqueo: detecta otro ordenador activo, ignora el propio y los caducados', async () => {
+    const now = new Date('2026-01-01T10:00:00Z')
+    await writeLock(dir, { host: 'PORTATIL', pid: 1, heartbeat: new Date(now.getTime() - 30000).toISOString() })
+    expect((await otherDeviceLock(dir, 'SOBREMESA', now))?.host).toBe('PORTATIL')
+    expect(await otherDeviceLock(dir, 'PORTATIL', now)).toBeNull()
+    expect(await otherDeviceLock(dir, 'SOBREMESA', new Date(now.getTime() + 5 * 60000))).toBeNull()
+    await releaseLock(dir, 'SOBREMESA', 1)
+    expect(await otherDeviceLock(dir, 'SOBREMESA', now)).not.toBeNull()
+    await releaseLock(dir, 'PORTATIL', 1)
+    expect(await otherDeviceLock(dir, 'SOBREMESA', now)).toBeNull()
+  })
+})

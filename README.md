@@ -44,6 +44,7 @@ En macOS y Linux la app avisa cuando hay una versión nueva y te lleva a la desc
 
 ## Qué hace
 
+- **Bienvenida y examen de ejemplo.** La primera vez la app te pregunta tu nombre (opcional) y te ofrece un **examen de ejemplo** corto con un **recorrido guiado** por la app. El ejemplo es material original (no de Cambridge), con Reading & Use of English, Writing, Listening (voz sintética) y Speaking. El recorrido se puede repetir y el ejemplo volver a añadir desde Ajustes.
 - **Biblioteca de exámenes.** Crea un examen con la estructura habitual del B2 First (Reading & Use of English, Writing, Listening y Speaking). Puedes cambiar el número de partes, el número de preguntas, el tipo de respuesta, las opciones, los puntos y el tiempo de cada paper.
 - **Importación de archivos.** Puedes importar un PDF para todo el paper o uno por parte, y audio (mp3, m4a, wav, ogg, webm, flac…) para Listening. Los archivos se copian a la carpeta de datos de la app.
 - **Detección automática desde el PDF.** Al importar el PDF de un paper, la app lee su texto y propone las partes y su página, los números de pregunta, el tipo de tarea, el número de opciones y los puntos. También el tiempo, el límite de palabras y las consignas de Writing y Speaking, y la clave si el PDF incluye una sección «Answer key». Muestra lo que ha encontrado y solo lo aplica si confirmas. Funciona con PDF digitales (con texto seleccionable), no con escaneos. Se puede repetir con el botón «Detectar desde el PDF».
@@ -259,6 +260,19 @@ Todo se guarda en archivos JSON dentro de la carpeta de datos de la app:
 - **Escritura atómica.** Cada guardado se escribe en un archivo temporal, se vuelca a disco y después se renombra sobre el original. Si la app se cierra a mitad, el archivo anterior queda intacto.
 - **Autoguardado.** Las respuestas se guardan cada 3 segundos (se puede cambiar en Ajustes). También se guardan al salir del intento, al minimizar y antes de cerrar la ventana. Un intento sin terminar se puede continuar desde Inicio.
 - Si un archivo está dañado, se aparta a `corrupt\`, se avisa y la app sigue funcionando.
+
+### Usar tus datos en varios ordenadores
+
+Sin cuentas ni servidores: la app puede guardar sus datos en una carpeta de **OneDrive, Google Drive, iCloud Drive o Dropbox**, y ese servicio la sincroniza entre tus ordenadores.
+
+1. En el primer ordenador, ve a **Ajustes › Sincronizar entre ordenadores › Elegir carpeta…** y elige una carpeta de tu nube. La app crea dentro `B2 First Trainer`, **copia allí tus datos** (comprueba que la copia está completa) y se reinicia usándola. Tus datos originales no se borran.
+2. En el otro ordenador, instala la app y elige **la misma carpeta**. La app detecta que ya hay datos y los usa.
+
+Detalles:
+- Si la app está abierta en otro ordenador con la misma carpeta, te avisa al abrirla. Lo mejor es no usarla en los dos a la vez.
+- Si la nube crea «copias en conflicto» de un archivo, la app las ignora y usa el archivo correcto.
+- Si la carpeta no está disponible (por ejemplo, la nube no está abierta), la app no muestra una biblioteca vacía: avisa y te deja reintentar o volver a la carpeta de este ordenador.
+- El modelo de transcripción (Whisper) no se sincroniza; cada ordenador lo descarga una vez.
 
 ### Hacer una copia de seguridad
 

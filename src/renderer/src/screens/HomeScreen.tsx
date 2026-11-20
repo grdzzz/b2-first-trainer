@@ -3,17 +3,19 @@ import { ArrowRight, BookOpenCheck, CheckCircle2, Clock, FolderPlus, Play, PlayC
 import { progressSummary } from '@shared/stats'
 import { bandOfScale, overallScale } from '@shared/cambridge'
 import { ProgressRing } from '../components/ProgressRing'
+import { CountUp } from '../components/CountUp'
 import { CambridgeBadge } from '../components/CambridgeBadge'
 import { PAPER_ORDER } from '@shared/types'
 import { errorMessage, useApp } from '../lib/store'
 import { ConfirmDialog } from '../components/Modal'
 import { LineChart } from '../components/LineChart'
 import { PaperBadge, PaperIcon, paperLabel } from '../components/PaperBadge'
-import { formatDate, formatNumber, t, tn } from '../i18n'
+import { formatDate, t, tn } from '../i18n'
 import { modeLabel, scoreLabel } from '../lib/format'
 
 export function HomeScreen() {
-  const { attempts, exams, navigate, deleteAttempt, notify } = useApp()
+  const { attempts, exams, navigate, deleteAttempt, notify, settings } = useApp()
+  const firstName = settings.userName.split(' ')[0]
   const [discard, setDiscard] = useState<string | null>(null)
   const summary = useMemo(() => progressSummary(attempts), [attempts])
   const inProgress = attempts.filter((a) => a.status === 'in-progress')
@@ -29,7 +31,7 @@ export function HomeScreen() {
       <header className="page-header home-header">
         <div>
           <p className="eyebrow">{formatDate(new Date().toISOString(), { weekday: 'long', day: 'numeric', month: 'long' })}</p>
-          <h1 className="h1">{greeting}</h1>
+          <h1 className="h1">{firstName ? `${greeting}, ${firstName}` : greeting}</h1>
           <p className="text-muted home-sub">
             {overall !== null ? t('home.subWithScore', { score: overall }) : exams.length ? t('home.subStart') : t('home.subEmpty')}
           </p>
@@ -79,18 +81,18 @@ export function HomeScreen() {
       <section className="stats-row" aria-label={t('home.summary')}>
         <div className="stat">
           <span className="stat-icon" aria-hidden><CheckCircle2 size={20} /></span>
-          <span className="stat-value">{summary.finishedCount}</span>
+          <span className="stat-value"><CountUp value={summary.finishedCount} /></span>
           <span className="stat-label">{t('home.attemptsDone')}</span>
         </div>
         <div className="stat">
           <span className="stat-icon" aria-hidden><BookOpenCheck size={20} /></span>
-          <span className="stat-value">{summary.examsPracticed}</span>
+          <span className="stat-value"><CountUp value={summary.examsPracticed} /></span>
           <span className="stat-label">{t('home.examsPracticed')}</span>
         </div>
         <div className="stat">
           <span className="stat-icon" aria-hidden><Timer size={20} /></span>
           <span className="stat-value">
-            {summary.totalMinutes < 60 ? <>{summary.totalMinutes}<span className="stat-unit"> {t('home.minutes')}</span></> : <>{formatNumber(summary.totalMinutes / 60, 1)}<span className="stat-unit"> h</span></>}
+            {summary.totalMinutes < 60 ? <><CountUp value={summary.totalMinutes} /><span className="stat-unit"> {t('home.minutes')}</span></> : <><CountUp value={summary.totalMinutes / 60} decimals={1} /><span className="stat-unit"> h</span></>}
           </span>
           <span className="stat-label">{t('home.timeStudied')}</span>
         </div>
@@ -99,7 +101,7 @@ export function HomeScreen() {
       {overall !== null && (
         <section className="card overall-card" aria-labelledby="overall-title">
           <ProgressRing value={((overall - 122) / 68) * 100} size={132} stroke={11} color={`var(--band-${bandOfScale(overall).band})`} label={t('cambridge.overall')}>
-            <span className="overall-scale tabular">{overall}</span>
+            <span className="overall-scale tabular"><CountUp value={overall} duration={1100} /></span>
             <span className="ring-caption">/ 190</span>
           </ProgressRing>
           <div className="overall-text">
@@ -129,7 +131,7 @@ export function HomeScreen() {
                   <span>{paperLabel(type)}</span>
                 </div>
                 <div className="paper-card-value">
-                  {a.average === null ? <span className="text-subtle">—</span> : <>{formatNumber(a.average, 0)}<span className="stat-unit">%</span></>}
+                  {a.average === null ? <span className="text-subtle">—</span> : <><CountUp value={a.average} /><span className="stat-unit">%</span></>}
                 </div>
                 <div className="meter" aria-hidden><span style={{ width: `${a.average ?? 0}%` }} /></div>
                 <div className="paper-card-foot">

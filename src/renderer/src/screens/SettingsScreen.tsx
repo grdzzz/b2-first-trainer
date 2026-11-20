@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Download, FolderOpen, HardDriveDownload, Monitor, Moon, RefreshCw, Sun } from 'lucide-react'
+import { BookOpenCheck, Cloud, Compass, Download, FolderOpen, FolderSync, HardDriveDownload, Monitor, Moon, RefreshCw, Sun } from 'lucide-react'
+import type { DataLocation } from '@shared/api'
+import { Modal } from '../components/Modal'
 import type { AppInfo } from '@shared/api'
 import type { ThemePreference } from '@shared/types'
 import { errorMessage, useApp } from '../lib/store'
@@ -37,6 +39,8 @@ export function SettingsScreen() {
           <h1 className="h1">{t('settings.title')}</h1>
         </div>
       </header>
+
+      <ProfileSection />
 
       <section className="card settings-section" aria-labelledby="s-appearance">
         <h2 id="s-appearance" className="section-title">{t('settings.appearance')}</h2>
@@ -107,6 +111,8 @@ export function SettingsScreen() {
         </div>
         <p className="text-subtle text-sm">{t('settings.restoreHint')}</p>
       </section>
+
+      <SyncSection />
 
       <TranscriptionSection />
 
@@ -211,6 +217,148 @@ function TranscriptionSection() {
           </button>
         )}
       </div>
+    </section>
+  )
+}
+
+function ProfileSection() {
+  const { settings, updateSettings, exams, createExample, navigate, setTourStep, notify } = useApp()
+  const [name, setName] = useState(settings.userName)
+  useEffect(() => setName(settings.userName), [settings.userName])
+  const hasExample = exams.some((e) => e.isExample)
+  return (
+    <section className="card settings-section" aria-labelledby="s-profile">
+      <h2 id="s-profile" className="section-title">{t('settings.profile')}</h2>
+      <div className="setting">
+        <div>
+          <label className="setting-name" htmlFor="user-name">{t('settings.name')}</label>
+          <p className="setting-desc">{t('settings.nameDesc')}</p>
+        </div>
+        <input
+          id="user-name"
+          className="input name-input"
+          value={name}
+          maxLength={40}
+          placeholder={t('onboarding.namePlaceholder')}
+          onChange={(e) => setName(e.target.value)}
+          onBlur={() => name !== settings.userName && void updateSettings({ userName: name.replace(/\s+/g, ' ').trim() })}
+          onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+        />
+      </div>
+      <div className="setting">
+        <div>
+          <p className="setting-name">{t('settings.help')}</p>
+          <p className="setting-desc">{t('settings.helpDesc')}</p>
+        </div>
+        <div className="row-gap">
+          <button type="button" className="btn btn-secondary" onClick={() => setTourStep(0)}>
+            <Compass size={16} aria-hidden /> {t('settings.tour')}
+          </button>
+          {!hasExample && (
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={async () => {
+                try {
+                  const exam = await createExample()
+                  notify('success', t('settings.exampleAdded'))
+                  navigate({ name: 'exam', examId: exam.id })
+                } catch (e) {
+                  notify('error', errorMessage(e))
+                }
+              }}
+            >
+              <BookOpenCheck size={16} aria-hidden /> {t('settings.addExample')}
+            </button>
+          )}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+type SyncDialog = { kind: 'use' | 'move'; target: string } | { kind: 'reset' } | null
+
+function SyncSection() {
+  const { notify } = useApp()
+  const [loc, setLoc] = useState<DataLocation | null>(null)
+  const [dialog, setDialog] = useState<SyncDialog>(null)
+  const [busy, setBusy] = useState(false)
+  useEffect(() => {
+    window.api.getDataLocation().then(setLoc).catch(() => undefined)
+  }, [])
+
+  const choose = async () => {
+    try {
+      const res = await window.api.chooseDataFolder()
+      if (!res) return
+      if (loc && res.target === loc.path) {
+        notify('info', t('sync.sameFolder'))
+        return
+      }
+      setDialog({ kind: res.hasData ? 'use' : 'move', target: res.target })
+    } catch (e) {
+      notify('error', errorMessage(e))
+    }
+  }
+  const apply = async () => {
+    if (!dialog) return
+    setBusy(true)
+    try {
+      if (dialog.kind === 'reset') await window.api.resetDataFolder()
+      else await window.api.applyDataFolder(dialog.target, dialog.kind)
+      // La app se reinicia sola.
+    } catch (e) {
+      setBusy(false)
+      setDialog(null)
+      notify('error', t('sync.failed', { error: errorMessage(e) }))
+    }
+  }
+
+  return (
+    <section className="card settings-section" aria-labelledby="s-sync-title" id="s-sync">
+      <h2 id="s-sync-title" className="section-title">{t('sync.title')}</h2>
+      <p className="setting-desc">{t('sync.intro')}</p>
+      <div className="setting">
+        <div>
+          <p className="setting-name">{loc?.isDefault ? t('sync.local') : t('sync.custom')}</p>
+          <p className="setting-desc path">{loc?.path ?? '…'}</p>
+        </div>
+        <div className="row-gap">
+          <button type="button" className="btn btn-primary" onClick={choose}>
+            <FolderSync size={16} aria-hidden /> {t('sync.choose')}
+          </button>
+          {loc && !loc.isDefault && (
+            <button type="button" className="btn btn-ghost" onClick={() => setDialog({ kind: 'reset' })}>{t('sync.backLocal')}</button>
+          )}
+        </div>
+      </div>
+      <ol className="sync-steps">
+        <li><Cloud size={15} aria-hidden /> {t('sync.step1')}</li>
+        <li><Cloud size={15} aria-hidden /> {t('sync.step2')}</li>
+        <li><Cloud size={15} aria-hidden /> {t('sync.step3')}</li>
+      </ol>
+      <p className="text-subtle text-sm">{t('sync.note')}</p>
+
+      <Modal
+        open={dialog !== null}
+        size="sm"
+        title={dialog?.kind === 'use' ? t('sync.useTitle') : dialog?.kind === 'move' ? t('sync.moveTitle') : t('sync.resetTitle')}
+        onClose={() => !busy && setDialog(null)}
+        footer={
+          <>
+            <button type="button" className="btn btn-ghost" onClick={() => setDialog(null)} disabled={busy}>{t('common.cancel')}</button>
+            <button type="button" className="btn btn-primary" onClick={apply} disabled={busy} autoFocus>
+              {busy ? t('sync.working') : dialog?.kind === 'use' ? t('sync.useConfirm') : dialog?.kind === 'move' ? t('sync.moveConfirm') : t('sync.resetConfirm')}
+            </button>
+          </>
+        }
+      >
+        {dialog && dialog.kind !== 'reset' && <p className="path-box">{dialog.target}</p>}
+        <p className="text-muted">
+          {dialog?.kind === 'use' ? t('sync.useText') : dialog?.kind === 'move' ? t('sync.moveText') : t('sync.resetText', { path: loc?.defaultPath ?? '' })}
+        </p>
+      </Modal>
     </section>
   )
 }

@@ -21,6 +21,15 @@ export interface Toast {
 interface AppState {
   ready: boolean
   loadError: string | null
+  /** Carpeta de datos elegida que no está disponible (nube no montada…). */
+  missingDataPath: string | null
+  /** Otro ordenador tiene abierta la misma carpeta de datos. */
+  lockConflict: { host: string; heartbeat: string } | null
+  dismissLockConflict(): void
+  /** Paso actual del recorrido guiado (null = cerrado). */
+  tourStep: number | null
+  setTourStep(step: number | null): void
+  createExample(): Promise<Exam>
   settings: Settings
   exams: Exam[]
   attempts: Attempt[]
@@ -52,6 +61,9 @@ export function errorMessage(e: unknown): string {
 export function AppProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
+  const [missingDataPath, setMissingDataPath] = useState<string | null>(null)
+  const [lockConflict, setLockConflict] = useState<{ host: string; heartbeat: string } | null>(null)
+  const [tourStep, setTourStep] = useState<number | null>(null)
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS)
   const [exams, setExams] = useState<Exam[]>([])
   const [attempts, setAttempts] = useState<Attempt[]>([])
@@ -73,6 +85,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const reload = useCallback(async () => {
     try {
+      const location = await window.api.getDataLocation()
+      if (!location.available) {
+        setMissingDataPath(location.path)
+        return
+      }
+      setMissingDataPath(null)
+      void window.api.getLockConflict().then(setLockConflict).catch(() => undefined)
       const [s, e, a] = await Promise.all([window.api.getSettings(), window.api.listExams(), window.api.listAttempts()])
       setSettings(s)
       setExams(e.items)
@@ -136,14 +155,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setAttempts((xs) => xs.filter((x) => x.id !== id))
   }, [])
 
+  const createExample = useCallback(async () => {
+    const exam = await window.api.createExampleExam()
+    setExams((xs) => [exam, ...xs.filter((x) => x.id !== exam.id)])
+    return exam
+  }, [])
+
+  const dismissLockConflict = useCallback(() => {
+    setLockConflict(null)
+    void window.api.ignoreLockConflict().catch(() => undefined)
+  }, [])
+
   const navigate = useCallback((r: Route) => {
     setRoute(r)
     document.getElementById('main')?.scrollTo({ top: 0 })
   }, [])
 
   const value = useMemo<AppState>(
-    () => ({ ready, loadError, settings, exams, attempts, route, toasts, navigate, notify, dismissToast, updateSettings, saveExam, deleteExam, saveAttempt, deleteAttempt, reload }),
-    [ready, loadError, settings, exams, attempts, route, toasts, navigate, notify, dismissToast, updateSettings, saveExam, deleteExam, saveAttempt, deleteAttempt, reload]
+    () => ({ ready, loadError, missingDataPath, lockConflict, dismissLockConflict, tourStep, setTourStep, createExample, settings, exams, attempts, route, toasts, navigate, notify, dismissToast, updateSettings, saveExam, deleteExam, saveAttempt, deleteAttempt, reload }),
+    [ready, loadError, missingDataPath, lockConflict, dismissLockConflict, tourStep, createExample, settings, exams, attempts, route, toasts, navigate, notify, dismissToast, updateSettings, saveExam, deleteExam, saveAttempt, deleteAttempt, reload]
   )
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }

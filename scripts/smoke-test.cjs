@@ -60,9 +60,20 @@ async function main() {
     if (!page) await sleep(1000)
   }
   if (!page) throw new Error('No se ha encontrado la ventana de la app.')
-  await page.waitForSelector('.sidebar', { timeout: 60000 })
+  await page.waitForSelector('.sidebar, .onboarding', { timeout: 60000 })
   const readyMs = Date.now() - started
   const info = await page.evaluate(() => window.api.getAppInfo())
+  // Primera vez: bienvenida con nombre y examen de ejemplo (comprueba que sus archivos se copian).
+  if (await page.locator('.onboarding').count()) {
+    await page.fill('.onb-input', 'Smoke')
+    await page.click('button:has-text("Continuar")')
+    await page.click('.onb-choice.is-primary')
+    await page.waitForSelector('.tour-card', { timeout: 30000 })
+    await page.keyboard.press('Escape')
+    await page.waitForSelector('.sidebar', { timeout: 30000 })
+  }
+  const exampleFiles = fs.readdirSync(path.join(dataDir, 'files')).flatMap((d) => fs.readdirSync(path.join(dataDir, 'files', d)))
+  if (exampleFiles.length !== 5) throw new Error(`El examen de ejemplo debería tener 5 archivos y tiene ${exampleFiles.length}.`)
   await page.click('.nav-item:has-text("Biblioteca")')
   await page.click('button:has-text("Nuevo examen")')
   await page.fill('input[placeholder^="Por ejemplo"]', 'Smoke test')
@@ -70,9 +81,9 @@ async function main() {
   await page.waitForSelector('.paper-section', { timeout: 30000 })
   await sleep(800)
   const exams = fs.readdirSync(path.join(dataDir, 'exams')).filter((f) => f.endsWith('.json'))
-  if (exams.length !== 1) throw new Error(`Se esperaba 1 examen guardado y hay ${exams.length}.`)
+  if (exams.length !== 2) throw new Error(`Se esperaban 2 exámenes guardados (ejemplo + nuevo) y hay ${exams.length}.`)
   await page.screenshot({ path: shot })
-  console.log(JSON.stringify({ ok: true, platform: process.platform, arch: process.arch, version: info.version, electron: info.electron, readyMs, examsSaved: exams.length }))
+  console.log(JSON.stringify({ ok: true, platform: process.platform, arch: process.arch, version: info.version, electron: info.electron, readyMs, examsSaved: exams.length, exampleFiles: exampleFiles.length }))
   await browser.close().catch(() => undefined)
 }
 

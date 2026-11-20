@@ -8,6 +8,8 @@ import { errorMessage, useApp } from '../lib/store'
 import { PaperBadge } from '../components/PaperBadge'
 import { CambridgeBadge } from '../components/CambridgeBadge'
 import { ProgressRing } from '../components/ProgressRing'
+import { CountUp } from '../components/CountUp'
+import { Confetti } from '../components/Confetti'
 import { SelfAssessment } from '../components/SelfAssessment'
 import { AiCorrectionPanel } from '../components/AiCorrectionPanel'
 import { AiFeedbackView } from '../components/AiFeedbackView'
@@ -86,6 +88,10 @@ export function ResultsScreen({ attemptId }: { attemptId: string }) {
     }
   }
 
+  // Celebración solo al ver un intento recién entregado y aprobado (≥ 60 %, el aprobado del B2).
+  const justFinished = !!attempt.finishedAt && Date.now() - new Date(attempt.finishedAt).getTime() < 2 * 60 * 1000
+  const celebrate = justFinished && r.percent !== null && r.percent >= 60
+
   const questionsByPart = r.parts.map((p) => ({ part: p, questions: r.questions.filter((q) => q.partId === p.partId && (!onlyWrong || q.correct === false)) }))
   const paperQuestions = paper?.parts.flatMap((p) => p.questions.map((q) => ({ q, part: p }))) ?? []
 
@@ -115,12 +121,14 @@ export function ResultsScreen({ attemptId }: { attemptId: string }) {
         </div>
       </header>
 
+      {celebrate && <Confetti />}
+      {celebrate && <p className="celebrate-msg" role="status">{t('results.celebrate')}</p>}
       <section className="score-hero card">
         {r.percent === null ? (
           <div className="score-big"><span className="text-subtle">—</span></div>
         ) : (
           <ProgressRing value={r.percent} size={156} stroke={12} color={r.percent >= 60 ? 'var(--success)' : r.percent >= 40 ? 'var(--accent)' : 'var(--warning)'} label={`${Math.round(r.percent)} %`}>
-            <span className="score-big">{formatNumber(r.percent, 0)}<span className="score-unit">%</span></span>
+            <span className="score-big"><CountUp value={r.percent} duration={1100} /><span className="score-unit">%</span></span>
           </ProgressRing>
         )}
         {r.percent !== null && (

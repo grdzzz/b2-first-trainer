@@ -1,10 +1,13 @@
 import { lazy, Suspense } from 'react'
-import { BarChart3, History, Library, Settings as SettingsIcon, TriangleAlert } from 'lucide-react'
+import { BarChart3, CloudOff, History, Library, MonitorSmartphone, Settings as SettingsIcon, TriangleAlert } from 'lucide-react'
 import { AppProvider, useApp, useThemeEffect, type Route } from './lib/store'
 import { Toasts } from './components/Toasts'
 import { HomeScreen } from './screens/HomeScreen'
 import { LibraryScreen } from './screens/LibraryScreen'
 import { UpdateBanner } from './components/UpdateBanner'
+import { Onboarding } from './components/Onboarding'
+import { Tour } from './components/Tour'
+import { Modal } from './components/Modal'
 import { HistoryScreen } from './screens/HistoryScreen'
 import { SettingsScreen } from './screens/SettingsScreen'
 import { t } from './i18n'
@@ -36,7 +39,7 @@ function activeSection(route: Route): Route['name'] {
 }
 
 function Shell() {
-  const { ready, loadError, settings, route, navigate, reload } = useApp()
+  const { ready, loadError, missingDataPath, lockConflict, dismissLockConflict, settings, route, navigate, reload } = useApp()
   useThemeEffect(settings)
 
   if (!ready) {
@@ -54,6 +57,25 @@ function Shell() {
       </div>
     )
   }
+
+  if (missingDataPath) {
+    return (
+      <div className="boot">
+        <div className="card fatal" role="alert">
+          <CloudOff size={28} aria-hidden />
+          <h1 className="h2">{t('sync.missingTitle')}</h1>
+          <p className="text-muted">{t('sync.missingText')}</p>
+          <p className="path-box">{missingDataPath}</p>
+          <div className="row-gap">
+            <button type="button" className="btn btn-primary" onClick={() => void window.api.relaunch()}>{t('common.retry')}</button>
+            <button type="button" className="btn btn-secondary" onClick={() => void window.api.resetDataFolder()}>{t('sync.useLocal')}</button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (!settings.onboarded) return <Onboarding />
 
   const focusMode = route.name === 'attempt'
   const section = activeSection(route)
@@ -75,6 +97,7 @@ function Shell() {
               <li key={r}>
                 <button
                   type="button"
+                  data-nav={r}
                   className={`nav-item${section === r ? ' is-active' : ''}`}
                   aria-current={section === r ? 'page' : undefined}
                   onClick={() => navigate({ name: r } as Route)}
@@ -95,6 +118,24 @@ function Shell() {
         </Suspense>
       </main>
       <Toasts />
+      <Tour />
+      <Modal
+        open={lockConflict !== null}
+        size="sm"
+        title={t('sync.lockTitle', { host: lockConflict?.host ?? '' })}
+        onClose={dismissLockConflict}
+        footer={
+          <>
+            <button type="button" className="btn btn-ghost" onClick={() => window.close()}>{t('sync.lockClose')}</button>
+            <button type="button" className="btn btn-primary" onClick={dismissLockConflict} autoFocus>{t('sync.lockContinue')}</button>
+          </>
+        }
+      >
+        <div className="lock-body">
+          <MonitorSmartphone size={28} aria-hidden />
+          <p className="text-muted">{t('sync.lockText', { host: lockConflict?.host ?? '' })}</p>
+        </div>
+      </Modal>
     </div>
   )
 }

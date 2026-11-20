@@ -50,7 +50,7 @@ export function LibraryScreen() {
                   {best !== null && <span className="exam-best"><CambridgeBadge percent={best} size="sm" /></span>}
                 </div>
                 <button type="button" className="exam-card-main" onClick={() => navigate({ name: 'exam', examId: exam.id })}>
-                  <span className="exam-card-title">{exam.name}</span>
+                  <span className="exam-card-title">{exam.name}{exam.isExample && <span className="pill example-pill">{t('library.example')}</span>}</span>
                   <span className="text-subtle text-sm">{t('library.imported', { date: formatDate(exam.importedAt) })} · {tn('library.attempts', done)}</span>
                 </button>
                 <div className="exam-card-papers">

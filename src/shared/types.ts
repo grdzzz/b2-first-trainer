@@ -68,6 +68,8 @@ export interface Exam {
   name: string
   importedAt: string
   notes?: string
+  /** Examen de ejemplo incluido con la app (contenido original, no de Cambridge). */
+  isExample?: boolean
   papers: Paper[]
 }
 
@@ -196,6 +198,10 @@ export interface Settings {
   autosaveSeconds: number
   /** Buscar actualizaciones al iniciar (necesita internet; sin conexión no pasa nada). */
   checkUpdates: boolean
+  /** Nombre con el que la app saluda (opcional, solo en este equipo o en la carpeta de datos). */
+  userName: string
+  /** Ya se ha mostrado la bienvenida inicial. */
+  onboarded: boolean
 }
 
 export interface GradingOptions {
@@ -211,7 +217,9 @@ export const DEFAULT_SETTINGS: Settings = {
   language: 'es',
   grading: { ignoreCase: false, ignoreExtraSpaces: false, ignoreAccents: false },
   autosaveSeconds: 3,
-  checkUpdates: true
+  checkUpdates: true,
+  userName: '',
+  onboarded: false
 }
 
 export const PAPER_ORDER: PaperType[] = ['reading', 'writing', 'listening', 'speaking']

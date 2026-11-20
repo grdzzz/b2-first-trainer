@@ -15,6 +15,14 @@ export interface AppInfo {
   electron: string
 }
 
+export interface DataLocation {
+  path: string
+  isDefault: boolean
+  defaultPath: string
+  /** false si la carpeta elegida no existe (por ejemplo, la nube no está montada). */
+  available: boolean
+}
+
 export type ImportKind = 'pdf' | 'audio'
 
 export interface BridgeApi {
@@ -43,6 +51,20 @@ export interface BridgeApi {
   saveRecording(attemptId: string, questionId: string, bytes: Uint8Array, mime: string): Promise<FileRef>
   readRecording(attemptId: string, storedName: string): Promise<Uint8Array>
   removeRecording(attemptId: string, storedName: string): Promise<void>
+
+  /** Crea el examen de ejemplo (con sus PDF y audio) y lo devuelve. */
+  createExampleExam(): Promise<Exam>
+
+  getDataLocation(): Promise<DataLocation>
+  /** Elige carpeta: devuelve la carpeta final y si ya contiene datos. null si se cancela. */
+  chooseDataFolder(): Promise<{ target: string; hasData: boolean } | null>
+  /** Cambia la carpeta de datos ('use': usar los datos que hay allí; 'move': copiar allí los actuales) y reinicia la app. */
+  applyDataFolder(target: string, mode: 'use' | 'move'): Promise<void>
+  resetDataFolder(): Promise<void>
+  relaunch(): Promise<void>
+  /** Otro ordenador tiene abierta la misma carpeta de datos. */
+  getLockConflict(): Promise<{ host: string; heartbeat: string } | null>
+  ignoreLockConflict(): Promise<void>
 
   getAppInfo(): Promise<AppInfo>
   openDataFolder(): Promise<void>

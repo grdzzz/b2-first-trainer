@@ -1,7 +1,7 @@
 {
   "name": "b2-first-trainer",
   "productName": "B2 First Trainer",
-  "version": "1.4.1",
+  "version": "1.5.0",
   "description": "Aplicación de escritorio para practicar el examen Cambridge B2 First con tus propios materiales.",
   "author": "B2 First Trainer",
   "license": "UNLICENSED",
@@ -121,6 +121,14 @@
         "filter": [
           "ort-wasm-simd-threaded.jsep.wasm",
           "ort-wasm-simd-threaded.jsep.mjs"
+        ]
+      },
+      {
+        "from": "resources/example",
+        "to": "example",
+        "filter": [
+          "*.pdf",
+          "*.mp3"
         ]
       }
     ],

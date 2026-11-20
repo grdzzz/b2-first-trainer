@@ -201,15 +201,22 @@ export class DataStore {
   // ---------- Colecciones ----------
   private async loadDir<T extends { id: string }>(dir: string): Promise<LoadReport<T>> {
     const entries = await fs.readdir(dir).catch(() => [] as string[])
-    const items: T[] = []
+    const byId = new Map<string, { item: T; canonical: boolean; mtime: number }>()
     const corrupt: string[] = []
     for (const name of entries) {
       if (!name.endsWith('.json')) continue
       const file = path.join(dir, name)
       try {
         const item = await readJson<T | null>(file, null)
-        if (item && typeof item === 'object' && typeof item.id === 'string') items.push(item)
-        else throw new CorruptFileError(file, 'estructura no válida')
+        if (!item || typeof item !== 'object' || typeof item.id !== 'string') throw new CorruptFileError(file, 'estructura no válida')
+        // Las carpetas sincronizadas (OneDrive, Drive, Dropbox…) pueden crear «copias en conflicto» del mismo
+        // archivo. Se usa el archivo con el nombre normal y, si no existe, la copia más reciente.
+        const canonical = name === `${item.id}.json`
+        const mtime = (await fs.stat(file)).mtimeMs
+        const prev = byId.get(item.id)
+        if (!prev || (canonical && !prev.canonical) || (canonical === prev.canonical && mtime > prev.mtime)) {
+          byId.set(item.id, { item, canonical, mtime })
+        }
       } catch (e) {
         if (e instanceof CorruptFileError) {
           corrupt.push(name)
@@ -217,7 +224,7 @@ export class DataStore {
         } else throw e
       }
     }
-    return { items, corrupt }
+    return { items: Array.from(byId.values(), (v) => v.item), corrupt }
   }
 
   async listExams(): Promise<LoadReport<Exam>> {
@@ -344,10 +351,88 @@ export function mergeSettings(raw: Partial<Settings> | null | undefined): Settin
     language: 'es',
     autosaveSeconds: autosave,
     checkUpdates: typeof r.checkUpdates === 'boolean' ? r.checkUpdates : DEFAULT_SETTINGS.checkUpdates,
+    userName: typeof r.userName === 'string' ? r.userName.replace(/\s+/g, ' ').trim().slice(0, 40) : DEFAULT_SETTINGS.userName,
+    onboarded: typeof r.onboarded === 'boolean' ? r.onboarded : DEFAULT_SETTINGS.onboarded,
     grading: {
       ignoreCase: typeof g.ignoreCase === 'boolean' ? g.ignoreCase : DEFAULT_SETTINGS.grading.ignoreCase,
       ignoreExtraSpaces: typeof g.ignoreExtraSpaces === 'boolean' ? g.ignoreExtraSpaces : DEFAULT_SETTINGS.grading.ignoreExtraSpaces,
       ignoreAccents: typeof g.ignoreAccents === 'boolean' ? g.ignoreAccents : DEFAULT_SETTINGS.grading.ignoreAccents
     }
   }
+}
+
+// ---------- Carpeta de datos (sincronización entre dispositivos) ----------
+
+/** ¿La carpeta contiene datos de la app? */
+export async function hasAppData(dir: string): Promise<boolean> {
+  try {
+    if ((await fs.stat(path.join(dir, 'settings.json'))).isFile()) return true
+  } catch {
+    /* sigue */
+  }
+  const exams = await fs.readdir(path.join(dir, 'exams')).catch(() => [] as string[])
+  return exams.some((f) => f.endsWith('.json'))
+}
+
+export const DATA_FOLDER_NAME = 'B2 First Trainer'
+
+/**
+ * Decide qué carpeta usar a partir de la que elige el usuario:
+ * si ya contiene datos (o su subcarpeta «B2 First Trainer» los contiene), se usan;
+ * si no, se propone crear «B2 First Trainer» dentro y mover allí los datos actuales.
+ */
+export async function resolveChosenFolder(chosen: string): Promise<{ target: string; hasData: boolean }> {
+  const dir = path.resolve(chosen)
+  if (await hasAppData(dir)) return { target: dir, hasData: true }
+  const sub = path.join(dir, DATA_FOLDER_NAME)
+  if (await hasAppData(sub)) return { target: sub, hasData: true }
+  return { target: path.basename(dir) === DATA_FOLDER_NAME ? dir : sub, hasData: false }
+}
+
+/** Copia todos los datos a otra carpeta y comprueba que no falta nada. La carpeta original no se toca. */
+export async function copyAppData(src: string, dest: string): Promise<{ files: number }> {
+  if (path.resolve(src) === path.resolve(dest)) throw new Error('La carpeta de destino es la misma que la actual.')
+  if (path.resolve(dest).startsWith(path.resolve(src) + path.sep)) throw new Error('La carpeta de destino no puede estar dentro de la carpeta de datos actual.')
+  if (await hasAppData(dest)) throw new Error('La carpeta de destino ya contiene datos de la app.')
+  await fs.mkdir(dest, { recursive: true })
+  await fs.cp(src, dest, { recursive: true, force: false, errorOnExist: false, filter: (from) => !from.endsWith('.tmp') && path.basename(from) !== LOCK_FILE })
+  const count = async (dir: string): Promise<number> => {
+    let n = 0
+    for (const e of await fs.readdir(dir, { withFileTypes: true }).catch(() => [])) {
+      if (e.isDirectory()) n += await count(path.join(dir, e.name))
+      else if (!e.name.endsWith('.tmp') && e.name !== LOCK_FILE) n++
+    }
+    return n
+  }
+  const [a, b] = [await count(src), await count(dest)]
+  if (b < a) throw new Error(`La copia está incompleta (${b} de ${a} archivos).`)
+  return { files: b }
+}
+
+export const LOCK_FILE = 'abierta-en.json'
+/** Un bloqueo sin renovar en este tiempo se considera abandonado (la app se cerró de golpe). */
+export const LOCK_STALE_MS = 2 * 60 * 1000
+
+export interface LockInfo {
+  host: string
+  pid: number
+  heartbeat: string
+}
+
+/** Devuelve el bloqueo de OTRO ordenador si sigue activo; null si no hay o es de este equipo o está caducado. */
+export async function otherDeviceLock(dir: string, host: string, now = new Date()): Promise<LockInfo | null> {
+  const lock = await readJson<LockInfo | null>(path.join(dir, LOCK_FILE), null).catch(() => null)
+  if (!lock || typeof lock.host !== 'string' || lock.host === host) return null
+  const age = now.getTime() - new Date(lock.heartbeat).getTime()
+  return Number.isFinite(age) && age >= 0 && age < LOCK_STALE_MS ? lock : null
+}
+
+export async function writeLock(dir: string, info: LockInfo): Promise<void> {
+  await writeJsonAtomic(path.join(dir, LOCK_FILE), info)
+}
+
+export async function releaseLock(dir: string, host: string, pid: number): Promise<void> {
+  const file = path.join(dir, LOCK_FILE)
+  const lock = await readJson<LockInfo | null>(file, null).catch(() => null)
+  if (lock && lock.host === host && lock.pid === pid) await fs.rm(file, { force: true })
 }

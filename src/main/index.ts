@@ -1,12 +1,15 @@
 import { app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme, session, shell } from 'electron'
 import path from 'node:path'
-import { promises as fs } from 'node:fs'
-import { DataStore } from './storage'
+import os from 'node:os'
+import { existsSync, promises as fs, readFileSync, rmSync } from 'node:fs'
+import { DataStore, copyAppData, otherDeviceLock, releaseLock, resolveChosenFolder, writeJsonAtomic, writeLock, type LockInfo } from './storage'
 import { checkForUpdates, getUpdateStatus, initUpdater, installUpdate } from './updater'
 import { downloadWhisper, handleAssetProtocol, registerAssetScheme, removeWhisper, whisperStatus } from './whisper'
 import { DOWNLOAD_PAGE_URL } from '../shared/updates'
 import type { IpcResult, ImportKind } from '../shared/api'
-import type { Attempt, Exam, Settings } from '../shared/types'
+import type { Attempt, Exam, FileRef, Settings } from '../shared/types'
+import { buildExampleExam, EXAMPLE_FILES } from '../shared/example'
+import { newId } from '../shared/ids'
 
 const isDev = !app.isPackaged && !!process.env.ELECTRON_RENDERER_URL
 
@@ -22,9 +25,33 @@ if (!app.requestSingleInstanceLock()) {
   app.quit()
 }
 
-// Permite guardar los datos en otra carpeta (útil para pruebas automáticas o modo totalmente portable).
-const dataRoot = process.env.B2FT_DATA_DIR || path.join(app.getPath('userData'), 'data')
+// Carpeta de datos: por defecto dentro de la carpeta de la app; el usuario puede elegir otra
+// (por ejemplo una de OneDrive, Google Drive, iCloud o Dropbox) para usar sus datos en varios ordenadores.
+// B2FT_DATA_DIR la fija para pruebas automáticas.
+const DEFAULT_DATA_DIR = path.join(app.getPath('userData'), 'data')
+const LOCATION_FILE = path.join(app.getPath('userData'), 'ubicacion-datos.json')
+function configuredDataDir(): string | null {
+  try {
+    const v = JSON.parse(readFileSync(LOCATION_FILE, 'utf8')) as { dataDir?: unknown }
+    return typeof v.dataDir === 'string' && path.isAbsolute(v.dataDir) ? v.dataDir : null
+  } catch {
+    return null
+  }
+}
+const customDataDir = process.env.B2FT_DATA_DIR ? null : configuredDataDir()
+const dataRoot = process.env.B2FT_DATA_DIR || customDataDir || DEFAULT_DATA_DIR
+// Una carpeta elegida que ya no existe (unidad de red o nube no montada) no se recrea vacía: se avisa.
+const dataAvailable = !customDataDir || existsSync(customDataDir)
 const store = new DataStore(dataRoot)
+const HOST = os.hostname()
+let lockConflict: LockInfo | null = null
+let lockTimer: NodeJS.Timeout | undefined
+
+function relaunch(): void {
+  closeConfirmed = true
+  app.relaunch()
+  app.exit(0)
+}
 let mainWindow: BrowserWindow | null = null
 let closeConfirmed = false
 
@@ -105,6 +132,41 @@ function registerIpc(): void {
   })
   handle('recordings:read', (attemptId: string, name: string) => store.readRecording(attemptId, name))
   handle('recordings:remove', (attemptId: string, name: string) => store.removeRecording(attemptId, name))
+
+  handle('examples:create', async () => {
+    const dir = app.isPackaged ? path.join(process.resourcesPath, 'example') : path.join(app.getAppPath(), 'resources', 'example')
+    const tmpId = newId('exam')
+    const files: Record<string, FileRef> = {}
+    for (const f of EXAMPLE_FILES) files[f.file] = await store.importExamFile(tmpId, path.join(dir, f.file), f.kind)
+    return store.saveExam({ ...buildExampleExam(files), id: tmpId })
+  })
+
+  handle('data:location', () => ({ path: store.root, isDefault: !customDataDir && !process.env.B2FT_DATA_DIR, defaultPath: DEFAULT_DATA_DIR, available: dataAvailable }))
+  handle('data:chooseFolder', async () => {
+    const res = await dialog.showOpenDialog(mainWindow!, { title: 'Elegir carpeta para tus datos', properties: ['openDirectory', 'createDirectory'] })
+    if (res.canceled || !res.filePaths[0]) return null
+    return resolveChosenFolder(res.filePaths[0])
+  })
+  handle('data:applyFolder', async (target: string, mode: 'use' | 'move') => {
+    if (typeof target !== 'string' || !path.isAbsolute(target)) throw new Error('Carpeta no válida.')
+    if (mode === 'move') await copyAppData(store.root, target)
+    else if (mode !== 'use') throw new Error('Opción no válida.')
+    await writeJsonAtomic(LOCATION_FILE, { dataDir: target })
+    await releaseLock(store.root, HOST, process.pid).catch(() => undefined)
+    setTimeout(relaunch, 300)
+  })
+  handle('data:resetFolder', async () => {
+    rmSync(LOCATION_FILE, { force: true })
+    await releaseLock(store.root, HOST, process.pid).catch(() => undefined)
+    setTimeout(relaunch, 300)
+  })
+  handle('data:relaunch', () => {
+    setTimeout(relaunch, 100)
+  })
+  handle('data:lockConflict', () => lockConflict)
+  handle('data:ignoreLock', () => {
+    lockConflict = null
+  })
 
   handle('app:info', () => ({ version: app.getVersion(), dataPath: store.root, platform: process.platform, electron: process.versions.electron }))
   handle('app:openDataFolder', async () => {
@@ -216,8 +278,15 @@ app.whenReady().then(async () => {
   Menu.setApplicationMenu(
     process.platform === 'darwin' ? Menu.buildFromTemplate([{ role: 'appMenu' }, { role: 'editMenu' }, { role: 'windowMenu' }]) : null
   )
-  await store.init()
-  const settings = await store.getSettings()
+  if (dataAvailable) {
+    await store.init()
+    // Aviso si la carpeta (sincronizada) está abierta ahora mismo en otro ordenador.
+    lockConflict = await otherDeviceLock(store.root, HOST).catch(() => null)
+    const beat = () => writeLock(store.root, { host: HOST, pid: process.pid, heartbeat: new Date().toISOString() }).catch(() => undefined)
+    void beat()
+    lockTimer = setInterval(beat, 30_000)
+  }
+  const settings = dataAvailable ? await store.getSettings() : await new DataStore(DEFAULT_DATA_DIR).getSettings()
   nativeTheme.themeSource = settings.theme
 
   // Solo se concede el micrófono (para Speaking); cualquier otro permiso se deniega.
@@ -237,3 +306,7 @@ app.whenReady().then(async () => {
 })
 
 app.on('window-all-closed', () => app.quit())
+app.on('will-quit', () => {
+  if (lockTimer) clearInterval(lockTimer)
+  if (dataAvailable) void releaseLock(store.root, HOST, process.pid).catch(() => undefined)
+})
