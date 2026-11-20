@@ -2,7 +2,7 @@
 
 /** Dónde se publican las versiones: rama `descargas` del repositorio (pública). */
 export const UPDATE_BASE_URL = 'https://raw.githubusercontent.com/grdzzz/first/descargas'
-export const DOWNLOAD_PAGE_URL = 'https://github.com/grdzzz/first/tree/descargas'
+export const DOWNLOAD_PAGE_URL = 'https://github.com/grdzzz/first/releases/latest'
 
 export type UpdateStatus =
   | { state: 'idle' }

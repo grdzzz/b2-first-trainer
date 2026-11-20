@@ -7,9 +7,12 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 ROOT=$(pwd)
 VERSION=$(node -p "require('./package.json').version")
-SETUP_NAME="B2-First-Trainer-${VERSION}-setup.exe"
-SETUP="dist/${SETUP_NAME}"
 [ -f dist/latest.yml ] || { echo "Falta dist/latest.yml. Genera antes el instalador." >&2; exit 1; }
+# latest.yml generado en Windows puede traer finales de línea CRLF.
+sed -i 's/\r$//' dist/latest.yml
+SETUP_NAME=$(sed -n 's/^path: //p' dist/latest.yml | tr -d '\r')
+[ -n "$SETUP_NAME" ] || { echo "latest.yml no indica el instalador." >&2; exit 1; }
+SETUP="dist/${SETUP_NAME}"
 grep -q "^version: ${VERSION}$" dist/latest.yml || { echo "dist/latest.yml no corresponde a la versión ${VERSION}." >&2; exit 1; }
 
 if [ -n "${RELEASE_DOWNLOAD_URL:-}" ]; then
@@ -38,6 +41,9 @@ git worktree add --detach "$WORK" >/dev/null
   fi
   cat > README.md <<MD
 # Descargas · B2 First Trainer ${VERSION}
+
+Todas las versiones (Windows, macOS y Linux) están en la página de la última release:
+**https://github.com/grdzzz/first/releases/latest**
 
 **Instalador para Windows:** [${SETUP_NAME}](${DOWNLOAD})
 

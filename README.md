@@ -1,8 +1,46 @@
 # B2 First Trainer
 
-Aplicación de escritorio para Windows 10 y 11 para practicar el examen **Cambridge B2 First** con tus propios materiales. Es de uso personal y funciona sin conexión: no tiene cuentas, ni nube, ni servicios de pago.
+Aplicación de escritorio para **Windows, macOS y Linux** para practicar el examen **Cambridge B2 First** con tus propios materiales. Funciona sin conexión: no tiene cuentas, ni nube, ni servicios de pago.
 
 > La app **no incluye contenido de exámenes**. Tú importas tus propios PDF, audios y claves de respuestas.
+
+## Descargar
+
+Estos enlaces descargan siempre **la última versión**:
+
+| Sistema | Descarga |
+|---|---|
+| 🪟 **Windows 10 y 11** | [**Descargar instalador (.exe)**](https://github.com/grdzzz/first/releases/latest/download/B2-First-Trainer-Windows-Setup.exe) |
+| 🍎 **macOS con chip Apple (M1, M2, M3, M4)** | [**Descargar (.dmg)**](https://github.com/grdzzz/first/releases/latest/download/B2-First-Trainer-macOS-AppleSilicon.dmg) |
+| 🍎 **macOS con procesador Intel** | [**Descargar (.dmg)**](https://github.com/grdzzz/first/releases/latest/download/B2-First-Trainer-macOS-Intel.dmg) |
+| 🐧 **Linux (64 bits)** | [**Descargar (.AppImage)**](https://github.com/grdzzz/first/releases/latest/download/B2-First-Trainer-Linux.AppImage) |
+
+Todas las versiones, con sus notas, están en [**Releases**](https://github.com/grdzzz/first/releases/latest), en la columna derecha de esta página.
+
+**¿Qué Mac tengo?** Menú Apple (la manzana, arriba a la izquierda) › «Acerca de este Mac». Si pone «Chip Apple M…», descarga la versión Apple; si pone «Procesador Intel…», la versión Intel.
+
+### Primera vez que la abres
+
+La app no está firmada por una empresa (cuesta dinero), así que el sistema avisa la primera vez. Es normal.
+
+- **Windows:** abre el instalador. Si aparece «Windows protegió su PC», pulsa **«Más información» › «Ejecutar de todas formas»**. Se instala solo para tu usuario, sin pedir administrador, y **se actualiza sola**.
+- **macOS:**
+  1. Abre el `.dmg` y arrastra **B2 First Trainer** a la carpeta **Aplicaciones**.
+  2. Ábrela. Si macOS dice que no puede comprobar el desarrollador, ve a **Ajustes del Sistema › Privacidad y seguridad**, baja hasta el aviso de B2 First Trainer y pulsa **«Abrir igualmente»**.
+  3. Si en cambio dice que la app «está dañada», abre la app **Terminal** y ejecuta:
+     ```bash
+     xattr -cr "/Applications/B2 First Trainer.app"
+     ```
+  4. Al grabar en Speaking por primera vez, permite el acceso al micrófono.
+- **Linux:** dale permiso de ejecución y ábrela:
+  ```bash
+  chmod +x B2-First-Trainer-Linux.AppImage
+  ```
+  ```bash
+  ./B2-First-Trainer-Linux.AppImage --no-sandbox
+  ```
+
+En macOS y Linux la app avisa cuando hay una versión nueva y te lleva a la descarga. En Windows se actualiza sola.
 
 ## Qué hace
 
@@ -75,10 +113,18 @@ npm run build:win
 
 Este comando comprueba los tipos, compila y genera en `dist/`:
 
-- `B2-First-Trainer-<versión>-portable.exe`: ejecutable portable, no necesita instalación.
-- `B2-First-Trainer-<versión>-setup.exe`: instalador por usuario (recomendado). No pide administrador, permite elegir la carpeta y se actualiza solo.
+- `B2-First-Trainer-Windows-Portable.exe`: ejecutable portable, no necesita instalación.
+- `B2-First-Trainer-Windows-Setup.exe`: instalador por usuario (recomendado). No pide administrador, permite elegir la carpeta y se actualiza solo.
 
 `npm run build` solo compila (en `out/`), sin empaquetar.
+
+### macOS
+
+```bash
+npm run build:mac
+```
+
+Solo funciona en un Mac. Sin Mac, usa el flujo «Publicar versión» de GitHub Actions. Genera `dist/B2-First-Trainer-macOS-arm64.dmg` (chip Apple) y `-x64.dmg` (Intel), con firma *ad hoc* (sin certificado de Apple).
 
 ### Linux
 
@@ -86,17 +132,17 @@ Este comando comprueba los tipos, compila y genera en `dist/`:
 npm run build:linux
 ```
 
-Genera `dist/B2-First-Trainer-<versión>-x86_64.AppImage`, un único archivo que funciona en la mayoría de distribuciones de 64 bits. Para abrirlo:
+Genera `dist/B2-First-Trainer-Linux.AppImage`, un único archivo que funciona en la mayoría de distribuciones de 64 bits. Para abrirlo:
 
 ```bash
-chmod +x B2-First-Trainer-1.0.0-x86_64.AppImage
+chmod +x B2-First-Trainer-Linux.AppImage
 ```
 
 ```bash
-./B2-First-Trainer-1.0.0-x86_64.AppImage
+./B2-First-Trainer-Linux.AppImage
 ```
 
-- Si se queja de **FUSE**, instala `libfuse2` (en Ubuntu 24.04 el paquete es `libfuse2t64`) o arráncalo con `APPIMAGE_EXTRACT_AND_RUN=1 ./B2-First-Trainer-1.0.0-x86_64.AppImage`.
+- Si se queja de **FUSE**, instala `libfuse2` (en Ubuntu 24.04 el paquete es `libfuse2t64`) o arráncalo con `APPIMAGE_EXTRACT_AND_RUN=1 ./B2-First-Trainer-Linux.AppImage`.
 - Si se cierra con un error de **sandbox** (frecuente en Ubuntu 23.10 y posteriores), añade `--no-sandbox` al final del comando.
 - En Linux, los datos se guardan en `~/.config/B2 First Trainer/data`.
 
@@ -104,7 +150,7 @@ chmod +x B2-First-Trainer-1.0.0-x86_64.AppImage
 
 ## Instalar en Windows y actualizaciones
 
-**Usa el instalador** (`B2-First-Trainer-<versión>-setup.exe`), que se descarga desde la [rama `descargas`](https://github.com/grdzzz/first/tree/descargas). Frente a la versión portable:
+**Usa el instalador** (`B2-First-Trainer-Windows-Setup.exe`), que se descarga desde [Descargar](#descargar). Frente a la versión portable:
 
 - **Arranca mucho más rápido.** La portable descomprime unos 100 MB en una carpeta temporal cada vez que se abre.
 - **El acceso directo de la barra de tareas funciona bien.** Ancla la app desde el menú Inicio o desde la propia ventana abierta (clic derecho › «Anclar a la barra de tareas»). La portable se ejecuta desde una carpeta temporal distinta cada vez, por eso su acceso anclado falla.
@@ -115,19 +161,14 @@ Se instala solo para tu usuario (no pide administrador). Tus datos se conservan 
 ### Publicar una versión nueva
 
 1. Sube el número de `version` en `package.json`. La app solo se actualiza si la versión publicada es mayor que la instalada.
-2. Ejecuta:
+2. En la pestaña **Actions** del repositorio, ejecuta el flujo **«Publicar versión»** (`.github/workflows/release.yml`):
+   - Pasa los tests.
+   - Compila en **Windows, macOS y Linux reales**. No hace falta Wine ni un Mac propio.
+   - En cada sistema, **abre la app empaquetada** con `scripts/smoke-test.cjs`, crea un examen, comprueba que se guarda y hace una captura. Las capturas quedan en los *artifacts* de la ejecución.
+   - Sube los archivos a una *release* `v<versión>` con nombres fijos, para que los enlaces de [Descargar](#descargar) apunten siempre a la última versión.
+   - **Solo si todo ha ido bien**, publica la release y actualiza `latest.yml` en la rama `descargas`, de donde la app instalada en Windows lee las actualizaciones.
 
-   ```bash
-   npm run release:win
-   ```
-
-   Pasa los tests, genera el instalador y ejecuta `scripts/publish-descargas.sh`. El script sustituye el contenido de la rama `descargas` por el instalador nuevo, su `.blockmap` y `latest.yml` (de ahí lee la app las actualizaciones). La rama solo guarda la última versión. El instalador debe ocupar menos de 100 MB, el límite de GitHub; se usa la compresión máxima.
-
-El instalador se publica como *release* de GitHub (`v<versión>`), sin el límite de 100 MB por archivo de las ramas. La rama `descargas` solo guarda `latest.yml`, que apunta a esa release; así las versiones ya instaladas siguen encontrando las actualizaciones.
-
-**Desde GitHub (recomendado):** en la pestaña *Actions* del repositorio, ejecuta el flujo «Publicar versión de Windows» (`.github/workflows/release-windows.yml`). Compila en un Windows real, pasa los tests y publica en la rama `descargas`. No necesita Wine.
-
-La versión portable y la de Linux no se instalan solas: avisan de que hay una versión nueva y abren la página de descarga.
+La versión de Windows se actualiza sola. Las de macOS y Linux avisan y abren la página de descarga, porque la actualización automática en macOS exige una firma de Apple de pago.
 
 ## Formato de la clave de respuestas
 

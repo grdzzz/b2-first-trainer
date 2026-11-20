@@ -49,6 +49,6 @@ jobs:
         run: |
           set -euo pipefail
           gh release delete "$TAG" --repo "$GITHUB_REPOSITORY" --yes --cleanup-tag 2>/dev/null || true
-          gh release create "$TAG" model/* --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+          gh release create "$TAG" model/* --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --latest=false \
             --title "Modelo Whisper base.en (transcripción local)" \
             --notes "Modelo de transcripción que la app descarga una vez para Speaking. Fuente: ${REPO_ID} (licencia MIT de OpenAI Whisper)."

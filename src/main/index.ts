@@ -212,7 +212,10 @@ app.on('second-instance', () => {
 })
 
 app.whenReady().then(async () => {
-  Menu.setApplicationMenu(null)
+  // En macOS el menú de la app es obligatorio: sin el menú Edición no funcionan Cmd+C/V/Z en los campos de texto.
+  Menu.setApplicationMenu(
+    process.platform === 'darwin' ? Menu.buildFromTemplate([{ role: 'appMenu' }, { role: 'editMenu' }, { role: 'windowMenu' }]) : null
+  )
   await store.init()
   const settings = await store.getSettings()
   nativeTheme.themeSource = settings.theme

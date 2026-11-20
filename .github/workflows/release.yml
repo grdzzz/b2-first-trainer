@@ -1,0 +1,168 @@
+# Publica una versión para Windows, macOS y Linux.
+# Cada sistema se compila en una máquina real y pasa una prueba de arranque (scripts/smoke-test.cjs).
+# La release se crea como borrador y solo se publica —y se avisa al actualizador— si todo ha ido bien.
+name: Publicar versión
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - id: v
+        run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+      - name: Crear la release como borrador
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.v.outputs.version }}
+        run: |
+          gh release delete "v${VERSION}" --repo "$GITHUB_REPOSITORY" --yes --cleanup-tag 2>/dev/null || true
+          gh release create "v${VERSION}" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --draft \
+            --title "B2 First Trainer ${VERSION}" \
+            --notes-file - <<'MD'
+          ## Descargar
+
+          | Sistema | Archivo |
+          |---|---|
+          | **Windows 10/11** | `B2-First-Trainer-Windows-Setup.exe` (instalador, se actualiza solo) |
+          | **macOS con chip Apple (M1–M4)** | `B2-First-Trainer-macOS-AppleSilicon.dmg` |
+          | **macOS con procesador Intel** | `B2-First-Trainer-macOS-Intel.dmg` |
+          | **Linux (64 bits)** | `B2-First-Trainer-Linux.AppImage` |
+
+          Instrucciones de instalación en el [README](https://github.com/grdzzz/first#descargar).
+          MD
+
+  windows:
+    needs: prepare
+    runs-on: windows-latest
+    timeout-minutes: 40
+    defaults:
+      run:
+        shell: bash
+    env:
+      VERSION: ${{ needs.prepare.outputs.version }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npx electron-builder --win nsis --x64 --publish never
+      - name: Prueba de arranque en Windows
+        run: |
+          npm i --no-save playwright-core@1.65.1
+          node scripts/smoke-test.cjs "dist/win-unpacked/B2 First Trainer.exe" smoke-windows.png
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: captura-windows
+          path: smoke-windows.png
+          if-no-files-found: ignore
+      - name: Subir a la release
+        run: gh release upload "v${VERSION}" dist/B2-First-Trainer-Windows-Setup.exe --repo "$GITHUB_REPOSITORY" --clobber
+      - uses: actions/upload-artifact@v4
+        with:
+          name: latest-yml
+          path: dist/latest.yml
+
+  macos:
+    needs: prepare
+    runs-on: macos-latest
+    timeout-minutes: 40
+    env:
+      VERSION: ${{ needs.prepare.outputs.version }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npx electron-builder --mac dmg --arm64 --x64 --publish never
+      - name: Prueba de arranque en macOS (Apple Silicon)
+        run: |
+          npm i --no-save playwright-core@1.65.1
+          node scripts/smoke-test.cjs "dist/mac-arm64/B2 First Trainer.app/Contents/MacOS/B2 First Trainer" smoke-macos.png
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: captura-macos
+          path: smoke-macos.png
+          if-no-files-found: ignore
+      - name: Subir a la release
+        run: |
+          mv dist/B2-First-Trainer-macOS-arm64.dmg dist/B2-First-Trainer-macOS-AppleSilicon.dmg
+          mv dist/B2-First-Trainer-macOS-x64.dmg dist/B2-First-Trainer-macOS-Intel.dmg
+          gh release upload "v${VERSION}" dist/B2-First-Trainer-macOS-AppleSilicon.dmg dist/B2-First-Trainer-macOS-Intel.dmg --repo "$GITHUB_REPOSITORY" --clobber
+
+  linux:
+    needs: prepare
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      VERSION: ${{ needs.prepare.outputs.version }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build:linux
+      - name: Prueba de arranque en Linux
+        run: |
+          npm i --no-save playwright-core@1.65.1
+          xvfb-run -a -s "-screen 0 1440x900x24" node scripts/smoke-test.cjs "dist/linux-unpacked/B2 First Trainer" smoke-linux.png
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: captura-linux
+          path: smoke-linux.png
+          if-no-files-found: ignore
+      - name: Subir a la release
+        run: gh release upload "v${VERSION}" dist/B2-First-Trainer-Linux.AppImage --repo "$GITHUB_REPOSITORY" --clobber
+
+  publish:
+    needs: [prepare, windows, macos, linux]
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ needs.prepare.outputs.version }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          name: latest-yml
+          path: dist
+      - name: Publicar la release
+        run: gh release edit "v${VERSION}" --repo "$GITHUB_REPOSITORY" --draft=false --latest
+      - name: Avisar al actualizador (rama descargas)
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          RELEASE_DOWNLOAD_URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/v${VERSION}" bash scripts/publish-descargas.sh
