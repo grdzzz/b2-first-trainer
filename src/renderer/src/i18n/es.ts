@@ -21,6 +21,7 @@ export const es = {
     retry: 'Reintentar',
     loading: 'Cargando…',
     copied: 'Copiado',
+    copyFailed: 'No se ha podido copiar',
     date: 'Fecha',
     paper: 'Paper',
     actions: 'Acciones',
@@ -64,7 +65,8 @@ export const es = {
   errors: {
     loadTitle: 'No se han podido cargar los datos',
     saveFailed: 'No se ha podido guardar: {error}',
-    corruptFiles: 'Algunos archivos estaban dañados y se han apartado a la carpeta "corrupt": {files}'
+    corruptFiles: 'Algunos archivos estaban dañados y se han apartado a la carpeta "corrupt": {files}',
+    pendingFiles: 'Hay {n} archivo(s) que todavía se están sincronizando con tu nube. Aparecerán cuando termine (vuelve a abrir la app en un rato).'
   },
   home: {
     eyebrow: 'Tu progreso',
@@ -521,6 +523,9 @@ export const es = {
     doneText: 'Empieza por el Reading del examen de ejemplo para ver la corrección en acción. Puedes repetir este recorrido cuando quieras desde Ajustes.'
   },
   sync: {
+    brokenTitle: 'No se puede usar la carpeta de datos',
+    brokenText: 'La app no ha podido preparar su carpeta de datos. Suele pasar si no hay espacio en el disco, si faltan permisos o si la nube tiene un problema. Tus datos no se han tocado.',
+    brokenDetail: 'Detalle: {error}',
     title: 'Sincronizar entre ordenadores',
     intro: 'Guarda tus datos en una carpeta de OneDrive, Google Drive, iCloud o Dropbox y tendrás tus exámenes, intentos y notas en todos tus ordenadores. Sin cuentas: lo sincroniza el servicio que ya usas.',
     local: 'Tus datos están en este ordenador',

@@ -27,6 +27,8 @@ interface AppState {
   loadError: string | null
   /** Carpeta de datos elegida que no está disponible (nube no montada…). */
   missingDataPath: string | null
+  /** Motivo si la carpeta existe pero no se ha podido usar; y si es la carpeta por defecto. */
+  dataProblem: { error?: string; isDefault: boolean } | null
   /** Otro ordenador tiene abierta la misma carpeta de datos. */
   lockConflict: { host: string; heartbeat: string } | null
   dismissLockConflict(): void
@@ -73,6 +75,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [missingDataPath, setMissingDataPath] = useState<string | null>(null)
+  const [dataProblem, setDataProblem] = useState<{ error?: string; isDefault: boolean } | null>(null)
   const [lockConflict, setLockConflict] = useState<{ host: string; heartbeat: string } | null>(null)
   const [tourStep, setTourStep] = useState<number | null>(null)
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS)
@@ -101,9 +104,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const location = await window.api.getDataLocation()
       if (!location.available) {
         setMissingDataPath(location.path)
+        setDataProblem({ error: location.error, isDefault: location.isDefault })
         return
       }
       setMissingDataPath(null)
+      setDataProblem(null)
       void window.api.getLockConflict().then(setLockConflict).catch(() => undefined)
       const [s, e, a, ps, pp] = await Promise.all([window.api.getSettings(), window.api.listExams(), window.api.listAttempts(), window.api.listPracticeSheets(), window.api.listPracticeProgress()])
       setSettings(s)
@@ -113,6 +118,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setPracticeProgress(pp.items)
       const corrupt = [...e.corrupt, ...a.corrupt, ...ps.corrupt, ...pp.corrupt]
       if (corrupt.length) notify('error', t('errors.corruptFiles', { files: corrupt.join(', ') }))
+      const pending = [e, a, ps, pp].flatMap((r) => r.pending ?? [])
+      if (pending.length) notify('info', t('errors.pendingFiles', { n: pending.length }))
       setLoadError(null)
     } catch (err) {
       setLoadError(errorMessage(err))
@@ -213,8 +220,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const value = useMemo<AppState>(
-    () => ({ ready, loadError, missingDataPath, lockConflict, dismissLockConflict, tourStep, setTourStep, createExample, settings, exams, attempts, route, toasts, navigate, notify, dismissToast, updateSettings, saveExam, deleteExam, saveAttempt, deleteAttempt, customSheets, practiceProgress, savePracticeProgress, resetPracticeProgress, addPracticeSheets, deletePracticeSheet, reload }),
-    [ready, loadError, missingDataPath, lockConflict, dismissLockConflict, tourStep, createExample, settings, exams, attempts, route, toasts, navigate, notify, dismissToast, updateSettings, saveExam, deleteExam, saveAttempt, deleteAttempt, customSheets, practiceProgress, savePracticeProgress, resetPracticeProgress, addPracticeSheets, deletePracticeSheet, reload]
+    () => ({ ready, loadError, missingDataPath, dataProblem, lockConflict, dismissLockConflict, tourStep, setTourStep, createExample, settings, exams, attempts, route, toasts, navigate, notify, dismissToast, updateSettings, saveExam, deleteExam, saveAttempt, deleteAttempt, customSheets, practiceProgress, savePracticeProgress, resetPracticeProgress, addPracticeSheets, deletePracticeSheet, reload }),
+    [ready, loadError, missingDataPath, dataProblem, lockConflict, dismissLockConflict, tourStep, createExample, settings, exams, attempts, route, toasts, navigate, notify, dismissToast, updateSettings, saveExam, deleteExam, saveAttempt, deleteAttempt, customSheets, practiceProgress, savePracticeProgress, resetPracticeProgress, addPracticeSheets, deletePracticeSheet, reload]
   )
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }

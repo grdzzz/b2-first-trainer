@@ -93,6 +93,35 @@ export async function readJson<T>(file: string, fallback: T): Promise<T> {
   }
 }
 
+/**
+ * Un archivo que no se puede leer pero se modificó hace poco (o está vacío) probablemente se está
+ * sincronizando (OneDrive, Drive, iCloud, Dropbox…). Esos no se apartan a `corrupt/`: se ignoran por ahora,
+ * porque moverlos también se sincronizaría y el examen desaparecería en los dos ordenadores.
+ */
+export const SYNC_GRACE_MS = 10 * 60 * 1000
+
+/** Lee un JSON reintentando un par de veces si no se puede interpretar (la nube puede estar escribiéndolo). */
+export async function readJsonPatient<T>(file: string, fallback: T, retries = 2, waitMs = 300): Promise<T> {
+  for (let i = 0; ; i++) {
+    try {
+      return await readJson(file, fallback)
+    } catch (e) {
+      if (!(e instanceof CorruptFileError) || i >= retries) throw e
+      await sleep(waitMs)
+    }
+  }
+}
+
+/** ¿Parece un archivo a medio sincronizar (vacío o modificado hace muy poco)? */
+export async function looksMidSync(file: string, now = Date.now()): Promise<boolean> {
+  try {
+    const st = await fs.stat(file)
+    return st.size === 0 || now - st.mtimeMs < SYNC_GRACE_MS
+  } catch {
+    return true
+  }
+}
+
 /** Mueve un archivo dañado a la carpeta `corrupt/` para no perderlo y no bloquear la app. */
 async function quarantine(root: string, file: string): Promise<void> {
   const dir = path.join(root, 'corrupt')
@@ -147,6 +176,8 @@ export interface LoadReport<T> {
   items: T[]
   /** Archivos que no se pudieron leer y se movieron a `corrupt/`. */
   corrupt: string[]
+  /** Archivos que no se pudieron leer pero parecen a medio sincronizar: se ignoran sin moverlos. */
+  pending?: string[]
 }
 
 export class DataStore {
@@ -188,11 +219,11 @@ export class DataStore {
   // ---------- Ajustes ----------
   async getSettings(): Promise<Settings> {
     try {
-      const raw = await readJson<Partial<Settings>>(this.settingsFile, {})
+      const raw = await readJsonPatient<Partial<Settings>>(this.settingsFile, {})
       return mergeSettings(raw)
     } catch (e) {
       if (e instanceof CorruptFileError) {
-        await quarantine(this.root, this.settingsFile)
+        if (!(await looksMidSync(this.settingsFile))) await quarantine(this.root, this.settingsFile)
         return { ...DEFAULT_SETTINGS }
       }
       throw e
@@ -210,11 +241,12 @@ export class DataStore {
     const entries = await fs.readdir(dir).catch(() => [] as string[])
     const byId = new Map<string, { item: T; canonical: boolean; mtime: number }>()
     const corrupt: string[] = []
+    const pending: string[] = []
     for (const name of entries) {
       if (!name.endsWith('.json')) continue
       const file = path.join(dir, name)
       try {
-        const item = await readJson<T | null>(file, null)
+        const item = await readJsonPatient<T | null>(file, null)
         if (!item || typeof item !== 'object' || typeof item.id !== 'string') throw new CorruptFileError(file, 'estructura no válida')
         // Las carpetas sincronizadas (OneDrive, Drive, Dropbox…) pueden crear «copias en conflicto» del mismo
         // archivo. Se usa el archivo con el nombre normal y, si no existe, la copia más reciente.
@@ -226,12 +258,16 @@ export class DataStore {
         }
       } catch (e) {
         if (e instanceof CorruptFileError) {
-          corrupt.push(name)
-          await quarantine(this.root, file)
+          if (await looksMidSync(file)) {
+            pending.push(name)
+          } else {
+            corrupt.push(name)
+            await quarantine(this.root, file)
+          }
         } else throw e
       }
     }
-    return { items: Array.from(byId.values(), (v) => v.item), corrupt }
+    return { items: Array.from(byId.values(), (v) => v.item), corrupt, pending }
   }
 
   async listExams(): Promise<LoadReport<Exam>> {
@@ -459,6 +495,14 @@ export interface LockInfo {
   host: string
   pid: number
   heartbeat: string
+  /** Identificador aleatorio de esta instalación: distingue dos ordenadores con el mismo nombre. */
+  device?: string
+}
+
+/** ¿Es este bloqueo de este mismo ordenador? Con identificador de instalación se usa ese; si no, el nombre. */
+function isOwnLock(lock: LockInfo, host: string, device?: string): boolean {
+  if (device && typeof lock.device === 'string') return lock.device === device
+  return lock.host === host
 }
 
 /** ¿Es un archivo de bloqueo (de cualquier equipo)? No se copian al mover los datos. */
@@ -470,18 +514,19 @@ export function isLockFile(name: string): boolean {
  * Cada equipo escribe su propio archivo («abierta-en-<equipo>.json»). Así dos ordenadores no se pisan
  * el latido y la nube no crea copias en conflicto: cada uno ve el archivo del otro mientras la app está abierta.
  */
-export function lockFileFor(host: string): string {
+export function lockFileFor(host: string, device?: string): string {
   const slug = host.normalize('NFKD').replace(/[^A-Za-z0-9_-]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 60) || 'equipo'
-  return `abierta-en-${slug}.json`
+  const id = (device ?? '').replace(/[^A-Za-z0-9]/g, '').slice(0, 8)
+  return id ? `abierta-en-${slug}-${id}.json` : `abierta-en-${slug}.json`
 }
 
 /** Devuelve el bloqueo activo más reciente de OTRO ordenador; null si no hay o están caducados. */
-export async function otherDeviceLock(dir: string, host: string, now = new Date()): Promise<LockInfo | null> {
+export async function otherDeviceLock(dir: string, host: string, now = new Date(), device?: string): Promise<LockInfo | null> {
   const names = (await fs.readdir(dir).catch(() => [] as string[])).filter(isLockFile)
   let best: LockInfo | null = null
   for (const name of names) {
     const lock = await readJson<LockInfo | null>(path.join(dir, name), null).catch(() => null)
-    if (!lock || typeof lock.host !== 'string' || lock.host === host || typeof lock.heartbeat !== 'string') continue
+    if (!lock || typeof lock.host !== 'string' || typeof lock.heartbeat !== 'string' || isOwnLock(lock, host, device)) continue
     const age = now.getTime() - new Date(lock.heartbeat).getTime()
     // Se admite un pequeño desfase de reloj entre equipos.
     if (!Number.isFinite(age) || age < -LOCK_STALE_MS || age >= LOCK_STALE_MS) continue
@@ -491,12 +536,12 @@ export async function otherDeviceLock(dir: string, host: string, now = new Date(
 }
 
 export async function writeLock(dir: string, info: LockInfo): Promise<void> {
-  await writeJsonAtomic(path.join(dir, lockFileFor(info.host)), info)
+  await writeJsonAtomic(path.join(dir, lockFileFor(info.host, info.device)), info)
 }
 
 /** Igual que releaseLock pero síncrono: al cerrar la app no da tiempo a terminar operaciones asíncronas. */
-export function releaseLockSync(dir: string, host: string, pid: number): void {
-  for (const name of [lockFileFor(host), LOCK_FILE]) {
+export function releaseLockSync(dir: string, host: string, pid: number, device?: string): void {
+  for (const name of [lockFileFor(host, device), lockFileFor(host), LOCK_FILE]) {
     const file = path.join(dir, name)
     try {
       const lock = JSON.parse(readFileSync(file, 'utf8')) as LockInfo
@@ -507,8 +552,8 @@ export function releaseLockSync(dir: string, host: string, pid: number): void {
   }
 }
 
-export async function releaseLock(dir: string, host: string, pid: number): Promise<void> {
-  for (const name of [lockFileFor(host), LOCK_FILE]) {
+export async function releaseLock(dir: string, host: string, pid: number, device?: string): Promise<void> {
+  for (const name of [lockFileFor(host, device), lockFileFor(host), LOCK_FILE]) {
     const file = path.join(dir, name)
     const lock = await readJson<LockInfo | null>(file, null).catch(() => null)
     if (lock && lock.host === host && lock.pid === pid) await fs.rm(file, { force: true })

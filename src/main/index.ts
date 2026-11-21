@@ -1,13 +1,15 @@
-import { app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme, session, shell } from 'electron'
+import { app, BrowserWindow, clipboard, dialog, ipcMain, Menu, nativeTheme, session, shell } from 'electron'
 import path from 'node:path'
 import os from 'node:os'
-import { existsSync, promises as fs, readFileSync, rmSync } from 'node:fs'
+import { existsSync, promises as fs, readFileSync, rmSync, writeFileSync, mkdirSync } from 'node:fs'
+import { randomUUID } from 'node:crypto'
 import { DataStore, copyAppData, otherDeviceLock, releaseLock, releaseLockSync, resolveChosenFolder, writeJsonAtomic, writeLock, type LockInfo } from './storage'
 import { checkForUpdates, getUpdateStatus, initUpdater, installUpdate } from './updater'
 import { downloadWhisper, handleAssetProtocol, registerAssetScheme, removeWhisper, whisperStatus } from './whisper'
 import { DOWNLOAD_PAGE_URL } from '../shared/updates'
 import type { IpcResult, ImportKind } from '../shared/api'
 import type { Attempt, Exam, FileRef, Settings } from '../shared/types'
+import { DEFAULT_SETTINGS } from '../shared/types'
 import type { PracticeProgress, PracticeSheet } from '../shared/practice'
 import { buildExampleExam, EXAMPLE_FILES } from '../shared/example'
 import { newId } from '../shared/ids'
@@ -45,6 +47,27 @@ const dataRoot = process.env.B2FT_DATA_DIR || customDataDir || DEFAULT_DATA_DIR
 const dataAvailable = !customDataDir || existsSync(customDataDir)
 const store = new DataStore(dataRoot)
 const HOST = os.hostname()
+/** Identificador aleatorio de esta instalación (dos ordenadores pueden llamarse igual, p. ej. «MacBook-Pro»). */
+const DEVICE = installationId()
+function installationId(): string {
+  const file = path.join(app.getPath('userData'), 'equipo.json')
+  try {
+    const v = JSON.parse(readFileSync(file, 'utf8')) as { id?: unknown }
+    if (typeof v.id === 'string' && /^[a-f0-9-]{16,64}$/.test(v.id)) return v.id
+  } catch {
+    /* se crea */
+  }
+  const id = randomUUID()
+  try {
+    mkdirSync(path.dirname(file), { recursive: true })
+    writeFileSync(file, JSON.stringify({ id }))
+  } catch {
+    /* sin disco: el identificador dura esta sesión */
+  }
+  return id
+}
+/** Error al preparar la carpeta de datos (sin permisos, disco lleno…): la interfaz lo muestra en vez de quedarse en blanco. */
+let dataError: string | null = null
 let lockConflict: LockInfo | null = null
 let lockTimer: NodeJS.Timeout | undefined
 /** Equipos de los que el usuario ya ha dicho «seguir aquí»: no se vuelve a avisar en esta sesión. */
@@ -52,12 +75,12 @@ const ignoredHosts = new Set<string>()
 
 /** Latido: renueva el bloqueo de este equipo y comprueba si otro ordenador tiene la carpeta abierta. */
 async function lockBeat(): Promise<void> {
-  const other = await otherDeviceLock(store.root, HOST).catch(() => null)
+  const other = await otherDeviceLock(store.root, HOST, new Date(), DEVICE).catch(() => null)
   if (other && !ignoredHosts.has(other.host) && lockConflict?.host !== other.host) {
     lockConflict = other
     mainWindow?.webContents.send('data:lock-conflict', other)
   }
-  await writeLock(store.root, { host: HOST, pid: process.pid, heartbeat: new Date().toISOString() }).catch(() => undefined)
+  await writeLock(store.root, { host: HOST, pid: process.pid, heartbeat: new Date().toISOString(), device: DEVICE }).catch(() => undefined)
 }
 
 function relaunch(): void {
@@ -168,7 +191,7 @@ function registerIpc(): void {
     return { name: path.basename(file), text: await fs.readFile(file, 'utf8') }
   })
 
-  handle('data:location', () => ({ path: store.root, isDefault: !customDataDir && !process.env.B2FT_DATA_DIR, defaultPath: DEFAULT_DATA_DIR, available: dataAvailable }))
+  handle('data:location', () => ({ path: store.root, isDefault: !customDataDir && !process.env.B2FT_DATA_DIR, defaultPath: DEFAULT_DATA_DIR, available: dataAvailable && !dataError, error: dataError ?? undefined }))
   handle('data:chooseFolder', async () => {
     const res = await dialog.showOpenDialog(mainWindow!, { title: 'Elegir carpeta para tus datos', properties: ['openDirectory', 'createDirectory'] })
     if (res.canceled || !res.filePaths[0]) return null
@@ -179,12 +202,12 @@ function registerIpc(): void {
     if (mode === 'move') await copyAppData(store.root, target)
     else if (mode !== 'use') throw new Error('Opción no válida.')
     await writeJsonAtomic(LOCATION_FILE, { dataDir: target })
-    await releaseLock(store.root, HOST, process.pid).catch(() => undefined)
+    await releaseLock(store.root, HOST, process.pid, DEVICE).catch(() => undefined)
     setTimeout(relaunch, 300)
   })
   handle('data:resetFolder', async () => {
     rmSync(LOCATION_FILE, { force: true })
-    await releaseLock(store.root, HOST, process.pid).catch(() => undefined)
+    await releaseLock(store.root, HOST, process.pid, DEVICE).catch(() => undefined)
     setTimeout(relaunch, 300)
   })
   handle('data:relaunch', () => {
@@ -196,6 +219,11 @@ function registerIpc(): void {
     lockConflict = null
   })
 
+  handle('clipboard:write', (text: string) => {
+    if (typeof text !== 'string') throw new Error('Texto no válido.')
+    if (text.length > 5_000_000) throw new Error('El texto es demasiado largo para copiarlo.')
+    clipboard.writeText(text)
+  })
   handle('app:info', () => ({ version: app.getVersion(), dataPath: store.root, platform: process.platform, electron: process.versions.electron }))
   handle('app:openDataFolder', async () => {
     const err = await shell.openPath(store.root)
@@ -257,7 +285,7 @@ function createWindow(): void {
 
   mainWindow.once('ready-to-show', () => mainWindow?.show())
 
-  // Antes de cerrar, la interfaz guarda el intento en curso. Si no responde en 3 s, se cierra igualmente.
+  // Antes de cerrar, la interfaz guarda el intento en curso. Si no responde en 10 s (p. ej. una nube muy lenta), se cierra igualmente.
   mainWindow.on('close', (e) => {
     if (closeConfirmed || !mainWindow) return
     e.preventDefault()
@@ -265,7 +293,7 @@ function createWindow(): void {
     setTimeout(() => {
       closeConfirmed = true
       mainWindow?.close()
-    }, 3000)
+    }, 10_000)
   })
   mainWindow.on('closed', () => {
     mainWindow = null
@@ -301,25 +329,40 @@ app.on('second-instance', () => {
   }
 })
 
-app.whenReady().then(async () => {
+app.whenReady().then(start).catch((err: unknown) => {
+  // Un fallo inesperado al arrancar no debe dejar la app abierta e invisible.
+  console.error('[arranque]', err)
+  dialog.showErrorBox('B2 First Trainer no ha podido arrancar', `${(err as Error)?.message ?? String(err)}\n\nCierra la app y vuelve a abrirla. Si sigue pasando, comprueba que hay espacio en el disco.`)
+  app.exit(1)
+})
+
+async function start(): Promise<void> {
   // En macOS el menú de la app es obligatorio: sin el menú Edición no funcionan Cmd+C/V/Z en los campos de texto.
   Menu.setApplicationMenu(
     process.platform === 'darwin' ? Menu.buildFromTemplate([{ role: 'appMenu' }, { role: 'editMenu' }, { role: 'windowMenu' }]) : null
   )
   if (dataAvailable) {
-    await store.init()
-    // Aviso si la carpeta (sincronizada) está abierta ahora mismo en otro ordenador.
-    // Al abrir y después cada 30 s (también mientras se usa la app, por si el otro equipo la abre más tarde).
-    await lockBeat()
-    lockTimer = setInterval(() => void lockBeat(), 30_000)
+    try {
+      await store.init()
+      // Aviso si la carpeta (sincronizada) está abierta ahora mismo en otro ordenador.
+      // Al abrir y después cada 30 s (también mientras se usa la app, por si el otro equipo la abre más tarde).
+      await lockBeat()
+      lockTimer = setInterval(() => void lockBeat(), 30_000)
+    } catch (err) {
+      // Sin permisos, disco lleno, nube con problemas…: la interfaz muestra el motivo y permite reintentar.
+      dataError = (err as Error)?.message ?? String(err)
+      console.error('[datos]', err)
+    }
   }
-  const settings = dataAvailable ? await store.getSettings() : await new DataStore(DEFAULT_DATA_DIR).getSettings()
+  const usable = dataAvailable && !dataError
+  const settings = await (usable ? store : new DataStore(DEFAULT_DATA_DIR)).getSettings().catch(() => ({ ...DEFAULT_SETTINGS }))
   nativeTheme.themeSource = settings.theme
 
   // Solo se concede el micrófono (para Speaking); cualquier otro permiso se deniega.
   session.defaultSession.setPermissionRequestHandler((_wc, permission, callback, details) => {
     const media = details as Electron.MediaAccessPermissionRequest
-    callback(permission === 'media' && (media.mediaTypes ?? []).every((t) => t === 'audio'))
+    const types = media.mediaTypes ?? []
+    callback(permission === 'media' && types.length > 0 && types.every((t) => t === 'audio'))
   })
   session.defaultSession.setPermissionCheckHandler((_wc, permission) => permission === 'media')
 
@@ -330,10 +373,10 @@ app.whenReady().then(async () => {
   if (isDev) mainWindow?.webContents.on('before-input-event', (_e, input) => {
     if (input.key === 'F12' && input.type === 'keyDown') mainWindow?.webContents.toggleDevTools()
   })
-})
+}
 
 app.on('window-all-closed', () => app.quit())
 app.on('will-quit', () => {
   if (lockTimer) clearInterval(lockTimer)
-  if (dataAvailable) releaseLockSync(store.root, HOST, process.pid)
+  if (dataAvailable && !dataError) releaseLockSync(store.root, HOST, process.pid, DEVICE)
 })

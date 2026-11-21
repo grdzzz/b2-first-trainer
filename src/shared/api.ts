@@ -7,6 +7,8 @@ import type { WhisperStatus } from './whisper'
 export interface ListResult<T> {
   items: T[]
   corrupt: string[]
+  /** Archivos a medio sincronizar que se han ignorado por ahora (no se mueven). */
+  pending?: string[]
 }
 
 export interface AppInfo {
@@ -20,8 +22,10 @@ export interface DataLocation {
   path: string
   isDefault: boolean
   defaultPath: string
-  /** false si la carpeta elegida no existe (por ejemplo, la nube no está montada). */
+  /** false si la carpeta elegida no existe (por ejemplo, la nube no está montada) o no se ha podido preparar. */
   available: boolean
+  /** Motivo si la carpeta existe pero no se ha podido usar (sin permisos, disco lleno…). */
+  error?: string
 }
 
 export type ImportKind = 'pdf' | 'audio'
@@ -80,6 +84,8 @@ export interface BridgeApi {
   /** Abre un diálogo para elegir una hoja (.json) y devuelve su texto. */
   openPracticeFile(): Promise<{ name: string; text: string } | null>
 
+  /** Copia texto al portapapeles del sistema (desde el proceso principal: funciona también dentro de diálogos). */
+  copyText(text: string): Promise<void>
   getAppInfo(): Promise<AppInfo>
   openDataFolder(): Promise<void>
   /** Copia la carpeta de datos a una carpeta elegida por el usuario. */

@@ -74,12 +74,28 @@ function SheetRunner({ sheet, nextSheet }: { sheet: PracticeSheet; nextSheet: Pr
     window.clearTimeout(timer.current)
     timer.current = undefined
   }, [])
+  // Al salir con un guardado pendiente se guarda a través del estado de la app: así, al volver a la hoja
+  // (o a la lista), se ven las últimas respuestas y un guardado posterior no las pisa.
+  const saveRef = useRef(app.savePracticeProgress)
+  saveRef.current = app.savePracticeProgress
   useEffect(() => () => {
     if (timer.current !== undefined) {
       window.clearTimeout(timer.current)
-      void window.api.savePracticeProgress({ ...progressRef.current, updatedAt: new Date().toISOString() }).catch(() => undefined)
+      timer.current = undefined
+      void saveRef.current(progressRef.current).catch(() => undefined)
     }
   }, [])
+
+  useEffect(
+    () =>
+      window.api.onBeforeClose(async () => {
+        if (timer.current === undefined) return
+        window.clearTimeout(timer.current)
+        timer.current = undefined
+        await saveRef.current(progressRef.current).catch(() => undefined)
+      }),
+    []
+  )
 
   const setAnswer = (key: string, value: string) => {
     if (checked) return

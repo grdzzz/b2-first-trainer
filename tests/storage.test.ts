@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises'
+import { mkdtemp, readdir, readFile, rm, utimes, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { CorruptFileError, DataStore, mergeSettings, readJson, writeFileAtomic, writeJsonAtomic } from '../src/main/storage'
@@ -101,6 +101,9 @@ describe('DataStore', () => {
     const exam = createExam('Bueno', ['reading'])
     await s.saveExam(exam)
     await writeFile(path.join(s.examsDir, 'exam_broken000.json'), '{ roto')
+    // Dañado desde hace tiempo (no está a medio sincronizar).
+    const old = new Date(Date.now() - 60 * 60 * 1000)
+    await utimes(path.join(s.examsDir, 'exam_broken000.json'), old, old)
     await writeFile(path.join(s.examsDir, 'leftover.json.123.tmp'), 'x')
     const r = await s.listExams()
     expect(r.items.map((e) => e.name)).toEqual(['Bueno'])
@@ -108,6 +111,26 @@ describe('DataStore', () => {
     expect(await readdir(path.join(dir, 'corrupt'))).toHaveLength(1)
     await s.init() // limpia temporales
     expect((await readdir(s.examsDir)).some((n) => n.endsWith('.tmp'))).toBe(false)
+  })
+
+  it('nube: un archivo vacío o recién modificado que no se puede leer se ignora sin moverlo', async () => {
+    const s = new DataStore(dir)
+    await s.init()
+    await s.saveExam(createExam('Bueno', ['reading']))
+    await writeFile(path.join(s.examsDir, 'exam_syncing000.json'), '{"id":"exam_sync')
+    const empty = path.join(s.examsDir, 'exam_empty0000.json')
+    await writeFile(empty, '')
+    const old = new Date(Date.now() - 60 * 60 * 1000)
+    await utimes(empty, old, old)
+    const r = await s.listExams()
+    expect(r.items.map((e) => e.name)).toEqual(['Bueno'])
+    expect(r.corrupt).toEqual([])
+    expect(r.pending?.sort()).toEqual(['exam_empty0000.json', 'exam_syncing000.json'])
+    expect((await readdir(s.examsDir)).length).toBe(3)
+    // Ajustes a medio sincronizar: valores por defecto, pero el archivo se queda donde está.
+    await writeFile(s.settingsFile, '{"theme":')
+    expect(await s.getSettings()).toEqual(DEFAULT_SETTINGS)
+    expect(await readFile(s.settingsFile, 'utf8')).toBe('{"theme":')
   })
 
   it('ajustes: valores por defecto, saneado y recuperación de archivo dañado', async () => {
@@ -119,6 +142,8 @@ describe('DataStore', () => {
     await s.saveSettings({ ...DEFAULT_SETTINGS, checkUpdates: false })
     expect((await s.getSettings()).checkUpdates).toBe(false)
     await writeFile(s.settingsFile, 'nope')
+    const old = new Date(Date.now() - 60 * 60 * 1000)
+    await utimes(s.settingsFile, old, old)
     expect(await s.getSettings()).toEqual(DEFAULT_SETTINGS)
     expect(mergeSettings({ theme: 'neon' as never, grading: { ignoreCase: true } as never }).grading).toEqual({ ignoreCase: true, ignoreExtraSpaces: false, ignoreAccents: false })
   })
@@ -134,7 +159,7 @@ describe('DataStore', () => {
 })
 
 import { copyAppData, hasAppData, isLockFile, lockFileFor, otherDeviceLock, releaseLock, releaseLockSync, resolveChosenFolder, writeLock } from '../src/main/storage'
-import { mkdir, utimes } from 'node:fs/promises'
+import { mkdir } from 'node:fs/promises'
 
 describe('carpetas sincronizadas', () => {
   it('ignora copias en conflicto: prefiere el archivo normal y si no, la copia más reciente', async () => {
@@ -205,6 +230,17 @@ describe('carpetas sincronizadas', () => {
     releaseLockSync(dir, 'SOBREMESA', 2)
     expect(await otherDeviceLock(dir, 'PORTATIL', now)).toBeNull()
     expect((await otherDeviceLock(dir, 'SOBREMESA', now))?.host).toBe('PORTATIL')
+  })
+
+  it('bloqueo: dos ordenadores con el mismo nombre se distinguen por su identificador', async () => {
+    const now = new Date('2026-01-01T10:00:00Z')
+    const beat = new Date(now.getTime() - 10000).toISOString()
+    await writeLock(dir, { host: 'MacBook-Pro.local', pid: 1, heartbeat: beat, device: 'aaaaaaaa-1111' })
+    await writeLock(dir, { host: 'MacBook-Pro.local', pid: 1, heartbeat: beat, device: 'bbbbbbbb-2222' })
+    expect((await otherDeviceLock(dir, 'MacBook-Pro.local', now, 'aaaaaaaa-1111'))?.device).toBe('bbbbbbbb-2222')
+    expect((await otherDeviceLock(dir, 'MacBook-Pro.local', now, 'bbbbbbbb-2222'))?.device).toBe('aaaaaaaa-1111')
+    releaseLockSync(dir, 'MacBook-Pro.local', 1, 'aaaaaaaa-1111')
+    expect(await otherDeviceLock(dir, 'MacBook-Pro.local', now, 'bbbbbbbb-2222')).toBeNull()
   })
 
   it('bloqueo: los archivos de bloqueo no se copian al mover los datos', async () => {

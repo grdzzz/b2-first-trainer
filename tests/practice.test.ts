@@ -12,6 +12,7 @@ import {
   parseSheets,
   practiceStats,
   practiceStreak,
+  sameAnswer,
   scoreSheet,
   SheetFormatError,
   transformationWords,
@@ -96,6 +97,18 @@ describe('corrección', () => {
     expect(normalizePractice("can't have been")).toBe(normalizePractice('cannot have been'))
     expect(normalizePractice("won't")).toBe('will not')
     expect(transformationWords("didn't go")).toBe(3)
+    expect(transformationWords("wish I'd brought")).toBe(4)
+    expect(transformationWords("it's worth buying")).toBe(4)
+    expect(transformationWords("Tom's car")).toBe(2)
+  })
+
+  it("acepta «'d» y «'s» como sus formas completas (y al revés)", () => {
+    expect(sameAnswer("I'd rather stay", 'I would rather stay')).toBe(true)
+    expect(sameAnswer('I had better go', "I'd better go")).toBe(true)
+    expect(sameAnswer("it's been raining", 'it has been raining')).toBe(true)
+    expect(sameAnswer('he is bound to', "he's bound to")).toBe(true)
+    expect(sameAnswer("Tom's car", 'Tom is car')).toBe(false)
+    expect(sameAnswer('I would go', 'I had go')).toBe(false)
   })
 
   it('corrige cada tipo de ejercicio', () => {

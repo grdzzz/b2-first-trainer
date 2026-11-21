@@ -24,7 +24,16 @@ export function HistoryScreen() {
   const { attempts, navigate, deleteAttempt, notify } = useApp()
   const [filter, setFilter] = useState<PaperType | 'all'>('all')
   const [toDelete, setToDelete] = useState<string | null>(null)
-  const list = useMemo(() => attempts.filter((a) => filter === 'all' || a.paperType === filter), [attempts, filter])
+  // Ordenados por la fecha que se muestra (fin o inicio): un intento empezado un día y terminado otro
+  // cae en el grupo correcto y no aparecen dos grupos «Hoy».
+  const list = useMemo(
+    () =>
+      attempts
+        .filter((a) => filter === 'all' || a.paperType === filter)
+        .slice()
+        .sort((a, b) => (b.finishedAt ?? b.startedAt).localeCompare(a.finishedAt ?? a.startedAt)),
+    [attempts, filter]
+  )
 
   const groups = useMemo(() => {
     const out: Array<{ label: string; items: Attempt[] }> = []

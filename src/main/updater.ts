@@ -4,10 +4,11 @@
 // Sin conexión simplemente falla en silencio: la app sigue funcionando offline.
 import { app, net, type BrowserWindow } from 'electron'
 import { autoUpdater } from 'electron-updater'
-import { compareVersions, DOWNLOAD_PAGE_URL, UPDATE_BASE_URL, versionFromLatestYml, type UpdateStatus } from '../shared/updates'
+import { compareVersions, DOWNLOAD_PAGE_URL, testOverrideUrl, UPDATE_BASE_URL, versionFromLatestYml, type UpdateStatus } from '../shared/updates'
 
-// Permite apuntar a otro servidor (solo para pruebas automáticas).
-const BASE_URL = process.env.B2FT_UPDATE_URL || UPDATE_BASE_URL
+// Permite apuntar a otro servidor (solo para pruebas automáticas; instalada, solo direcciones locales).
+const TEST_URL = testOverrideUrl(process.env.B2FT_UPDATE_URL, app.isPackaged)
+const BASE_URL = TEST_URL || UPDATE_BASE_URL
 
 let status: UpdateStatus = { state: 'idle' }
 let getWindow: () => BrowserWindow | null = () => null
@@ -36,7 +37,7 @@ function wireAutoUpdater(): void {
   autoUpdater.autoInstallOnAppQuit = true
   autoUpdater.allowDowngrade = false
   autoUpdater.logger = null
-  if (process.env.B2FT_UPDATE_URL) autoUpdater.setFeedURL({ provider: 'generic', url: BASE_URL })
+  if (TEST_URL) autoUpdater.setFeedURL({ provider: 'generic', url: BASE_URL })
   autoUpdater.on('update-available', (info) => setStatus({ state: 'downloading', version: info.version, percent: 0 }))
   autoUpdater.on('download-progress', (p) => {
     if (status.state === 'downloading') setStatus({ ...status, percent: Math.round(p.percent) })

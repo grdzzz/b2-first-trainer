@@ -32,3 +32,18 @@ export function versionFromLatestYml(yml: string): string | undefined {
   const m = /^version:\s*['"]?([0-9][^\s'"]*)['"]?\s*$/m.exec(yml)
   return m?.[1]
 }
+
+/**
+ * Dirección de pruebas (variables B2FT_UPDATE_URL / B2FT_WHISPER_URL). En la app instalada solo se aceptan
+ * direcciones locales: nadie puede desviar las actualizaciones o el modelo con una variable de entorno.
+ */
+export function testOverrideUrl(value: string | undefined, packaged: boolean): string | null {
+  if (!value) return null
+  if (!packaged) return value
+  try {
+    const u = new URL(value)
+    return (u.protocol === 'http:' || u.protocol === 'https:') && (u.hostname === '127.0.0.1' || u.hostname === 'localhost') ? value : null
+  } catch {
+    return null
+  }
+}

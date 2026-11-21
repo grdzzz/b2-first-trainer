@@ -9,6 +9,17 @@ async function call<T>(channel: string, ...args: unknown[]): Promise<T> {
   return res.data
 }
 
+// Antes de cerrar: se ejecutan todos los guardados pendientes (si los hay) y se confirma enseguida.
+// Sin pantallas con datos abiertos, la ventana se cierra al instante.
+const closeHandlers = new Set<() => Promise<void> | void>()
+ipcRenderer.on('app:before-close', async () => {
+  try {
+    await Promise.allSettled(Array.from(closeHandlers, (h) => Promise.resolve().then(h)))
+  } finally {
+    ipcRenderer.send('app:close-ready')
+  }
+})
+
 const api: BridgeApi = {
   getSettings: () => call('settings:get'),
   saveSettings: (s) => call('settings:save', s),
@@ -48,6 +59,7 @@ const api: BridgeApi = {
   savePracticeProgress: (p) => call('practice:saveProgress', p),
   deletePracticeProgress: (id) => call('practice:deleteProgress', id),
   openPracticeFile: () => call('practice:openFile'),
+  copyText: (text) => call('clipboard:write', text),
   getAppInfo: () => call('app:info'),
   openDataFolder: () => call('app:openDataFolder'),
   backupData: () => call('app:backup'),
@@ -70,15 +82,10 @@ const api: BridgeApi = {
     return () => ipcRenderer.removeListener('whisper:progress', listener)
   },
   onBeforeClose: (handler) => {
-    const listener = async () => {
-      try {
-        await handler()
-      } finally {
-        ipcRenderer.send('app:close-ready')
-      }
+    closeHandlers.add(handler)
+    return () => {
+      closeHandlers.delete(handler)
     }
-    ipcRenderer.on('app:before-close', listener)
-    return () => ipcRenderer.removeListener('app:before-close', listener)
   }
 }
 

@@ -158,6 +158,31 @@ export function normalizePractice(raw: string): string {
   return s.replace(/\s+/g, ' ').trim()
 }
 
+// «'d» puede ser «would» o «had», y «'s» tras un pronombre puede ser «is» o «has»: se prueban todas las lecturas.
+const S_PRONOUNS = new Set(['he', 'she', 'it', 'that', 'there', 'here', 'what', 'who', 'where', 'how', 'when', 'everyone', 'nobody', 'somebody', 'someone', 'everything', 'nothing', 'something'])
+const AMBIGUOUS = /^([a-z]+)'(d|s)$/
+
+/** Todas las formas equivalentes de una respuesta ya normalizada (como mucho unas decenas). */
+export function answerVariants(normalized: string): Set<string> {
+  let out: string[][] = [[]]
+  for (const word of normalized.split(' ')) {
+    const m = AMBIGUOUS.exec(word)
+    let options: string[] = [word]
+    if (m && m[2] === 'd') options = [word, `${m[1]} would`, `${m[1]} had`]
+    else if (m && m[2] === 's' && S_PRONOUNS.has(m[1])) options = [word, `${m[1]} is`, `${m[1]} has`]
+    if (options.length > 1 && out.length > 27) options = [word]
+    out = out.flatMap((prefix) => options.map((o) => [...prefix, o]))
+  }
+  return new Set(out.map((w) => w.join(' ')))
+}
+
+/** ¿Dos respuestas escritas son equivalentes (mayúsculas, espacios, contracciones…)? */
+export function sameAnswer(given: string, expected: string): boolean {
+  const a = answerVariants(normalizePractice(given))
+  for (const v of answerVariants(normalizePractice(expected))) if (a.has(v)) return true
+  return false
+}
+
 /** Respuestas aceptadas de un ítem (como texto) para mostrarlas al corregir. */
 export function expectedAnswers(task: PracticeTask, itemIndex: number): string[] {
   switch (task.type) {
@@ -183,10 +208,8 @@ export function checkItem(task: PracticeTask, itemIndex: number, given: string |
       return Number(value) === task.items[itemIndex].answer
     case 'matching':
       return value.toUpperCase() === task.items[itemIndex].answer.toUpperCase()
-    default: {
-      const n = normalizePractice(value)
-      return task.items[itemIndex].answers.some((a) => normalizePractice(a) === n)
-    }
+    default:
+      return task.items[itemIndex].answers.some((a) => sameAnswer(value, a))
   }
 }
 
@@ -223,7 +246,14 @@ export function containsKeyword(answer: string, keyword: string): boolean {
 
 /** Número de palabras de una respuesta de transformación, contando las contracciones como dos (criterio de Cambridge). */
 export function transformationWords(answer: string): number {
-  return normalizePractice(answer).split(' ').filter(Boolean).length
+  return normalizePractice(answer)
+    .split(' ')
+    .filter(Boolean)
+    .reduce((n, w) => {
+      const m = AMBIGUOUS.exec(w)
+      // «I'd», «he's»… son dos palabras; el genitivo («Tom's») es una.
+      return n + (m && (m[2] === 'd' || S_PRONOUNS.has(m[1])) ? 2 : 1)
+    }, 0)
 }
 
 // ---------- Estadísticas ----------

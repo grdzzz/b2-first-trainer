@@ -277,6 +277,8 @@ Sin cuentas ni servidores: la app puede guardar sus datos en una carpeta de **On
 Detalles:
 - Si la app está abierta en otro ordenador con la misma carpeta, te avisa, tanto al abrirla como mientras la usas (lo comprueba cada 30 segundos; cada ordenador escribe su propio archivo `abierta-en-<equipo>.json`). Lo mejor es no usarla en los dos a la vez.
 - Si la nube crea «copias en conflicto» de un archivo, la app las ignora y usa el archivo correcto.
+- Si un archivo todavía se está sincronizando (vacío o modificado hace menos de 10 minutos y aún incompleto), la app lo ignora por ahora y te avisa, **sin moverlo**. Solo aparta a `corrupt\` los archivos dañados de verdad.
+- Cada instalación tiene su propio identificador, así que dos ordenadores con el mismo nombre (por ejemplo, dos «MacBook-Pro») también se avisan entre sí.
 - Si la carpeta no está disponible (por ejemplo, la nube no está abierta), la app no muestra una biblioteca vacía: avisa y te deja reintentar o volver a la carpeta de este ordenador.
 - El modelo de transcripción (Whisper) no se sincroniza; cada ordenador lo descarga una vez.
 
@@ -289,7 +291,7 @@ Detalles:
 
 Cierra la app y copia el contenido de la copia (las carpetas `exams`, `attempts`, `files`, `recordings`, `practice` y `settings.json`) dentro de `%APPDATA%\B2 First Trainer\data`. Sustituye lo que haya.
 
-> Para usar otra carpeta de datos (por ejemplo, en un USB), define la variable de entorno `B2FT_DATA_DIR` con la ruta antes de abrir la app.
+> Para usar otra carpeta de datos (por ejemplo, en un USB), define la variable de entorno `B2FT_DATA_DIR` con la ruta antes de abrir la app. Las variables de prueba `B2FT_UPDATE_URL` y `B2FT_WHISPER_URL` solo aceptan direcciones locales en la app instalada.
 
 ## Micrófono en Windows
 

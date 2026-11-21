@@ -43,7 +43,7 @@ function activeSection(route: Route): Route['name'] {
 }
 
 function Shell() {
-  const { ready, loadError, missingDataPath, lockConflict, dismissLockConflict, settings, route, navigate, reload } = useApp()
+  const { ready, loadError, missingDataPath, dataProblem, lockConflict, dismissLockConflict, settings, route, navigate, reload } = useApp()
   useThemeEffect(settings)
 
   if (!ready) {
@@ -67,12 +67,13 @@ function Shell() {
       <div className="boot">
         <div className="card fatal" role="alert">
           <CloudOff size={28} aria-hidden />
-          <h1 className="h2">{t('sync.missingTitle')}</h1>
-          <p className="text-muted">{t('sync.missingText')}</p>
+          <h1 className="h2">{dataProblem?.error ? t('sync.brokenTitle') : t('sync.missingTitle')}</h1>
+          <p className="text-muted">{dataProblem?.error ? t('sync.brokenText') : t('sync.missingText')}</p>
           <p className="path-box">{missingDataPath}</p>
+          {dataProblem?.error && <p className="text-subtle text-sm">{t('sync.brokenDetail', { error: dataProblem.error })}</p>}
           <div className="row-gap">
             <button type="button" className="btn btn-primary" onClick={() => void window.api.relaunch()}>{t('common.retry')}</button>
-            <button type="button" className="btn btn-secondary" onClick={() => void window.api.resetDataFolder()}>{t('sync.useLocal')}</button>
+            {!dataProblem?.isDefault && <button type="button" className="btn btn-secondary" onClick={() => void window.api.resetDataFolder()}>{t('sync.useLocal')}</button>}
           </div>
         </div>
       </div>

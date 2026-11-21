@@ -5,9 +5,11 @@ import { createHash } from 'node:crypto'
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
 import type { WhisperStatus } from '../shared/whisper'
-import { WHISPER_MODEL_ID } from '../shared/whisper'
+import { WHISPER_MODEL_ID, WHISPER_MANIFEST_SHA256 } from '../shared/whisper'
+import { testOverrideUrl } from '../shared/updates'
 
-const MODEL_BASE_URL = process.env.B2FT_WHISPER_URL || 'https://github.com/grdzzz/b2-first-trainer/releases/download/whisper-base-en-v1'
+const TEST_URL = testOverrideUrl(process.env.B2FT_WHISPER_URL, app.isPackaged)
+const MODEL_BASE_URL = TEST_URL || 'https://github.com/grdzzz/b2-first-trainer/releases/download/whisper-base-en-v1'
 
 interface ManifestFile {
   asset: string
@@ -89,7 +91,13 @@ async function fetchOk(url: string): Promise<Response> {
 export function downloadWhisper(onProgress: (received: number, total: number) => void): Promise<WhisperStatus> {
   if (downloading) return downloading
   downloading = (async () => {
-    const manifest = (await (await fetchOk(`${MODEL_BASE_URL}/manifest.json`)).json()) as { files: ManifestFile[] }
+    const manifestBytes = new Uint8Array(await (await fetchOk(`${MODEL_BASE_URL}/manifest.json`)).arrayBuffer())
+    const manifestText = new TextDecoder().decode(manifestBytes)
+    // Con la dirección oficial, el manifiesto debe ser exactamente el que conoce la app (huella de los bytes).
+    if (!TEST_URL && createHash('sha256').update(manifestBytes).digest('hex') !== WHISPER_MANIFEST_SHA256) {
+      throw new Error('El manifiesto del modelo no coincide con el esperado. No se ha descargado nada.')
+    }
+    const manifest = JSON.parse(manifestText) as { files: ManifestFile[] }
     if (!Array.isArray(manifest.files) || manifest.files.length === 0) throw new Error('El manifiesto del modelo no es válido.')
     const total = manifest.files.reduce((a, f) => a + f.size, 0)
     const tmp = path.join(modelsRoot(), `.${WHISPER_MODEL_ID}.download`)
