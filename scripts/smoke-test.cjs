@@ -1,5 +1,5 @@
 // Prueba de arranque de la app empaquetada (se usa en GitHub Actions en Windows, macOS y Linux reales).
-// Abre el ejecutable, espera a la interfaz, crea un examen, comprueba que se guarda y hace una captura.
+// Abre el ejecutable, espera a la interfaz, crea un examen, hace una hoja de práctica, comprueba que todo se guarda y hace una captura.
 // Uso: node scripts/smoke-test.cjs <ruta-al-ejecutable> <captura.png>
 const { spawn, execSync } = require('node:child_process')
 const fs = require('node:fs')
@@ -74,7 +74,7 @@ async function main() {
   }
   const exampleFiles = fs.readdirSync(path.join(dataDir, 'files')).flatMap((d) => fs.readdirSync(path.join(dataDir, 'files', d)))
   if (exampleFiles.length !== 5) throw new Error(`El examen de ejemplo debería tener 5 archivos y tiene ${exampleFiles.length}.`)
-  await page.click('.nav-item:has-text("Biblioteca")')
+  await page.click('.nav-item[data-nav="library"]')
   await page.click('button:has-text("Nuevo examen")')
   await page.fill('input[placeholder^="Por ejemplo"]', 'Smoke test')
   await page.click('button:has-text("Crear y configurar")')
@@ -82,8 +82,21 @@ async function main() {
   await sleep(800)
   const exams = fs.readdirSync(path.join(dataDir, 'exams')).filter((f) => f.endsWith('.json'))
   if (exams.length !== 2) throw new Error(`Se esperaban 2 exámenes guardados (ejemplo + nuevo) y hay ${exams.length}.`)
+  // Práctica: las 50 hojas incluidas, hacer la primera y comprobar que el progreso se guarda.
+  await page.click('.nav-item[data-nav="practice"]')
+  await page.waitForSelector('.sheet-card', { timeout: 30000 })
+  const sheetCount = await page.locator('.sheet-card').count()
+  if (sheetCount !== 50) throw new Error(`Se esperaban 50 hojas de práctica y hay ${sheetCount}.`)
+  await page.click('.practice-next-btn')
+  await page.waitForSelector('.sheet-option', { timeout: 30000 })
+  await page.locator('.sheet-option').first().click()
+  await page.click('.sheet-footer .btn-primary')
+  await page.waitForSelector('.sheet-result', { timeout: 30000 })
+  await sleep(1500)
+  const progress = fs.readdirSync(path.join(dataDir, 'practice', 'progress')).filter((f) => f.endsWith('.json'))
+  if (progress.length !== 1) throw new Error(`No se ha guardado el progreso de la hoja (${progress.length} archivos).`)
   await page.screenshot({ path: shot })
-  console.log(JSON.stringify({ ok: true, platform: process.platform, arch: process.arch, version: info.version, electron: info.electron, readyMs, examsSaved: exams.length, exampleFiles: exampleFiles.length }))
+  console.log(JSON.stringify({ ok: true, platform: process.platform, arch: process.arch, version: info.version, electron: info.electron, readyMs, examsSaved: exams.length, exampleFiles: exampleFiles.length, practiceSheets: sheetCount, practiceSaved: progress.length }))
   await browser.close().catch(() => undefined)
 }
 

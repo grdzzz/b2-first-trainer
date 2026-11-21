@@ -2,12 +2,13 @@ import { app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme, session, shell 
 import path from 'node:path'
 import os from 'node:os'
 import { existsSync, promises as fs, readFileSync, rmSync } from 'node:fs'
-import { DataStore, copyAppData, otherDeviceLock, releaseLock, resolveChosenFolder, writeJsonAtomic, writeLock, type LockInfo } from './storage'
+import { DataStore, copyAppData, otherDeviceLock, releaseLock, releaseLockSync, resolveChosenFolder, writeJsonAtomic, writeLock, type LockInfo } from './storage'
 import { checkForUpdates, getUpdateStatus, initUpdater, installUpdate } from './updater'
 import { downloadWhisper, handleAssetProtocol, registerAssetScheme, removeWhisper, whisperStatus } from './whisper'
 import { DOWNLOAD_PAGE_URL } from '../shared/updates'
 import type { IpcResult, ImportKind } from '../shared/api'
 import type { Attempt, Exam, FileRef, Settings } from '../shared/types'
+import type { PracticeProgress, PracticeSheet } from '../shared/practice'
 import { buildExampleExam, EXAMPLE_FILES } from '../shared/example'
 import { newId } from '../shared/ids'
 
@@ -46,6 +47,18 @@ const store = new DataStore(dataRoot)
 const HOST = os.hostname()
 let lockConflict: LockInfo | null = null
 let lockTimer: NodeJS.Timeout | undefined
+/** Equipos de los que el usuario ya ha dicho «seguir aquí»: no se vuelve a avisar en esta sesión. */
+const ignoredHosts = new Set<string>()
+
+/** Latido: renueva el bloqueo de este equipo y comprueba si otro ordenador tiene la carpeta abierta. */
+async function lockBeat(): Promise<void> {
+  const other = await otherDeviceLock(store.root, HOST).catch(() => null)
+  if (other && !ignoredHosts.has(other.host) && lockConflict?.host !== other.host) {
+    lockConflict = other
+    mainWindow?.webContents.send('data:lock-conflict', other)
+  }
+  await writeLock(store.root, { host: HOST, pid: process.pid, heartbeat: new Date().toISOString() }).catch(() => undefined)
+}
 
 function relaunch(): void {
   closeConfirmed = true
@@ -141,6 +154,20 @@ function registerIpc(): void {
     return store.saveExam({ ...buildExampleExam(files), id: tmpId })
   })
 
+  handle('practice:listSheets', () => store.listPracticeSheets())
+  handle('practice:saveSheet', (sheet: PracticeSheet) => store.savePracticeSheet(sheet))
+  handle('practice:deleteSheet', (id: string) => store.deletePracticeSheet(id))
+  handle('practice:listProgress', () => store.listPracticeProgress())
+  handle('practice:saveProgress', (p: PracticeProgress) => store.savePracticeProgress(p))
+  handle('practice:deleteProgress', (id: string) => store.deletePracticeProgress(id))
+  handle('practice:openFile', async () => {
+    const res = await dialog.showOpenDialog(mainWindow!, { title: 'Importar hoja de práctica', properties: ['openFile'], filters: [{ name: 'Hoja de práctica', extensions: ['json', 'txt'] }] })
+    const file = res.filePaths[0]
+    if (res.canceled || !file) return null
+    if ((await fs.stat(file)).size > 2 * 1024 * 1024) throw new Error('El archivo es demasiado grande para ser una hoja de práctica.')
+    return { name: path.basename(file), text: await fs.readFile(file, 'utf8') }
+  })
+
   handle('data:location', () => ({ path: store.root, isDefault: !customDataDir && !process.env.B2FT_DATA_DIR, defaultPath: DEFAULT_DATA_DIR, available: dataAvailable }))
   handle('data:chooseFolder', async () => {
     const res = await dialog.showOpenDialog(mainWindow!, { title: 'Elegir carpeta para tus datos', properties: ['openDirectory', 'createDirectory'] })
@@ -165,6 +192,7 @@ function registerIpc(): void {
   })
   handle('data:lockConflict', () => lockConflict)
   handle('data:ignoreLock', () => {
+    if (lockConflict) ignoredHosts.add(lockConflict.host)
     lockConflict = null
   })
 
@@ -281,10 +309,9 @@ app.whenReady().then(async () => {
   if (dataAvailable) {
     await store.init()
     // Aviso si la carpeta (sincronizada) está abierta ahora mismo en otro ordenador.
-    lockConflict = await otherDeviceLock(store.root, HOST).catch(() => null)
-    const beat = () => writeLock(store.root, { host: HOST, pid: process.pid, heartbeat: new Date().toISOString() }).catch(() => undefined)
-    void beat()
-    lockTimer = setInterval(beat, 30_000)
+    // Al abrir y después cada 30 s (también mientras se usa la app, por si el otro equipo la abre más tarde).
+    await lockBeat()
+    lockTimer = setInterval(() => void lockBeat(), 30_000)
   }
   const settings = dataAvailable ? await store.getSettings() : await new DataStore(DEFAULT_DATA_DIR).getSettings()
   nativeTheme.themeSource = settings.theme
@@ -308,5 +335,5 @@ app.whenReady().then(async () => {
 app.on('window-all-closed', () => app.quit())
 app.on('will-quit', () => {
   if (lockTimer) clearInterval(lockTimer)
-  if (dataAvailable) void releaseLock(store.root, HOST, process.pid).catch(() => undefined)
+  if (dataAvailable) releaseLockSync(store.root, HOST, process.pid)
 })

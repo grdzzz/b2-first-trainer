@@ -1,5 +1,6 @@
 // Contrato entre el proceso principal y la interfaz (expuesto como window.api por el preload).
 import type { Attempt, Exam, FileRef, Settings } from './types'
+import type { PracticeProgress, PracticeSheet } from './practice'
 import type { UpdateStatus } from './updates'
 import type { WhisperStatus } from './whisper'
 
@@ -65,6 +66,19 @@ export interface BridgeApi {
   /** Otro ordenador tiene abierta la misma carpeta de datos. */
   getLockConflict(): Promise<{ host: string; heartbeat: string } | null>
   ignoreLockConflict(): Promise<void>
+  /** Aviso en directo: otro ordenador ha abierto la misma carpeta mientras se usa la app. */
+  onLockConflict(handler: (lock: { host: string; heartbeat: string }) => void): () => void
+
+  /** Hojas de práctica creadas por el usuario (las incluidas con la app no se guardan en disco). */
+  listPracticeSheets(): Promise<ListResult<PracticeSheet>>
+  savePracticeSheet(sheet: PracticeSheet): Promise<PracticeSheet>
+  deletePracticeSheet(id: string): Promise<void>
+  /** Progreso de cada hoja (respuestas, nota, veces hecha). */
+  listPracticeProgress(): Promise<ListResult<PracticeProgress>>
+  savePracticeProgress(progress: PracticeProgress): Promise<PracticeProgress>
+  deletePracticeProgress(sheetId: string): Promise<void>
+  /** Abre un diálogo para elegir una hoja (.json) y devuelve su texto. */
+  openPracticeFile(): Promise<{ name: string; text: string } | null>
 
   getAppInfo(): Promise<AppInfo>
   openDataFolder(): Promise<void>

@@ -1,5 +1,8 @@
 import { useMemo, useState } from 'react'
-import { ArrowRight, BookOpenCheck, CheckCircle2, Clock, FolderPlus, Play, PlayCircle, Timer, Trash2 } from 'lucide-react'
+import { ArrowRight, BookOpenCheck, CheckCircle2, Clock, Flame, FolderPlus, NotebookPen, Play, PlayCircle, Timer, Trash2 } from 'lucide-react'
+import { countItems, nextSheet, practiceStats } from '@shared/practice'
+import { useAllSheets } from '../lib/practice'
+import { skillLabel } from '../components/SkillBadge'
 import { progressSummary } from '@shared/stats'
 import { bandOfScale, overallScale } from '@shared/cambridge'
 import { ProgressRing } from '../components/ProgressRing'
@@ -97,6 +100,8 @@ export function HomeScreen() {
           <span className="stat-label">{t('home.timeStudied')}</span>
         </div>
       </section>
+
+      <PracticeCard />
 
       {overall !== null && (
         <section className="card overall-card" aria-labelledby="overall-title">
@@ -216,5 +221,35 @@ export function HomeScreen() {
         }}
       />
     </div>
+  )
+}
+
+/** Tarjeta de práctica rápida: la siguiente hoja de ejercicios y el avance. */
+function PracticeCard() {
+  const { practiceProgress, navigate } = useApp()
+  const sheets = useAllSheets()
+  if (!sheets) return null
+  const stats = practiceStats(sheets, practiceProgress)
+  const next = nextSheet(sheets, practiceProgress)
+  if (!next) return null
+  const p = practiceProgress.find((x) => x.id === next.id)
+  const started = !!p && !p.checked && Object.keys(p.answers).length > 0
+  return (
+    <section className="card home-practice" aria-labelledby="home-practice-title">
+      <span className="home-practice-icon" aria-hidden><NotebookPen size={24} /></span>
+      <div className="home-practice-text">
+        <p className="eyebrow">{t('home.practiceEyebrow')}</p>
+        <h2 id="home-practice-title" className="h-small">{next.number ? `${t('practice.sheetN', { n: next.number })} · ` : ''}{next.title}</h2>
+        <p className="text-muted text-sm">{skillLabel(next.skill)} · {next.topic} · {t('practice.minutes', { n: next.minutes })} · {t('practice.items', { n: countItems(next) })}</p>
+        <div className="home-practice-meter">
+          <span className="sheet-progress-bar" aria-hidden><span style={{ width: `${(stats.done / Math.max(1, stats.total)) * 100}%` }} /></span>
+          <span>{t('home.practiceDone', { done: stats.done, total: stats.total })}</span>
+          {stats.streak > 0 && <span className="row-gap"><Flame size={13} aria-hidden /> {t('home.practiceStreak', { n: stats.streak })}</span>}
+        </div>
+      </div>
+      <button type="button" className="btn btn-secondary" onClick={() => navigate({ name: 'sheet', sheetId: next.id })}>
+        {started ? t('practice.nextContinue') : t('home.practiceGo')} <ArrowRight size={16} aria-hidden />
+      </button>
+    </section>
   )
 }

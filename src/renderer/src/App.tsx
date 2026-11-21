@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react'
-import { BarChart3, CloudOff, History, Library, MonitorSmartphone, Settings as SettingsIcon, TriangleAlert } from 'lucide-react'
+import { BarChart3, CloudOff, History, Library, MonitorSmartphone, NotebookPen, Settings as SettingsIcon, TriangleAlert } from 'lucide-react'
 import { AppProvider, useApp, useThemeEffect, type Route } from './lib/store'
 import { Toasts } from './components/Toasts'
 import { HomeScreen } from './screens/HomeScreen'
@@ -16,6 +16,8 @@ import { t } from './i18n'
 const ExamScreen = lazy(() => import('./screens/ExamScreen').then((m) => ({ default: m.ExamScreen })))
 const AttemptScreen = lazy(() => import('./screens/AttemptScreen').then((m) => ({ default: m.AttemptScreen })))
 const ResultsScreen = lazy(() => import('./screens/ResultsScreen').then((m) => ({ default: m.ResultsScreen })))
+const PracticeScreen = lazy(() => import('./screens/PracticeScreen').then((m) => ({ default: m.PracticeScreen })))
+const SheetScreen = lazy(() => import('./screens/SheetScreen').then((m) => ({ default: m.SheetScreen })))
 
 export function App() {
   return (
@@ -28,6 +30,7 @@ export function App() {
 const NAV: Array<{ route: Route['name']; label: () => string; icon: typeof Library }> = [
   { route: 'home', label: () => t('nav.home'), icon: BarChart3 },
   { route: 'library', label: () => t('nav.library'), icon: Library },
+  { route: 'practice', label: () => t('nav.practice'), icon: NotebookPen },
   { route: 'history', label: () => t('nav.history'), icon: History },
   { route: 'settings', label: () => t('nav.settings'), icon: SettingsIcon }
 ]
@@ -35,6 +38,7 @@ const NAV: Array<{ route: Route['name']; label: () => string; icon: typeof Libra
 function activeSection(route: Route): Route['name'] {
   if (route.name === 'exam') return 'library'
   if (route.name === 'results') return 'history'
+  if (route.name === 'sheet') return 'practice'
   return route.name
 }
 
@@ -152,6 +156,10 @@ function Screen({ route }: { route: Route }) {
       return <AttemptScreen key={route.attemptId} attemptId={route.attemptId} />
     case 'results':
       return <ResultsScreen key={route.attemptId} attemptId={route.attemptId} />
+    case 'practice':
+      return <PracticeScreen />
+    case 'sheet':
+      return <SheetScreen key={route.sheetId} sheetId={route.sheetId} />
     case 'history':
       return <HistoryScreen />
     case 'settings':

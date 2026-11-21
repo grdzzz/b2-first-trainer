@@ -15,8 +15,9 @@ interface Step {
 const STEPS: Step[] = [
   { route: () => ({ name: 'home' }), target: '.home-header', title: 'tour.homeTitle', text: 'tour.homeText' },
   { route: () => ({ name: 'library' }), target: '.exam-card', title: 'tour.libraryTitle', text: 'tour.libraryText' },
-  { route: (id) => (id ? { name: 'exam', examId: id } : null), target: '.paper-section .paper-meta', title: 'tour.filesTitle', text: 'tour.filesText' },
+  { route: (id) => (id ? { name: 'exam', examId: id } : null), target: '.paper-section .paper-files', title: 'tour.filesTitle', text: 'tour.filesText' },
   { route: (id) => (id ? { name: 'exam', examId: id } : null), target: '.paper-section .paper-section-actions .btn-primary', title: 'tour.practiceTitle', text: 'tour.practiceText' },
+  { route: () => ({ name: 'practice' }), target: '.practice-hero', title: 'tour.practiceNavTitle', text: 'tour.practiceNavText' },
   { route: () => ({ name: 'history' }), target: '.nav-item[data-nav="history"]', title: 'tour.historyTitle', text: 'tour.historyText' },
   { route: () => ({ name: 'settings' }), target: '#s-sync', title: 'tour.syncTitle', text: 'tour.syncText' },
   { route: () => ({ name: 'home' }), title: 'tour.doneTitle', text: 'tour.doneText' }
@@ -64,13 +65,22 @@ export function Tour() {
     setReady(false)
     let tries = 0
     let raf = 0
+    let settle: number | undefined
+    const measure = (el: HTMLElement) => {
+      const r = el.getBoundingClientRect()
+      setRect({ top: r.top - PAD, left: r.left - PAD, width: r.width + PAD * 2, height: r.height + PAD * 2 })
+    }
     const find = () => {
       const el = step.target ? document.querySelector<HTMLElement>(step.target) : null
       if (el || !step.target || tries > 40) {
         if (el) {
           el.scrollIntoView({ block: 'center', behavior: 'auto' })
-          const r = el.getBoundingClientRect()
-          setRect({ top: r.top - PAD, left: r.left - PAD, width: r.width + PAD * 2, height: r.height + PAD * 2 })
+          measure(el)
+          // Las pantallas entran con una animación breve: se vuelve a medir cuando termina para que el foco encaje.
+          settle = window.setTimeout(() => {
+            el.scrollIntoView({ block: 'center', behavior: 'auto' })
+            measure(el)
+          }, 480)
         } else setRect(null)
         setReady(true)
         return
@@ -79,7 +89,10 @@ export function Tour() {
       raf = requestAnimationFrame(find)
     }
     raf = requestAnimationFrame(find)
-    return () => cancelAnimationFrame(raf)
+    return () => {
+      cancelAnimationFrame(raf)
+      window.clearTimeout(settle)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tourStep, examId])
 

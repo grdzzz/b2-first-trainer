@@ -133,7 +133,7 @@ describe('DataStore', () => {
   })
 })
 
-import { copyAppData, hasAppData, otherDeviceLock, releaseLock, resolveChosenFolder, writeLock } from '../src/main/storage'
+import { copyAppData, hasAppData, isLockFile, lockFileFor, otherDeviceLock, releaseLock, releaseLockSync, resolveChosenFolder, writeLock } from '../src/main/storage'
 import { mkdir, utimes } from 'node:fs/promises'
 
 describe('carpetas sincronizadas', () => {
@@ -189,5 +189,31 @@ describe('carpetas sincronizadas', () => {
     expect(await otherDeviceLock(dir, 'SOBREMESA', now)).not.toBeNull()
     await releaseLock(dir, 'PORTATIL', 1)
     expect(await otherDeviceLock(dir, 'SOBREMESA', now)).toBeNull()
+  })
+
+  it('bloqueo: cada equipo escribe su archivo, así los dos se ven a la vez mientras usan la app', async () => {
+    const now = new Date('2026-01-01T10:00:00Z')
+    const beat = new Date(now.getTime() - 10000).toISOString()
+    await writeLock(dir, { host: 'PORTATIL', pid: 1, heartbeat: beat })
+    await writeLock(dir, { host: 'SOBREMESA', pid: 2, heartbeat: beat })
+    expect((await otherDeviceLock(dir, 'SOBREMESA', now))?.host).toBe('PORTATIL')
+    expect((await otherDeviceLock(dir, 'PORTATIL', now))?.host).toBe('SOBREMESA')
+    expect(lockFileFor('Mi Portátil (casa)')).toBe('abierta-en-Mi_Porta_til_casa.json')
+    expect(isLockFile(lockFileFor('Mi Portátil (casa)'))).toBe(true)
+    expect(isLockFile('abierta-en.json')).toBe(true)
+    expect(isLockFile('settings.json')).toBe(false)
+    releaseLockSync(dir, 'SOBREMESA', 2)
+    expect(await otherDeviceLock(dir, 'PORTATIL', now)).toBeNull()
+    expect((await otherDeviceLock(dir, 'SOBREMESA', now))?.host).toBe('PORTATIL')
+  })
+
+  it('bloqueo: los archivos de bloqueo no se copian al mover los datos', async () => {
+    const src = new DataStore(path.join(dir, 'origen'))
+    await src.init()
+    await src.saveSettings({ ...DEFAULT_SETTINGS })
+    await writeLock(src.root, { host: 'PORTATIL', pid: 1, heartbeat: new Date().toISOString() })
+    const dest = path.join(dir, 'nube', 'B2 First Trainer')
+    await copyAppData(src.root, dest)
+    expect((await readdir(dest)).some(isLockFile)).toBe(false)
   })
 })

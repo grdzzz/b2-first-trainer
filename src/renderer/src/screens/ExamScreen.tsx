@@ -311,6 +311,7 @@ function PaperEditor({ exam, paper, attempts, onChange, onPartChange, onEditKey,
         </div>
       </header>
 
+      <div className="paper-files">
       <div className="paper-meta">
         <FileSlot
           label={t('exam.paperPdf')}
@@ -340,6 +341,7 @@ function PaperEditor({ exam, paper, attempts, onChange, onPartChange, onEditKey,
         )}
       </div>
       <p className="text-subtle text-sm hint">{t('exam.filesHint')}</p>
+      </div>
 
       <ol className="part-list">
         {paper.parts.map((part) => (
@@ -479,7 +481,7 @@ function PartEditor({ paper, part, onChange, onStructureChange, onEditKey, onImp
                 <textarea
                   id={`${idp}-${q.id}`}
                   className="input"
-                  rows={2}
+                  rows={4}
                   value={q.prompt ?? ''}
                   placeholder={t('exam.promptPlaceholder')}
                   onChange={(e) => onChange((p) => ({ ...p, questions: p.questions.map((x) => (x.id === q.id ? { ...x, prompt: e.target.value } : x)) }))}

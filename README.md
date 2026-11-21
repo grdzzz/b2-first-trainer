@@ -47,6 +47,8 @@ En macOS y Linux la app avisa cuando hay una versión nueva y te lleva a la desc
 ## Qué hace
 
 - **Bienvenida y examen de ejemplo.** La primera vez la app te pregunta tu nombre (opcional) y te ofrece un **examen de ejemplo** corto con un **recorrido guiado** por la app. El ejemplo es material original (no de Cambridge), con Reading & Use of English, Writing, Listening (voz sintética) y Speaking. El recorrido se puede repetir y el ejemplo volver a añadir desde Ajustes.
+- **Práctica: 50 hojas de ejercicios.** Además de los exámenes, la app trae 50 hojas cortas (unos 10 minutos cada una) para practicar sin presión de examen: vocabulario (Part 1 + Part 4), gramática (Part 2 + Part 4), formación de palabras (Part 3 + Part 4), lectura (Part 5 y Part 7) y mixtas (Parts 1, 2 y 3). Son material original escrito siguiendo el formato del Reading & Use of English, no material de Cambridge. Se rellenan en la propia hoja (huecos dentro del texto), se corrigen con «Comprobar» y cada respuesta trae una explicación en español. La app guarda tu progreso, tu mejor nota en cada hoja y tu racha de días. No aparecen en la biblioteca ni en el historial de exámenes.
+- **Crear más hojas.** En Práctica › «Crear más hojas» eliges el tipo de hoja, el tema y lo que quieres reforzar, copias unas instrucciones, las pegas en ChatGPT o Claude.ai y pegas su respuesta. La app la valida (huecos, opciones, número de palabras de las transformaciones…) y la añade a «Mis hojas». También se pueden exportar e importar hojas como archivo `.json` para compartirlas.
 - **Biblioteca de exámenes.** Crea un examen con la estructura habitual del B2 First (Reading & Use of English, Writing, Listening y Speaking). Puedes cambiar el número de partes, el número de preguntas, el tipo de respuesta, las opciones, los puntos y el tiempo de cada paper.
 - **Importación de archivos.** Puedes importar un PDF para todo el paper o uno por parte, y audio (mp3, m4a, wav, ogg, webm, flac…) para Listening. Los archivos se copian a la carpeta de datos de la app.
 - **Detección automática desde el PDF.** Al importar el PDF de un paper, la app lee su texto y propone las partes y su página, los números de pregunta, el tipo de tarea, el número de opciones y los puntos. También el tiempo, el límite de palabras y las consignas de Writing y Speaking, y la clave si el PDF incluye una sección «Answer key». Muestra lo que ha encontrado y solo lo aplica si confirmas. Funciona con PDF digitales (con texto seleccionable), no con escaneos. Se puede repetir con el botón «Detectar desde el PDF».
@@ -256,6 +258,8 @@ Todo se guarda en archivos JSON dentro de la carpeta de datos de la app:
 ├── attempts\<id>.json   cada intento (respuestas, tiempos, resultado)
 ├── files\<id>\…         PDF y audios importados
 ├── recordings\<id>\…    grabaciones de Speaking (.webm)
+├── practice\<id>.json   hojas de práctica que has creado o importado
+├── practice\progress\   tu progreso en cada hoja (respuestas, nota, días)
 └── corrupt\             archivos dañados apartados automáticamente (si los hubiera)
 ```
 
@@ -271,7 +275,7 @@ Sin cuentas ni servidores: la app puede guardar sus datos en una carpeta de **On
 2. En el otro ordenador, instala la app y elige **la misma carpeta**. La app detecta que ya hay datos y los usa.
 
 Detalles:
-- Si la app está abierta en otro ordenador con la misma carpeta, te avisa al abrirla. Lo mejor es no usarla en los dos a la vez.
+- Si la app está abierta en otro ordenador con la misma carpeta, te avisa, tanto al abrirla como mientras la usas (lo comprueba cada 30 segundos; cada ordenador escribe su propio archivo `abierta-en-<equipo>.json`). Lo mejor es no usarla en los dos a la vez.
 - Si la nube crea «copias en conflicto» de un archivo, la app las ignora y usa el archivo correcto.
 - Si la carpeta no está disponible (por ejemplo, la nube no está abierta), la app no muestra una biblioteca vacía: avisa y te deja reintentar o volver a la carpeta de este ordenador.
 - El modelo de transcripción (Whisper) no se sincroniza; cada ordenador lo descarga una vez.
@@ -283,7 +287,7 @@ Detalles:
 
 ### Restaurar una copia
 
-Cierra la app y copia el contenido de la copia (las carpetas `exams`, `attempts`, `files`, `recordings` y `settings.json`) dentro de `%APPDATA%\B2 First Trainer\data`. Sustituye lo que haya.
+Cierra la app y copia el contenido de la copia (las carpetas `exams`, `attempts`, `files`, `recordings`, `practice` y `settings.json`) dentro de `%APPDATA%\B2 First Trainer\data`. Sustituye lo que haya.
 
 > Para usar otra carpeta de datos (por ejemplo, en un USB), define la variable de entorno `B2FT_DATA_DIR` con la ruta antes de abrir la app.
 
@@ -298,13 +302,15 @@ src/
 ├── main/        proceso principal de Electron: ventana, IPC, almacenamiento (storage.ts)
 ├── preload/     puente seguro window.api (contextIsolation + sandbox)
 ├── shared/      lógica pura y testeada: tipos, plantilla, claves, corrección, intentos, estadísticas, prompts IA
+│   ├── practice.ts          hojas de práctica: tipos, corrección, validación, progreso e instrucciones para la IA
+│   └── practiceSheets/      las 50 hojas incluidas (vocabulario, gramática, formación de palabras, lectura, mixtas)
 └── renderer/    interfaz React
     └── src/
         ├── styles/tokens.css   tokens de diseño: colores, espaciado, radios, sombras y movimiento
         ├── styles/app.css      estilos de componentes (solo usa tokens)
         ├── i18n/               textos de la interfaz (es.ts) y función t()
         ├── components/         visor PDF (pdf.js), reproductor, grabadora, gráfico…
-        └── screens/            Inicio, Biblioteca, Examen, Intento, Resultados, Historial y Ajustes
+        └── screens/            Inicio, Exámenes, Examen, Intento, Resultados, Práctica, Hoja, Historial y Ajustes
 tests/           pruebas Vitest
 build/           icono de la app
 examples/        claves de ejemplo con respuestas ficticias

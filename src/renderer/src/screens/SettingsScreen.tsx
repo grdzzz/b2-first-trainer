@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
-import { BookOpenCheck, Cloud, Compass, Download, FolderOpen, FolderSync, HardDriveDownload, Monitor, Moon, RefreshCw, Sun } from 'lucide-react'
+import { BookOpenCheck, Cloud, Compass, Database, Download, FolderOpen, FolderSync, HardDriveDownload, Mic, Monitor, Moon, NotebookPen, Palette, RefreshCw, RotateCcw, SpellCheck, Sun, UserRound } from 'lucide-react'
+import { ConfirmDialog } from '../components/Modal'
 import type { DataLocation } from '@shared/api'
 import { Modal } from '../components/Modal'
 import type { AppInfo } from '@shared/api'
@@ -14,6 +15,65 @@ const THEMES: Array<{ id: ThemePreference; icon: typeof Sun }> = [
   { id: 'light', icon: Sun },
   { id: 'dark', icon: Moon }
 ]
+
+const SECTIONS: Array<{ id: string; label: () => string; icon: typeof Sun }> = [
+  { id: 'set-profile', label: () => t('settings.profile'), icon: UserRound },
+  { id: 'set-appearance', label: () => t('settings.appearance'), icon: Palette },
+  { id: 'set-grading', label: () => t('settings.gradingShort'), icon: SpellCheck },
+  { id: 'set-data', label: () => t('settings.data'), icon: Database },
+  { id: 'set-practice', label: () => t('settings.practice'), icon: NotebookPen },
+  { id: 's-sync', label: () => t('settings.syncShort'), icon: Cloud },
+  { id: 'set-transcription', label: () => t('settings.transcriptionShort'), icon: Mic },
+  { id: 'set-updates', label: () => t('updates.title'), icon: RefreshCw }
+]
+
+/** Título de sección con icono. */
+function SectionTitle({ id, icon: Icon, children }: { id: string; icon: typeof Sun; children: React.ReactNode }) {
+  return (
+    <h2 id={id} className="section-title section-title-icon">
+      <span className="section-icon" aria-hidden><Icon size={17} /></span>
+      {children}
+    </h2>
+  )
+}
+
+/** Progreso de las hojas de práctica: se puede reiniciar. */
+function PracticeSection() {
+  const { practiceProgress, resetPracticeProgress, notify } = useApp()
+  const [confirm, setConfirm] = useState(false)
+  const done = practiceProgress.filter((p) => p.times > 0).length
+  return (
+    <section className="card settings-section" aria-labelledby="s-practice" id="set-practice">
+      <SectionTitle id="s-practice" icon={NotebookPen}>{t('settings.practice')}</SectionTitle>
+      <div className="setting">
+        <div>
+          <p className="setting-name">{t('settings.practiceProgress')}</p>
+          <p className="setting-desc">{t('settings.practiceProgressDesc', { n: done })}</p>
+        </div>
+        <button type="button" className="btn btn-secondary" disabled={practiceProgress.length === 0} onClick={() => setConfirm(true)}>
+          <RotateCcw size={16} aria-hidden /> {t('settings.practiceReset')}
+        </button>
+      </div>
+      <ConfirmDialog
+        open={confirm}
+        title={t('settings.practiceResetTitle')}
+        message={t('settings.practiceResetMessage')}
+        confirmLabel={t('settings.practiceReset')}
+        danger
+        onCancel={() => setConfirm(false)}
+        onConfirm={async () => {
+          setConfirm(false)
+          try {
+            for (const p of practiceProgress) await resetPracticeProgress(p.id)
+            notify('success', t('settings.practiceResetDone'))
+          } catch (e) {
+            notify('error', errorMessage(e))
+          }
+        }}
+      />
+    </section>
+  )
+}
 
 export function SettingsScreen() {
   const { settings, updateSettings, notify } = useApp()
@@ -40,10 +100,18 @@ export function SettingsScreen() {
         </div>
       </header>
 
+      <nav className="settings-nav" aria-label={t('settings.sections')}>
+        {SECTIONS.map(({ id, label, icon: Icon }) => (
+          <button key={id} type="button" className="settings-nav-item" onClick={() => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
+            <Icon size={14} aria-hidden /> {label()}
+          </button>
+        ))}
+      </nav>
+
       <ProfileSection />
 
-      <section className="card settings-section" aria-labelledby="s-appearance">
-        <h2 id="s-appearance" className="section-title">{t('settings.appearance')}</h2>
+      <section className="card settings-section" aria-labelledby="s-appearance" id="set-appearance">
+        <SectionTitle id="s-appearance" icon={Palette}>{t('settings.appearance')}</SectionTitle>
         <div className="setting">
           <div>
             <p className="setting-name" id="theme-label">{t('settings.theme')}</p>
@@ -69,8 +137,8 @@ export function SettingsScreen() {
         </div>
       </section>
 
-      <section className="card settings-section" aria-labelledby="s-grading">
-        <h2 id="s-grading" className="section-title">{t('settings.grading')}</h2>
+      <section className="card settings-section" aria-labelledby="s-grading" id="set-grading">
+        <SectionTitle id="s-grading" icon={SpellCheck}>{t('settings.grading')}</SectionTitle>
         <p className="setting-desc">{t('settings.gradingDesc')}</p>
         {(['ignoreCase', 'ignoreExtraSpaces', 'ignoreAccents'] as const).map((k) => (
           <label key={k} className="setting setting-toggle">
@@ -84,8 +152,8 @@ export function SettingsScreen() {
         <p className="text-subtle text-sm">{t('settings.gradingNote')}</p>
       </section>
 
-      <section className="card settings-section" aria-labelledby="s-data">
-        <h2 id="s-data" className="section-title">{t('settings.data')}</h2>
+      <section className="card settings-section" aria-labelledby="s-data" id="set-data">
+        <SectionTitle id="s-data" icon={Database}>{t('settings.data')}</SectionTitle>
         <div className="setting">
           <div>
             <label className="setting-name" htmlFor="autosave">{t('settings.autosave')}</label>
@@ -111,6 +179,8 @@ export function SettingsScreen() {
         </div>
         <p className="text-subtle text-sm">{t('settings.restoreHint')}</p>
       </section>
+
+      <PracticeSection />
 
       <SyncSection />
 
@@ -148,8 +218,8 @@ function UpdatesSection({ version }: { version?: string }) {
   const { settings, updateSettings } = useApp()
   const status = useUpdateStatus()
   return (
-    <section className="card settings-section" aria-labelledby="s-updates">
-      <h2 id="s-updates" className="section-title">{t('updates.title')}</h2>
+    <section className="card settings-section" aria-labelledby="s-updates" id="set-updates">
+      <SectionTitle id="s-updates" icon={RefreshCw}>{t('updates.title')}</SectionTitle>
       <div className="setting">
         <div>
           <p className="setting-name">{t('updates.version', { version: version ?? '…' })}</p>
@@ -191,8 +261,8 @@ function TranscriptionSection() {
   }, [])
   useEffect(refresh, [refresh])
   return (
-    <section className="card settings-section" aria-labelledby="s-transcription">
-      <h2 id="s-transcription" className="section-title">{t('settings.transcription')}</h2>
+    <section className="card settings-section" aria-labelledby="s-transcription" id="set-transcription">
+      <SectionTitle id="s-transcription" icon={Mic}>{t('settings.transcription')}</SectionTitle>
       <div className="setting">
         <div>
           <p className="setting-name">{t('settings.whisperModel')}</p>
@@ -227,8 +297,8 @@ function ProfileSection() {
   useEffect(() => setName(settings.userName), [settings.userName])
   const hasExample = exams.some((e) => e.isExample)
   return (
-    <section className="card settings-section" aria-labelledby="s-profile">
-      <h2 id="s-profile" className="section-title">{t('settings.profile')}</h2>
+    <section className="card settings-section" aria-labelledby="s-profile" id="set-profile">
+      <SectionTitle id="s-profile" icon={UserRound}>{t('settings.profile')}</SectionTitle>
       <div className="setting">
         <div>
           <label className="setting-name" htmlFor="user-name">{t('settings.name')}</label>
@@ -317,7 +387,7 @@ function SyncSection() {
 
   return (
     <section className="card settings-section" aria-labelledby="s-sync-title" id="s-sync">
-      <h2 id="s-sync-title" className="section-title">{t('sync.title')}</h2>
+      <SectionTitle id="s-sync-title" icon={Cloud}>{t('sync.title')}</SectionTitle>
       <p className="setting-desc">{t('sync.intro')}</p>
       <div className="setting">
         <div>

@@ -1,8 +1,9 @@
 // Almacenamiento en archivos JSON con escritura atómica. No depende de Electron para poder probarlo.
-import { promises as fs } from 'node:fs'
+import { promises as fs, readFileSync, rmSync } from 'node:fs'
 import path from 'node:path'
 import { randomBytes } from 'node:crypto'
 import type { Attempt, Exam, FileRef, Settings } from '../shared/types'
+import type { PracticeProgress, PracticeSheet } from '../shared/practice'
 import { DEFAULT_SETTINGS, SCHEMA_VERSION } from '../shared/types'
 import { isSafeId } from '../shared/ids'
 
@@ -167,15 +168,21 @@ export class DataStore {
   get recordingsDir() {
     return path.join(this.root, 'recordings')
   }
+  get practiceDir() {
+    return path.join(this.root, 'practice')
+  }
+  get practiceProgressDir() {
+    return path.join(this.root, 'practice', 'progress')
+  }
   get settingsFile() {
     return path.join(this.root, 'settings.json')
   }
 
   async init(): Promise<void> {
-    for (const d of [this.root, this.examsDir, this.attemptsDir, this.filesDir, this.recordingsDir]) {
+    for (const d of [this.root, this.examsDir, this.attemptsDir, this.filesDir, this.recordingsDir, this.practiceDir, this.practiceProgressDir]) {
       await fs.mkdir(d, { recursive: true })
     }
-    await Promise.all([cleanupTemps(this.root), cleanupTemps(this.examsDir), cleanupTemps(this.attemptsDir)])
+    await Promise.all([this.root, this.examsDir, this.attemptsDir, this.practiceDir, this.practiceProgressDir].map(cleanupTemps))
   }
 
   // ---------- Ajustes ----------
@@ -277,6 +284,40 @@ export class DataStore {
     assertId(id)
     await fs.rm(path.join(this.recordingsDir, id), { recursive: true, force: true })
     await fs.rm(path.join(this.attemptsDir, `${id}.json`), { force: true })
+  }
+
+  // ---------- Práctica ----------
+  async listPracticeSheets(): Promise<LoadReport<PracticeSheet>> {
+    const r = await this.loadDir<PracticeSheet>(this.practiceDir)
+    r.items.sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? ''))
+    return r
+  }
+
+  async savePracticeSheet(sheet: PracticeSheet): Promise<PracticeSheet> {
+    assertId(sheet.id)
+    await writeJsonAtomic(path.join(this.practiceDir, `${sheet.id}.json`), sheet)
+    return sheet
+  }
+
+  async deletePracticeSheet(id: string): Promise<void> {
+    assertId(id)
+    await fs.rm(path.join(this.practiceDir, `${id}.json`), { force: true })
+    await fs.rm(path.join(this.practiceProgressDir, `${id}.json`), { force: true })
+  }
+
+  listPracticeProgress(): Promise<LoadReport<PracticeProgress>> {
+    return this.loadDir<PracticeProgress>(this.practiceProgressDir)
+  }
+
+  async savePracticeProgress(progress: PracticeProgress): Promise<PracticeProgress> {
+    assertId(progress.id)
+    await writeJsonAtomic(path.join(this.practiceProgressDir, `${progress.id}.json`), progress)
+    return progress
+  }
+
+  async deletePracticeProgress(id: string): Promise<void> {
+    assertId(id)
+    await fs.rm(path.join(this.practiceProgressDir, `${id}.json`), { force: true })
   }
 
   // ---------- Archivos ----------
@@ -395,12 +436,12 @@ export async function copyAppData(src: string, dest: string): Promise<{ files: n
   if (path.resolve(dest).startsWith(path.resolve(src) + path.sep)) throw new Error('La carpeta de destino no puede estar dentro de la carpeta de datos actual.')
   if (await hasAppData(dest)) throw new Error('La carpeta de destino ya contiene datos de la app.')
   await fs.mkdir(dest, { recursive: true })
-  await fs.cp(src, dest, { recursive: true, force: false, errorOnExist: false, filter: (from) => !from.endsWith('.tmp') && path.basename(from) !== LOCK_FILE })
+  await fs.cp(src, dest, { recursive: true, force: false, errorOnExist: false, filter: (from) => !from.endsWith('.tmp') && !isLockFile(path.basename(from)) })
   const count = async (dir: string): Promise<number> => {
     let n = 0
     for (const e of await fs.readdir(dir, { withFileTypes: true }).catch(() => [])) {
       if (e.isDirectory()) n += await count(path.join(dir, e.name))
-      else if (!e.name.endsWith('.tmp') && e.name !== LOCK_FILE) n++
+      else if (!e.name.endsWith('.tmp') && !isLockFile(e.name)) n++
     }
     return n
   }
@@ -409,6 +450,7 @@ export async function copyAppData(src: string, dest: string): Promise<{ files: n
   return { files: b }
 }
 
+/** Archivo de bloqueo antiguo (un solo archivo para todos los equipos). Se sigue leyendo por compatibilidad. */
 export const LOCK_FILE = 'abierta-en.json'
 /** Un bloqueo sin renovar en este tiempo se considera abandonado (la app se cerró de golpe). */
 export const LOCK_STALE_MS = 2 * 60 * 1000
@@ -419,20 +461,56 @@ export interface LockInfo {
   heartbeat: string
 }
 
-/** Devuelve el bloqueo de OTRO ordenador si sigue activo; null si no hay o es de este equipo o está caducado. */
+/** ¿Es un archivo de bloqueo (de cualquier equipo)? No se copian al mover los datos. */
+export function isLockFile(name: string): boolean {
+  return /^abierta-en(-[A-Za-z0-9_-]+)?\.json$/.test(name)
+}
+
+/**
+ * Cada equipo escribe su propio archivo («abierta-en-<equipo>.json»). Así dos ordenadores no se pisan
+ * el latido y la nube no crea copias en conflicto: cada uno ve el archivo del otro mientras la app está abierta.
+ */
+export function lockFileFor(host: string): string {
+  const slug = host.normalize('NFKD').replace(/[^A-Za-z0-9_-]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 60) || 'equipo'
+  return `abierta-en-${slug}.json`
+}
+
+/** Devuelve el bloqueo activo más reciente de OTRO ordenador; null si no hay o están caducados. */
 export async function otherDeviceLock(dir: string, host: string, now = new Date()): Promise<LockInfo | null> {
-  const lock = await readJson<LockInfo | null>(path.join(dir, LOCK_FILE), null).catch(() => null)
-  if (!lock || typeof lock.host !== 'string' || lock.host === host) return null
-  const age = now.getTime() - new Date(lock.heartbeat).getTime()
-  return Number.isFinite(age) && age >= 0 && age < LOCK_STALE_MS ? lock : null
+  const names = (await fs.readdir(dir).catch(() => [] as string[])).filter(isLockFile)
+  let best: LockInfo | null = null
+  for (const name of names) {
+    const lock = await readJson<LockInfo | null>(path.join(dir, name), null).catch(() => null)
+    if (!lock || typeof lock.host !== 'string' || lock.host === host || typeof lock.heartbeat !== 'string') continue
+    const age = now.getTime() - new Date(lock.heartbeat).getTime()
+    // Se admite un pequeño desfase de reloj entre equipos.
+    if (!Number.isFinite(age) || age < -LOCK_STALE_MS || age >= LOCK_STALE_MS) continue
+    if (!best || lock.heartbeat > best.heartbeat) best = lock
+  }
+  return best
 }
 
 export async function writeLock(dir: string, info: LockInfo): Promise<void> {
-  await writeJsonAtomic(path.join(dir, LOCK_FILE), info)
+  await writeJsonAtomic(path.join(dir, lockFileFor(info.host)), info)
+}
+
+/** Igual que releaseLock pero síncrono: al cerrar la app no da tiempo a terminar operaciones asíncronas. */
+export function releaseLockSync(dir: string, host: string, pid: number): void {
+  for (const name of [lockFileFor(host), LOCK_FILE]) {
+    const file = path.join(dir, name)
+    try {
+      const lock = JSON.parse(readFileSync(file, 'utf8')) as LockInfo
+      if (lock && lock.host === host && lock.pid === pid) rmSync(file, { force: true })
+    } catch {
+      /* no existe o está dañado */
+    }
+  }
 }
 
 export async function releaseLock(dir: string, host: string, pid: number): Promise<void> {
-  const file = path.join(dir, LOCK_FILE)
-  const lock = await readJson<LockInfo | null>(file, null).catch(() => null)
-  if (lock && lock.host === host && lock.pid === pid) await fs.rm(file, { force: true })
+  for (const name of [lockFileFor(host), LOCK_FILE]) {
+    const file = path.join(dir, name)
+    const lock = await readJson<LockInfo | null>(file, null).catch(() => null)
+    if (lock && lock.host === host && lock.pid === pid) await fs.rm(file, { force: true })
+  }
 }

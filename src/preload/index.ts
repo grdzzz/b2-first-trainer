@@ -36,6 +36,18 @@ const api: BridgeApi = {
   relaunch: () => call('data:relaunch'),
   getLockConflict: () => call('data:lockConflict'),
   ignoreLockConflict: () => call('data:ignoreLock'),
+  onLockConflict: (handler) => {
+    const listener = (_e: Electron.IpcRendererEvent, lock: { host: string; heartbeat: string }) => handler(lock)
+    ipcRenderer.on('data:lock-conflict', listener)
+    return () => ipcRenderer.removeListener('data:lock-conflict', listener)
+  },
+  listPracticeSheets: () => call('practice:listSheets'),
+  savePracticeSheet: (sheet) => call('practice:saveSheet', sheet),
+  deletePracticeSheet: (id) => call('practice:deleteSheet', id),
+  listPracticeProgress: () => call('practice:listProgress'),
+  savePracticeProgress: (p) => call('practice:saveProgress', p),
+  deletePracticeProgress: (id) => call('practice:deleteProgress', id),
+  openPracticeFile: () => call('practice:openFile'),
   getAppInfo: () => call('app:info'),
   openDataFolder: () => call('app:openDataFolder'),
   backupData: () => call('app:backup'),

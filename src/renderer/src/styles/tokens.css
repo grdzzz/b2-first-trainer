@@ -80,6 +80,13 @@
   --paper-listening: #0f7468;
   --paper-speaking: #a2520c;
 
+  /* Destrezas de las hojas de práctica */
+  --skill-vocabulary: #2e46c0;
+  --skill-grammar: #8a3a8f;
+  --skill-wordFormation: #0f7468;
+  --skill-reading: #a2520c;
+  --skill-mixed: #b02a5e;
+
   --band-A: var(--success);
   --band-B: var(--accent);
   --band-C: var(--accent);
@@ -125,6 +132,12 @@
   --paper-writing: #df9be3;
   --paper-listening: #5fd0c0;
   --paper-speaking: #f2a766;
+
+  --skill-vocabulary: #8fa1ff;
+  --skill-grammar: #df9be3;
+  --skill-wordFormation: #5fd0c0;
+  --skill-reading: #f2a766;
+  --skill-mixed: #ff8fb8;
 
   --brand-gradient: linear-gradient(135deg, #4f63e6 0%, #2f3fae 100%);
 

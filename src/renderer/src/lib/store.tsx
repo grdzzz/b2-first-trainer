@@ -1,6 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { Attempt, Exam, Settings } from '@shared/types'
 import { DEFAULT_SETTINGS } from '@shared/types'
+import type { PracticeProgress, PracticeSheet } from '@shared/practice'
+import { newId } from '@shared/ids'
 import { t } from '../i18n'
 
 export type Route =
@@ -10,6 +12,8 @@ export type Route =
   | { name: 'attempt'; attemptId: string }
   | { name: 'results'; attemptId: string }
   | { name: 'history' }
+  | { name: 'practice' }
+  | { name: 'sheet'; sheetId: string }
   | { name: 'settings' }
 
 export interface Toast {
@@ -43,6 +47,13 @@ interface AppState {
   deleteExam(id: string): Promise<void>
   saveAttempt(attempt: Attempt): Promise<Attempt>
   deleteAttempt(id: string): Promise<void>
+  /** Hojas de práctica creadas por el usuario (las 50 incluidas se cargan aparte). */
+  customSheets: PracticeSheet[]
+  practiceProgress: PracticeProgress[]
+  savePracticeProgress(progress: PracticeProgress): Promise<void>
+  resetPracticeProgress(sheetId: string): Promise<void>
+  addPracticeSheets(sheets: Array<Omit<PracticeSheet, 'id'>>, source: PracticeSheet['source']): Promise<PracticeSheet[]>
+  deletePracticeSheet(id: string): Promise<void>
   reload(): Promise<void>
 }
 
@@ -69,6 +80,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [attempts, setAttempts] = useState<Attempt[]>([])
   const [route, setRoute] = useState<Route>({ name: 'home' })
   const [toasts, setToasts] = useState<Toast[]>([])
+  const [customSheets, setCustomSheets] = useState<PracticeSheet[]>([])
+  const [practiceProgress, setPracticeProgress] = useState<PracticeProgress[]>([])
   const toastId = useRef(0)
   const settingsRef = useRef(settings)
   settingsRef.current = settings
@@ -92,11 +105,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
       setMissingDataPath(null)
       void window.api.getLockConflict().then(setLockConflict).catch(() => undefined)
-      const [s, e, a] = await Promise.all([window.api.getSettings(), window.api.listExams(), window.api.listAttempts()])
+      const [s, e, a, ps, pp] = await Promise.all([window.api.getSettings(), window.api.listExams(), window.api.listAttempts(), window.api.listPracticeSheets(), window.api.listPracticeProgress()])
       setSettings(s)
       setExams(e.items)
       setAttempts(a.items)
-      const corrupt = [...e.corrupt, ...a.corrupt]
+      setCustomSheets(ps.items)
+      setPracticeProgress(pp.items)
+      const corrupt = [...e.corrupt, ...a.corrupt, ...ps.corrupt, ...pp.corrupt]
       if (corrupt.length) notify('error', t('errors.corruptFiles', { files: corrupt.join(', ') }))
       setLoadError(null)
     } catch (err) {
@@ -109,6 +124,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     void reload()
   }, [reload])
+
+  // Aviso en directo si otro ordenador abre la misma carpeta de datos mientras se usa la app.
+  useEffect(() => window.api.onLockConflict((lock) => setLockConflict(lock)), [])
 
   const updateSettings = useCallback(async (patch: Partial<Settings>) => {
     const next = { ...settingsRef.current, ...patch, grading: { ...settingsRef.current.grading, ...(patch.grading ?? {}) } }
@@ -155,6 +173,29 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setAttempts((xs) => xs.filter((x) => x.id !== id))
   }, [])
 
+  const savePracticeProgress = useCallback(async (progress: PracticeProgress) => {
+    setPracticeProgress((xs) => [progress, ...xs.filter((x) => x.id !== progress.id)])
+    await window.api.savePracticeProgress({ ...progress, updatedAt: new Date().toISOString() })
+  }, [])
+
+  const resetPracticeProgress = useCallback(async (sheetId: string) => {
+    setPracticeProgress((xs) => xs.filter((x) => x.id !== sheetId))
+    await window.api.deletePracticeProgress(sheetId)
+  }, [])
+
+  const addPracticeSheets = useCallback(async (sheets: Array<Omit<PracticeSheet, 'id'>>, source: PracticeSheet['source']) => {
+    const saved: PracticeSheet[] = []
+    for (const s of sheets) saved.push(await window.api.savePracticeSheet({ ...s, id: newId('sheet'), source, builtIn: false }))
+    setCustomSheets((xs) => [...saved.slice().reverse(), ...xs])
+    return saved
+  }, [])
+
+  const deletePracticeSheet = useCallback(async (id: string) => {
+    await window.api.deletePracticeSheet(id)
+    setCustomSheets((xs) => xs.filter((x) => x.id !== id))
+    setPracticeProgress((xs) => xs.filter((x) => x.id !== id))
+  }, [])
+
   const createExample = useCallback(async () => {
     const exam = await window.api.createExampleExam()
     setExams((xs) => [exam, ...xs.filter((x) => x.id !== exam.id)])
@@ -172,8 +213,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const value = useMemo<AppState>(
-    () => ({ ready, loadError, missingDataPath, lockConflict, dismissLockConflict, tourStep, setTourStep, createExample, settings, exams, attempts, route, toasts, navigate, notify, dismissToast, updateSettings, saveExam, deleteExam, saveAttempt, deleteAttempt, reload }),
-    [ready, loadError, missingDataPath, lockConflict, dismissLockConflict, tourStep, createExample, settings, exams, attempts, route, toasts, navigate, notify, dismissToast, updateSettings, saveExam, deleteExam, saveAttempt, deleteAttempt, reload]
+    () => ({ ready, loadError, missingDataPath, lockConflict, dismissLockConflict, tourStep, setTourStep, createExample, settings, exams, attempts, route, toasts, navigate, notify, dismissToast, updateSettings, saveExam, deleteExam, saveAttempt, deleteAttempt, customSheets, practiceProgress, savePracticeProgress, resetPracticeProgress, addPracticeSheets, deletePracticeSheet, reload }),
+    [ready, loadError, missingDataPath, lockConflict, dismissLockConflict, tourStep, createExample, settings, exams, attempts, route, toasts, navigate, notify, dismissToast, updateSettings, saveExam, deleteExam, saveAttempt, deleteAttempt, customSheets, practiceProgress, savePracticeProgress, resetPracticeProgress, addPracticeSheets, deletePracticeSheet, reload]
   )
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }
