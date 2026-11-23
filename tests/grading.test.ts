@@ -115,3 +115,51 @@ describe('utilidades', () => {
     expect(countWords('one\ntwo\tthree - four')).toBe(4)
   })
 })
+
+import { applyStyle, canChooseStyle, styleOfPart } from '../src/shared/answerStyles'
+import { parseRange } from '../src/main/media'
+
+describe('vídeo sin PDF: tipo de preguntas y corrección a mano', () => {
+  const exam = createExam('Vídeo', ['listening'])
+  const paper = exam.papers[0]
+
+  it('deduce y cambia el tipo de pregunta conservando los identificadores', () => {
+    expect(paper.parts.map(styleOfPart)).toEqual(['mc3', 'word', 'match', 'mc3'])
+    const p2 = applyStyle(paper.parts[1], 'phrase')
+    expect(p2.answerStyle).toBe('phrase')
+    expect(p2.questions.map((q) => q.id)).toEqual(paper.parts[1].questions.map((q) => q.id))
+    const p1 = applyStyle(paper.parts[0], 'mc4')
+    expect(p1.questions[0].options).toEqual(['A', 'B', 'C', 'D'])
+    const asText = applyStyle(paper.parts[0], 'word')
+    expect(asText.questions[0].kind).toBe('text')
+    expect(asText.questions[0].id).toBe(paper.parts[0].questions[0].id)
+    expect(canChooseStyle(paper.parts[0])).toBe(true)
+    const keyed = { ...paper.parts[0], questions: paper.parts[0].questions.map((q) => ({ ...q, answers: ['A'] })) }
+    expect(canChooseStyle(keyed)).toBe(false)
+  })
+
+  it('sin clave, la nota sale de las marcas del alumno', () => {
+    const q = paper.parts[0].questions
+    const attempt = {
+      paperId: paper.id,
+      partIds: [paper.parts[0].id],
+      answers: { [q[0].id]: { value: 'A' }, [q[1].id]: { value: 'B' } },
+      selfAssessments: {},
+      manualMarks: { [q[0].id]: true, [q[1].id]: false, [q[2].id]: true }
+    }
+    const r = gradeAttempt(exam, attempt, { ignoreCase: false, ignoreExtraSpaces: false, ignoreAccents: false })
+    expect(r.score).toBe(2)
+    expect(r.maxScore).toBe(3)
+    expect(r.questions.filter((x) => x.manual)).toHaveLength(3)
+    expect(r.questions[3].correct).toBeNull()
+  })
+
+  it('lee la cabecera Range del reproductor', () => {
+    expect(parseRange('bytes=0-', 1000)).toEqual({ start: 0, end: 999 })
+    expect(parseRange('bytes=100-199', 1000)).toEqual({ start: 100, end: 199 })
+    expect(parseRange('bytes=-100', 1000)).toEqual({ start: 900, end: 999 })
+    expect(parseRange('bytes=900-5000', 1000)).toEqual({ start: 900, end: 999 })
+    expect(parseRange('bytes=2000-', 1000)).toBeNull()
+    expect(parseRange(null, 1000)).toBeNull()
+  })
+})

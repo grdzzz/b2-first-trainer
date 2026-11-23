@@ -21,9 +21,11 @@ interface ManifestFile {
 const SCHEME = 'b2ft-asset'
 
 /** Debe llamarse antes de `app.whenReady()`. */
-export function registerAssetScheme(): void {
+/** Registra los protocolos internos. Solo se puede llamar una vez: por eso recibe también los de otros módulos. */
+export function registerAssetScheme(extra: Electron.CustomScheme[] = []): void {
   protocol.registerSchemesAsPrivileged([
-    { scheme: SCHEME, privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true, stream: true } }
+    { scheme: SCHEME, privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true, stream: true } },
+    ...extra
   ])
 }
 

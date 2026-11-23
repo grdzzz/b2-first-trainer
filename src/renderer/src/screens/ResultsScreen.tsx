@@ -92,6 +92,19 @@ export function ResultsScreen({ attemptId }: { attemptId: string }) {
   const justFinished = !!attempt.finishedAt && Date.now() - new Date(attempt.finishedAt).getTime() < 2 * 60 * 1000
   const celebrate = justFinished && r.percent !== null && r.percent >= 60
 
+  // Preguntas sin clave que el alumno corrige a mano (marcando bien o mal).
+  const marks = draft.manualMarks ?? {}
+  const manualIds = r.questions.filter((q) => q.expected.length === 0 && (q.kind === 'choice' || q.kind === 'text')).map((q) => q.questionId)
+  const unmarked = manualIds.filter((id) => typeof marks[id] !== 'boolean')
+  const setMark = (qid: string, value: boolean | undefined) =>
+    updateDraft((a) => {
+      const next = { ...(a.manualMarks ?? {}) }
+      if (value === undefined) delete next[qid]
+      else next[qid] = value
+      return { ...a, manualMarks: next }
+    }, true)
+  const markRemaining = (value: boolean) => updateDraft((a) => ({ ...a, manualMarks: { ...(a.manualMarks ?? {}), ...Object.fromEntries(unmarked.map((id) => [id, value])) } }), true)
+
   const questionsByPart = r.parts.map((p) => ({ part: p, questions: r.questions.filter((q) => q.partId === p.partId && (!onlyWrong || q.correct === false)) }))
   const paperQuestions = paper?.parts.flatMap((p) => p.questions.map((q) => ({ q, part: p }))) ?? []
 
@@ -121,8 +134,8 @@ export function ResultsScreen({ attemptId }: { attemptId: string }) {
         </div>
       </header>
 
-      {celebrate && <Confetti />}
-      {celebrate && <p className="celebrate-msg" role="status">{t('results.celebrate')}</p>}
+      {celebrate && unmarked.length === 0 && <Confetti />}
+      {celebrate && unmarked.length === 0 && <p className="celebrate-msg" role="status">{t('results.celebrate')}</p>}
       <section className="score-hero card">
         {r.percent === null ? (
           <div className="score-big"><span className="text-subtle">—</span></div>
@@ -162,10 +175,32 @@ export function ResultsScreen({ attemptId }: { attemptId: string }) {
               <span>{t('results.onlyWrong')}</span>
             </label>
           </div>
+          {manualIds.length > 0 && (
+            <div className="manual-banner" role="status">
+              <div>
+                <p className="h-small">{t('manual.title')}</p>
+                <p className="text-muted text-sm">{t('manual.text')}</p>
+                <p className={`text-sm manual-count${unmarked.length ? '' : ' is-done'}`}>{unmarked.length ? tn('manual.pending', unmarked.length) : t('manual.done')}</p>
+              </div>
+              {unmarked.length > 0 && (
+                <div className="row-gap">
+                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => markRemaining(true)}>
+                    <Check size={15} aria-hidden /> {t('manual.allRight')}
+                  </button>
+                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => markRemaining(false)}>
+                    <X size={15} aria-hidden /> {t('manual.allWrong')}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
           {questionsByPart.map(({ part, questions }) =>
             questions.length === 0 ? null : (
               <div key={part.partId} className="result-part">
-                <h3 className="h-small">{t('attempt.partShort', { n: part.partNumber })} · {part.title} {!part.graded && <span className="pill pill-muted">{t('start.noKey')}</span>}</h3>
+                <h3 className="h-small">
+                  {t('attempt.partShort', { n: part.partNumber })} · {part.title}{' '}
+                  {questions.some((q) => manualIds.includes(q.questionId)) ? <span className="pill">{t('manual.pill')}</span> : !part.graded && <span className="pill pill-muted">{t('start.noKey')}</span>}
+                </h3>
                 <table className="result-table">
                   <thead>
                     <tr>
@@ -182,9 +217,22 @@ export function ResultsScreen({ attemptId }: { attemptId: string }) {
                         <td>{q.given ? <span className="given">{q.given}</span> : <span className="text-subtle">{t('results.blank')}</span>}</td>
                         <td>{q.expected.length ? q.expected.join(' / ') : <span className="text-subtle">—</span>}</td>
                         <td className="verdict">
-                          {q.correct === true && <Check size={16} aria-label={t('attempt.correct')} />}
-                          {q.correct === false && <X size={16} aria-label={t('results.wrong')} />}
-                          {q.correct === null && <Minus size={16} aria-label={t('results.ungraded')} />}
+                          {manualIds.includes(q.questionId) ? (
+                            <span className="mark-buttons" role="group" aria-label={t('attempt.questionN', { n: q.number })}>
+                              <button type="button" className={`mark-btn mark-ok${marks[q.questionId] === true ? ' is-on' : ''}`} aria-pressed={marks[q.questionId] === true} onClick={() => setMark(q.questionId, marks[q.questionId] === true ? undefined : true)} title={t('manual.right')}>
+                                <Check size={15} aria-hidden /><span className="sr-only">{t('manual.right')}</span>
+                              </button>
+                              <button type="button" className={`mark-btn mark-ko${marks[q.questionId] === false ? ' is-on' : ''}`} aria-pressed={marks[q.questionId] === false} onClick={() => setMark(q.questionId, marks[q.questionId] === false ? undefined : false)} title={t('manual.wrong')}>
+                                <X size={15} aria-hidden /><span className="sr-only">{t('manual.wrong')}</span>
+                              </button>
+                            </span>
+                          ) : (
+                            <>
+                              {q.correct === true && <Check size={16} aria-label={t('attempt.correct')} />}
+                              {q.correct === false && <X size={16} aria-label={t('results.wrong')} />}
+                              {q.correct === null && <Minus size={16} aria-label={t('results.ungraded')} />}
+                            </>
+                          )}
                         </td>
                       </tr>
                     ))}

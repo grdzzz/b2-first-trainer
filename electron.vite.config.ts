@@ -14,7 +14,7 @@ function cspPlugin(): Plugin {
         "script-src 'self' 'wasm-unsafe-eval' b2ft-asset:",
         "style-src 'self' 'unsafe-inline'",
         "img-src 'self' data: blob:",
-        "media-src 'self' blob:",
+        "media-src 'self' blob: b2ft-media:",
         "font-src 'self' data:",
         "worker-src 'self' blob:",
         "connect-src 'self' blob: data: b2ft-asset:",

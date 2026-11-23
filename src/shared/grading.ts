@@ -43,8 +43,11 @@ export function isCorrect(question: Question, given: string | undefined, opts: G
   return expected.some((e) => normalizeAnswer(e, opts) === n)
 }
 
-export function gradeQuestion(question: Question, partId: string, category: string, given: string | undefined, opts: GradingOptions): QuestionResult {
-  const correct = isCorrect(question, given, opts)
+export function gradeQuestion(question: Question, partId: string, category: string, given: string | undefined, opts: GradingOptions, mark?: boolean): QuestionResult {
+  let correct = isCorrect(question, given, opts)
+  // Sin clave, vale la corrección a mano del alumno (si la ha hecho).
+  const manual = correct === null && (question.kind === 'choice' || question.kind === 'text') && typeof mark === 'boolean'
+  if (manual) correct = mark!
   return {
     questionId: question.id,
     partId,
@@ -54,6 +57,7 @@ export function gradeQuestion(question: Question, partId: string, category: stri
     given: given ?? '',
     expected: question.answers ?? [],
     correct,
+    ...(manual ? { manual: true } : {}),
     points: correct ? question.points : 0,
     maxPoints: correct === null ? 0 : question.points
   }
@@ -71,13 +75,13 @@ export function selfAssessmentAverage(scores: Record<string, number> | undefined
  * Corrige un intento. Las preguntas sin clave cuentan como "sin corrección" y no suman al máximo.
  * Writing/Speaking: si hay autoevaluación completa, la parte se puntúa con ella (0..5 por criterio).
  */
-export function gradeAttempt(exam: Exam, attempt: Pick<Attempt, 'paperId' | 'partIds' | 'questionIds' | 'answers' | 'selfAssessments'>, opts: GradingOptions): AttemptResult {
+export function gradeAttempt(exam: Exam, attempt: Pick<Attempt, 'paperId' | 'partIds' | 'questionIds' | 'answers' | 'selfAssessments' | 'manualMarks'>, opts: GradingOptions): AttemptResult {
   const paper = exam.papers.find((p) => p.id === attempt.paperId)
   if (!paper) return { score: 0, maxScore: 0, percent: null, parts: [], questions: [] }
   return gradePaper(paper, attempt, opts)
 }
 
-export function gradePaper(paper: Paper, attempt: Pick<Attempt, 'partIds' | 'questionIds' | 'answers' | 'selfAssessments'>, opts: GradingOptions): AttemptResult {
+export function gradePaper(paper: Paper, attempt: Pick<Attempt, 'partIds' | 'questionIds' | 'answers' | 'selfAssessments' | 'manualMarks'>, opts: GradingOptions): AttemptResult {
   const only = attempt.questionIds ? new Set(attempt.questionIds) : null
   const criteria = criteriaFor(paper.type)
   const questions: QuestionResult[] = []
@@ -103,7 +107,7 @@ export function gradePaper(paper: Paper, attempt: Pick<Attempt, 'partIds' | 'que
     }
     const selfScores: number[] = []
     for (const q of qs) {
-      const r = gradeQuestion(q, part.id, part.category, attempt.answers[q.id]?.value, opts)
+      const r = gradeQuestion(q, part.id, part.category, attempt.answers[q.id]?.value, opts, attempt.manualMarks?.[q.id])
       questions.push(r)
       if (r.correct !== null) {
         pr.graded = true

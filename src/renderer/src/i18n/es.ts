@@ -154,9 +154,9 @@ export const es = {
     deletePartNamed: 'Eliminar la parte {n}',
     deletePartMessage: 'Se eliminará la parte {part} y su clave. Las preguntas se renumerarán.',
     paperPdf: 'Importar PDF del paper',
-    paperAudio: 'Importar audio del paper',
+    paperAudio: 'Importar audio o vídeo del paper',
     partPdf: 'PDF',
-    partAudio: 'Audio',
+    partAudio: 'Audio o vídeo',
     replace: 'Cambiar',
     removeFile: 'Quitar {name}',
     fileImported: 'Importado: {name}',
@@ -499,6 +499,36 @@ export const es = {
     insert: 'Añadir al texto',
     checklist: 'Antes de entregar',
     examMode: 'En modo examen no hay ayudas, como en el examen real. En modo práctica verás la guía y la revisión automática.'
+  },
+  video: {
+    speed: 'Velocidad',
+    shortcuts: 'Espacio: pausa · ← →: 5 segundos atrás o adelante (con el cursor fuera de las respuestas).',
+    error: 'No se ha podido reproducir el vídeo.',
+    unsupported: 'Este formato de vídeo no se puede reproducir aquí. Conviértelo a MP4 (H.264) con un conversor gratuito como HandBrake y vuelve a importarlo.',
+    loadFailed: 'No se ha podido cargar el archivo.'
+  },
+  styles: {
+    label: 'Tipo de preguntas',
+    hint: 'Elígelo si no tienes el PDF: se recuerda para la próxima vez.',
+    mc3: 'Opción múltiple (A, B, C)',
+    mc4: 'Opción múltiple (A, B, C, D)',
+    match: 'Emparejar (A–H)',
+    word: 'Una palabra o respuesta corta',
+    phrase: 'Frase (Phrase 1, 2…)',
+    phraseN: 'Phrase {n}:'
+  },
+  manual: {
+    title: 'Corrígelo tú',
+    text: 'Estas preguntas no tienen clave. Mira las respuestas en el vídeo y marca cada una: ✓ si está bien, ✗ si está mal. La nota se calcula con tus marcas.',
+    right: 'Bien',
+    wrong: 'Mal',
+    pending: { one: 'Te queda 1 pregunta por corregir.', other: 'Te quedan {count} preguntas por corregir.' },
+    done: '¡Todo corregido!',
+    allRight: 'Marcar las que faltan como bien',
+    allWrong: 'Marcar las que faltan como mal',
+    pill: 'Corrección a mano',
+    markedRight: 'Marcada como bien',
+    markedWrong: 'Marcada como mal'
   },
   createSheets: {
     title: 'Crear más hojas',

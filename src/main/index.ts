@@ -6,6 +6,7 @@ import { randomUUID } from 'node:crypto'
 import { DataStore, copyAppData, otherDeviceLock, releaseLock, releaseLockSync, resolveChosenFolder, writeJsonAtomic, writeLock, type LockInfo } from './storage'
 import { checkForUpdates, getUpdateStatus, initUpdater, installUpdate } from './updater'
 import { applyReminderSettings, initReminder, startedInBackground, staysInBackground, stopReminder, type ReminderRoute } from './reminder'
+import { handleMediaProtocol, mediaSchemePrivileges } from './media'
 import { downloadWhisper, handleAssetProtocol, registerAssetScheme, removeWhisper, whisperStatus } from './whisper'
 import { DOWNLOAD_PAGE_URL } from '../shared/updates'
 import type { IpcResult, ImportKind } from '../shared/api'
@@ -22,7 +23,7 @@ const APP_ID = 'local.b2firsttrainer.app'
 if (process.platform === 'win32') app.setAppUserModelId(APP_ID)
 
 // Protocolo interno para el modelo de transcripción y su motor .wasm (debe registrarse antes de 'ready').
-registerAssetScheme()
+registerAssetScheme([mediaSchemePrivileges])
 
 // Una sola instancia: evita que dos ventanas escriban a la vez en los mismos archivos.
 if (!app.requestSingleInstanceLock()) {
@@ -124,10 +125,12 @@ function handle<T>(channel: string, fn: (...args: any[]) => Promise<T> | T): voi
 
 const FILTERS: Record<ImportKind, Electron.FileFilter[]> = {
   pdf: [{ name: 'PDF', extensions: ['pdf'] }],
-  audio: [{ name: 'Audio', extensions: ['mp3', 'm4a', 'aac', 'wav', 'ogg', 'oga', 'opus', 'webm', 'flac'] }]
+  audio: [{ name: 'Audio o vídeo', extensions: ['mp3', 'm4a', 'aac', 'wav', 'ogg', 'oga', 'opus', 'webm', 'flac', 'mp4', 'm4v', 'mov', 'mkv'] }]
 }
 
-const MAX_IMPORT_BYTES = 1024 * 1024 * 1024 // 1 GB
+const MAX_IMPORT_BYTES = 1024 * 1024 * 1024 // 1 GB (PDF y audio)
+const MAX_VIDEO_BYTES = 8 * 1024 * 1024 * 1024 // 8 GB (vídeo)
+const VIDEO_EXTS = ['mp4', 'm4v', 'mov', 'mkv', 'webm']
 
 function registerIpc(): void {
   handle('settings:get', () => store.getSettings())
@@ -155,7 +158,8 @@ function registerIpc(): void {
     const ext = path.extname(file).slice(1).toLowerCase()
     if (!FILTERS[kind][0].extensions.includes(ext)) throw new Error(`El archivo debe ser ${FILTERS[kind][0].extensions.join(', ')}.`)
     const stat = await fs.stat(file)
-    if (stat.size > MAX_IMPORT_BYTES) throw new Error('El archivo es demasiado grande (máximo 1 GB).')
+    const isVideo = VIDEO_EXTS.includes(ext)
+    if (stat.size > (isVideo ? MAX_VIDEO_BYTES : MAX_IMPORT_BYTES)) throw new Error(isVideo ? 'El vídeo es demasiado grande (máximo 8 GB).' : 'El archivo es demasiado grande (máximo 1 GB).')
     return store.importExamFile(examId, file, kind)
   })
   handle('exams:readFile', (examId: string, name: string) => store.readExamFile(examId, name))
@@ -401,6 +405,7 @@ async function start(): Promise<void> {
   session.defaultSession.setPermissionCheckHandler((_wc, permission) => permission === 'media')
 
   handleAssetProtocol()
+  if (usable) handleMediaProtocol(store)
   registerIpc()
   createWindow()
   initUpdater(() => mainWindow, settings.checkUpdates)

@@ -162,7 +162,11 @@ const MIME_BY_EXT: Record<string, string> = {
   '.ogg': 'audio/ogg',
   '.oga': 'audio/ogg',
   '.opus': 'audio/ogg',
-  '.webm': 'audio/webm',
+  '.webm': 'video/webm',
+  '.mp4': 'video/mp4',
+  '.m4v': 'video/mp4',
+  '.mov': 'video/quicktime',
+  '.mkv': 'video/x-matroska',
   '.flac': 'audio/flac',
   '.json': 'application/json',
   '.txt': 'text/plain'

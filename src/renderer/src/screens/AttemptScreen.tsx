@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Check, CircleHelp, Clock, Eye, FileQuestion, LogOut, Save, Send, X } from 'lucide-react'
-import type { AnswerValue, Attempt, Exam, Paper, Part, Question, SelfAssessment as SA } from '@shared/types'
+import type { AnswerStyle, AnswerValue, Attempt, Exam, Paper, Part, Question, SelfAssessment as SA } from '@shared/types'
 import { finishAttempt, remainingSeconds } from '@shared/attempts'
 import { countWords, isCorrect } from '@shared/grading'
 import { formatDuration } from '@shared/stats'
@@ -13,6 +13,8 @@ import { SelfAssessment } from '../components/SelfAssessment'
 import { CopyButton } from '../components/CopyButton'
 import { TranscribeButton } from '../components/TranscribeButton'
 import { WritingHelp } from '../components/WritingHelp'
+import { VideoPlayer, isVideoFile, mediaUrl } from '../components/VideoPlayer'
+import { ANSWER_STYLES, applyStyle, canChooseStyle, styleOfPart } from '@shared/answerStyles'
 import { detectWritingType } from '@shared/writing'
 import { ConfirmDialog } from '../components/Modal'
 import { PaperBadge } from '../components/PaperBadge'
@@ -271,7 +273,10 @@ function AttemptRunner({ initial, exam, paper }: { initial: Attempt; exam: Exam;
         {paperHasMaterial && (
           <>
             <div className="pane pane-material">
-              {paper.type === 'listening' && audio && (
+              {paper.type === 'listening' && audio && isVideoFile(audio) && (
+                <VideoPlayer key={audio.storedName} src={mediaUrl(exam.id, audio.storedName)} title={audio.name} shortcuts large={!pdf} />
+              )}
+              {paper.type === 'listening' && audio && !isVideoFile(audio) && (
                 <AudioPlayer
                   key={audio.storedName}
                   sourceKey={audio.storedName}
@@ -283,7 +288,7 @@ function AttemptRunner({ initial, exam, paper }: { initial: Attempt; exam: Exam;
               )}
               {pdf ? (
                 <PdfViewer key={pdf.storedName} sourceKey={pdf.storedName} title={pdf.name} initialPage={part?.files.pdf ? undefined : part?.pdfPage} load={() => window.api.readExamFile(exam.id, pdf.storedName)} />
-              ) : (
+              ) : audio && isVideoFile(audio) ? null : (
                 <div className="empty-state">
                   <FileQuestion size={28} aria-hidden />
                   <p>{t('attempt.noPdf')}</p>
@@ -329,6 +334,36 @@ function AttemptRunner({ initial, exam, paper }: { initial: Attempt; exam: Exam;
             <p className="eyebrow">{t('attempt.partOf', { n: part.number })} · {part.category}</p>
             <h2 className="h2">{part.title}</h2>
             {part.instructions && <p className="text-muted">{part.instructions}</p>}
+            {(() => {
+              // Sin clave (p. ej. un vídeo sin PDF), el alumno elige cómo son las preguntas de la parte.
+              const original = paper.parts.find((p) => p.id === part.id)
+              if (!original || !canChooseStyle(original)) return null
+              const current = styleOfPart(original)
+              return (
+                <label className="style-picker">
+                  <span>{t('styles.label')}</span>
+                  <select
+                    className="input input-sm"
+                    value={current ?? ''}
+                    onChange={async (e) => {
+                      const style = e.target.value as AnswerStyle
+                      const next = applyStyle(original, style)
+                      const kindChanged = next.questions[0]?.kind !== original.questions[0]?.kind
+                      try {
+                        await app.saveExam({ ...exam, papers: exam.papers.map((pp) => (pp.id === paper.id ? { ...pp, parts: pp.parts.map((x) => (x.id === part.id ? next : x)) } : pp)) })
+                        // Si cambia de opciones a texto (o al revés), las respuestas anteriores ya no valen.
+                        if (kindChanged) setAttempt((a) => ({ ...a, answers: Object.fromEntries(Object.entries(a.answers).filter(([qid]) => !original.questions.some((q) => q.id === qid))) }))
+                      } catch (err) {
+                        app.notify('error', t('errors.saveFailed', { error: errorMessage(err) }))
+                      }
+                    }}
+                  >
+                    {ANSWER_STYLES.map((s) => <option key={s.id} value={s.id}>{t(`styles.${s.id}`)}</option>)}
+                  </select>
+                  <span className="style-picker-hint text-subtle">{t('styles.hint')}</span>
+                </label>
+              )
+            })()}
             {(part.questions[0]?.kind === 'choice' || part.questions[0]?.kind === 'text') && (
               <p className="kbd-hint"><CircleHelp size={14} aria-hidden /> {part.questions[0].kind === 'choice' ? t('attempt.kbdChoice', { last: Math.min(9, part.questions[0].options?.length ?? 4), letter: part.questions[0].options?.[part.questions[0].options.length - 1] ?? 'D' }) : t('attempt.kbdText')}{paper.type === 'listening' ? ` ${t('attempt.kbdAudio')}` : ''}</p>
             )}
@@ -432,7 +467,9 @@ function QuestionView(props: QuestionViewProps) {
   return <ShortQuestion {...props} />
 }
 
-function ShortQuestion({ q, attempt, active, onActivate, onAnswer }: QuestionViewProps) {
+function ShortQuestion({ q, part, attempt, active, onActivate, onAnswer }: QuestionViewProps) {
+  // Las frases se numeran dentro de cada parte: Phrase 1, Phrase 2…
+  const phraseIndex = part.questions.findIndex((x) => x.id === q.id) + 1
   const { settings } = useApp()
   const ans = attempt.answers[q.id]
   const practice = attempt.mode !== 'exam'
@@ -451,7 +488,7 @@ function ShortQuestion({ q, attempt, active, onActivate, onAnswer }: QuestionVie
       onMouseDown={onActivate}
       aria-label={t('attempt.questionN', { n: q.number })}
     >
-      <span className="q-num" aria-hidden>{q.number}</span>
+      <span className={`q-num${part.answerStyle === 'phrase' ? ' q-num-phrase' : ''}`} aria-hidden>{part.answerStyle === 'phrase' ? t('styles.phraseN', { n: phraseIndex }) : q.number}</span>
       <div className="q-body">
         {q.kind === 'choice' ? (
           <div className="options" role="radiogroup" aria-label={t('attempt.questionN', { n: q.number })}>
@@ -476,7 +513,8 @@ function ShortQuestion({ q, attempt, active, onActivate, onAnswer }: QuestionVie
           </div>
         ) : (
           <input
-            className="input q-input"
+            className={`input q-input${part.answerStyle === 'phrase' ? ' q-input-phrase' : ''}`}
+            placeholder={part.answerStyle === 'phrase' ? t('styles.phraseN', { n: phraseIndex }) : undefined}
             value={ans?.value ?? ''}
             onChange={(e) => onAnswer({ value: e.target.value })}
             disabled={revealed}
@@ -500,7 +538,7 @@ function ShortQuestion({ q, attempt, active, onActivate, onAnswer }: QuestionVie
           </p>
         )}
       </div>
-      {practice && !revealed && (
+      {practice && !revealed && hasKey && (
         <button
           type="button"
           className="btn btn-ghost btn-xs q-check"

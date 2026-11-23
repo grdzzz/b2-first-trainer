@@ -38,6 +38,9 @@ export interface Question {
   maxWords?: number
 }
 
+/** Tipos de pregunta del Reading y del Listening que se pueden elegir al responder. */
+export type AnswerStyle = 'mc3' | 'mc4' | 'match' | 'word' | 'phrase'
+
 export interface Part {
   id: string
   number: number
@@ -47,6 +50,8 @@ export interface Part {
   instructions?: string
   /** Página (1..n) donde empieza la parte dentro del PDF común del paper. */
   pdfPage?: number
+  /** Tipo de pregunta elegido a mano (p. ej. al practicar con un vídeo sin PDF). */
+  answerStyle?: AnswerStyle
   files: PartFiles
   questions: Question[]
 }
@@ -112,6 +117,8 @@ export interface QuestionResult {
   expected: string[]
   /** null = sin clave, no se puede corregir. */
   correct: boolean | null
+  /** Corregida a mano por el alumno (sin clave). */
+  manual?: boolean
   points: number
   maxPoints: number
 }
@@ -180,6 +187,8 @@ export interface Attempt {
   answers: Record<string, AnswerValue>
   /** Autoevaluación por pregunta (Writing/Speaking). */
   selfAssessments: Record<string, SelfAssessment>
+  /** Corrección a mano de preguntas sin clave (p. ej. el vídeo dice la respuesta): true = bien. */
+  manualMarks?: Record<string, boolean>
   result?: AttemptResult
   /** Corrección de IA por pregunta (Writing/Speaking). */
   aiFeedback?: Record<string, AiFeedback>
