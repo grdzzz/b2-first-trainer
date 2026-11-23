@@ -5,6 +5,7 @@ import { existsSync, promises as fs, readFileSync, rmSync, writeFileSync, mkdirS
 import { randomUUID } from 'node:crypto'
 import { DataStore, copyAppData, otherDeviceLock, releaseLock, releaseLockSync, resolveChosenFolder, writeJsonAtomic, writeLock, type LockInfo } from './storage'
 import { checkForUpdates, getUpdateStatus, initUpdater, installUpdate } from './updater'
+import { applyReminderSettings, initReminder, startedInBackground, staysInBackground, stopReminder, type ReminderRoute } from './reminder'
 import { downloadWhisper, handleAssetProtocol, registerAssetScheme, removeWhisper, whisperStatus } from './whisper'
 import { DOWNLOAD_PAGE_URL } from '../shared/updates'
 import type { IpcResult, ImportKind } from '../shared/api'
@@ -90,6 +91,25 @@ function relaunch(): void {
 }
 let mainWindow: BrowserWindow | null = null
 let closeConfirmed = false
+/** La app se está cerrando de verdad (Salir, Cmd+Q, actualización): no se queda en segundo plano. */
+let appQuitting = false
+/** Ajustes vigentes (para decidir si la app sigue en segundo plano al cerrar la ventana). */
+let currentSettings: Settings = { ...DEFAULT_SETTINGS }
+
+/** Muestra la ventana (desde el recordatorio o el icono junto al reloj) y, si se pide, abre una pantalla. */
+function showWindow(route?: ReminderRoute): void {
+  if (!mainWindow) return
+  if (mainWindow.isMinimized()) mainWindow.restore()
+  mainWindow.show()
+  mainWindow.focus()
+  if (route) mainWindow.webContents.send('app:navigate', route)
+}
+
+function quitApp(): void {
+  appQuitting = true
+  if (mainWindow) mainWindow.close()
+  else app.quit()
+}
 
 function handle<T>(channel: string, fn: (...args: any[]) => Promise<T> | T): void {
   ipcMain.handle(channel, async (_e, ...args): Promise<IpcResult<T>> => {
@@ -114,6 +134,8 @@ function registerIpc(): void {
   handle('settings:save', async (s: Settings) => {
     const saved = await store.saveSettings(s)
     nativeTheme.themeSource = saved.theme
+    currentSettings = saved
+    applyReminderSettings(saved)
     return saved
   })
 
@@ -244,6 +266,7 @@ function registerIpc(): void {
     installUpdate(() => {
       // El intento en curso ya está guardado (autoguardado); se cierra sin esperar.
       closeConfirmed = true
+      appQuitting = true
     })
   )
   handle('updates:openDownloadPage', () => shell.openExternal(DOWNLOAD_PAGE_URL))
@@ -283,10 +306,20 @@ function createWindow(): void {
     }
   })
 
-  mainWindow.once('ready-to-show', () => mainWindow?.show())
+  // Abierta al iniciar sesión para el recordatorio: se queda oculta junto al reloj.
+  const hidden = startedInBackground() && staysInBackground(currentSettings)
+  mainWindow.once('ready-to-show', () => {
+    if (!hidden) mainWindow?.show()
+  })
 
   // Antes de cerrar, la interfaz guarda el intento en curso. Si no responde en 10 s (p. ej. una nube muy lenta), se cierra igualmente.
   mainWindow.on('close', (e) => {
+    // Con el recordatorio en segundo plano, cerrar la ventana solo la oculta (sigue el icono junto al reloj).
+    if (!appQuitting && !closeConfirmed && mainWindow && staysInBackground(currentSettings)) {
+      e.preventDefault()
+      mainWindow.hide()
+      return
+    }
     if (closeConfirmed || !mainWindow) return
     e.preventDefault()
     mainWindow.webContents.send('app:before-close')
@@ -322,11 +355,11 @@ function createWindow(): void {
   }
 }
 
-app.on('second-instance', () => {
-  if (mainWindow) {
-    if (mainWindow.isMinimized()) mainWindow.restore()
-    mainWindow.focus()
-  }
+app.on('second-instance', () => showWindow())
+// macOS: clic en el icono del Dock con la ventana oculta.
+app.on('activate', () => showWindow())
+app.on('before-quit', () => {
+  appQuitting = true
 })
 
 app.whenReady().then(start).catch((err: unknown) => {
@@ -357,6 +390,7 @@ async function start(): Promise<void> {
   const usable = dataAvailable && !dataError
   const settings = await (usable ? store : new DataStore(DEFAULT_DATA_DIR)).getSettings().catch(() => ({ ...DEFAULT_SETTINGS }))
   nativeTheme.themeSource = settings.theme
+  currentSettings = settings
 
   // Solo se concede el micrófono (para Speaking); cualquier otro permiso se deniega.
   session.defaultSession.setPermissionRequestHandler((_wc, permission, callback, details) => {
@@ -370,6 +404,12 @@ async function start(): Promise<void> {
   registerIpc()
   createWindow()
   initUpdater(() => mainWindow, settings.checkUpdates)
+  initReminder({
+    getSettings: () => currentSettings,
+    listProgress: async () => (usable ? (await store.listPracticeProgress()).items : []),
+    showWindow,
+    quit: quitApp
+  })
   if (isDev) mainWindow?.webContents.on('before-input-event', (_e, input) => {
     if (input.key === 'F12' && input.type === 'keyDown') mainWindow?.webContents.toggleDevTools()
   })
@@ -377,6 +417,7 @@ async function start(): Promise<void> {
 
 app.on('window-all-closed', () => app.quit())
 app.on('will-quit', () => {
+  stopReminder()
   if (lockTimer) clearInterval(lockTimer)
   if (dataAvailable && !dataError) releaseLockSync(store.root, HOST, process.pid, DEVICE)
 })

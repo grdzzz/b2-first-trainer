@@ -12,6 +12,8 @@ import { Recorder } from '../components/Recorder'
 import { SelfAssessment } from '../components/SelfAssessment'
 import { CopyButton } from '../components/CopyButton'
 import { TranscribeButton } from '../components/TranscribeButton'
+import { WritingHelp } from '../components/WritingHelp'
+import { detectWritingType } from '@shared/writing'
 import { ConfirmDialog } from '../components/Modal'
 import { PaperBadge } from '../components/PaperBadge'
 import { modeLabel } from '../lib/format'
@@ -146,7 +148,8 @@ function AttemptRunner({ initial, exam, paper }: { initial: Attempt; exam: Exam;
       const now = Date.now()
       const delta = Math.min(5, Math.max(0, (now - last) / 1000))
       last = now
-      if (finishing.current) return
+      // Con la ventana oculta (minimizada o en segundo plano por el recordatorio) el tiempo no corre.
+      if (finishing.current || document.hidden) return
       setAttemptState((prev) => {
         const next = { ...prev, durationSec: prev.durationSec + delta }
         attemptRef.current = next
@@ -534,6 +537,23 @@ function PromptField({ q, attempt, onAnswer }: Pick<QuestionViewProps, 'q' | 'at
 function EssayQuestion({ q, part, exam, attempt, onAnswer, onActivate }: QuestionViewProps) {
   const ans = attempt.answers[q.id]
   const text = ans?.value ?? ''
+  const area = useRef<HTMLTextAreaElement>(null)
+  const writingType = ans?.writingType ?? detectWritingType(q.prompt ?? ans?.prompt ?? '', part.number)
+  /** Inserta una frase de la guía donde está el cursor. */
+  const insert = (phrase: string) => {
+    const el = area.current
+    const start = el?.selectionStart ?? text.length
+    const end = el?.selectionEnd ?? text.length
+    const before = text.slice(0, start)
+    const sep = before && !/\s$/.test(before) ? ' ' : ''
+    const next = `${before}${sep}${phrase} ${text.slice(end)}`
+    onAnswer({ value: next })
+    requestAnimationFrame(() => {
+      const pos = before.length + sep.length + phrase.length + 1
+      el?.focus()
+      el?.setSelectionRange(pos, pos)
+    })
+  }
   const words = countWords(text)
   const min = q.minWords ?? 0
   const max = q.maxWords ?? 0
@@ -543,6 +563,7 @@ function EssayQuestion({ q, part, exam, attempt, onAnswer, onActivate }: Questio
       <PromptField q={q} attempt={attempt} onAnswer={onAnswer} />
       <label className="sr-only" htmlFor={`essay-${q.id}`}>{t('attempt.yourText')}</label>
       <textarea
+        ref={area}
         id={`essay-${q.id}`}
         className="input essay"
         value={text}
@@ -568,6 +589,11 @@ function EssayQuestion({ q, part, exam, attempt, onAnswer, onActivate }: Questio
           }
         />
       </div>
+      {attempt.mode === 'exam' ? (
+        <p className="text-subtle text-sm">{t('writing.examMode')}</p>
+      ) : (
+        <WritingHelp text={text} type={writingType} onType={(w) => onAnswer({ writingType: w })} minWords={q.minWords} maxWords={q.maxWords} onInsert={insert} />
+      )}
     </div>
   )
 }

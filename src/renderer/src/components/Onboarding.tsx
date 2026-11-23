@@ -1,3 +1,4 @@
+import { MascotSvg } from './Mascot'
 import { useState } from 'react'
 import { ArrowRight, BookOpenCheck, Compass, Sparkles } from 'lucide-react'
 import { errorMessage, useApp } from '../lib/store'
@@ -34,14 +35,19 @@ export function Onboarding() {
         <span className="blob blob-2" />
         <span className="blob blob-3" />
       </div>
-      <main className="onb-card" key={step} aria-labelledby="onb-title">
-        <div className="onb-mark" aria-hidden>B2</div>
+      {/* La tarjeta se monta una sola vez: entre pasos solo cambia el contenido, con un fundido. */}
+      <main className="onb-card" aria-labelledby="onb-title">
+        <div className="onb-hero" aria-hidden>
+          <div className="onb-mark">B2</div>
+          <MascotSvg mood={step === 0 ? 'wave' : 'cheer'} size={84} />
+        </div>
         <div className="onb-dots" aria-hidden>
           <span className={step === 0 ? 'is-active' : ''} />
           <span className={step === 1 ? 'is-active' : ''} />
         </div>
         {step === 0 ? (
           <form
+            key="nombre"
             className="onb-step"
             onSubmit={(e) => {
               e.preventDefault()
@@ -71,7 +77,7 @@ export function Onboarding() {
             </div>
           </form>
         ) : (
-          <div className="onb-step">
+          <div className="onb-step" key="ejemplo">
             <h1 id="onb-title" className="onb-title">{first ? t('onboarding.hello', { name: first }) : t('onboarding.helloNoName')}</h1>
             <p className="onb-text">{hasExams ? t('onboarding.exampleExisting') : t('onboarding.exampleText')}</p>
             <div className="onb-choices">

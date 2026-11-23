@@ -3,6 +3,8 @@
 // Las 50 hojas incluidas son contenido original (no de Cambridge). El usuario puede añadir más
 // pidiéndoselas a un chat de IA (copiar y pegar) o importando un archivo .json.
 
+import type { ReviewState } from './review'
+
 export const SHEET_FORMAT = 'b2ft-hoja'
 export const SHEET_FORMAT_VERSION = 1
 
@@ -107,6 +109,10 @@ export interface PracticeProgress {
   updatedAt?: string
   /** Fechas (AAAA-MM-DD) en las que se completó: sirven para la racha de días. */
   days?: string[]
+  /** Preguntas falladas en repaso espaciado: clave `tarea.ítem`. */
+  review?: Record<string, ReviewState>
+  /** Preguntas de esta hoja dominadas en el repaso. */
+  mastered?: number
 }
 
 export const TASK_INSTRUCTIONS: Record<PracticeTaskType, string> = {

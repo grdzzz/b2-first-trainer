@@ -105,6 +105,8 @@ export interface BridgeApi {
   removeWhisper(): Promise<void>
   onWhisperProgress(handler: (p: { received: number; total: number }) => void): () => void
 
+  /** El recordatorio (o el icono junto al reloj) pide abrir una pantalla. */
+  onNavigate(handler: (route: 'practice' | 'review') => void): () => void
   /** El proceso principal avisa de que la ventana se va a cerrar; la interfaz guarda y confirma. */
   onBeforeClose(handler: () => Promise<void> | void): () => void
 }

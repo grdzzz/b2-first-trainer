@@ -19,9 +19,11 @@ import {
 import { errorMessage, useApp } from '../lib/store'
 import { useAllSheets } from '../lib/practice'
 import { SkillBadge } from '../components/SkillBadge'
+import { Mascot, type MascotMood } from '../components/Mascot'
+import { reviewAfterCheck, reviewOf } from '@shared/review'
 import { ProgressRing } from '../components/ProgressRing'
 import { Confetti } from '../components/Confetti'
-import { t } from '../i18n'
+import { t, tn } from '../i18n'
 
 type Answers = Record<string, string>
 
@@ -42,6 +44,10 @@ export function SheetScreen({ sheetId }: { sheetId: string }) {
   return <SheetRunner sheet={sheet} nextSheet={sheets[index + 1] ?? null} />
 }
 
+function resultMood(pct: number): MascotMood {
+  return pct >= 80 ? 'celebrate' : pct >= 60 ? 'cheer' : pct >= 40 ? 'happy' : 'oops'
+}
+
 /** Mensaje de ánimo según el porcentaje. */
 function resultMessage(pct: number): string {
   if (pct >= 90) return t('sheet.result90')
@@ -56,7 +62,7 @@ function SheetRunner({ sheet, nextSheet }: { sheet: PracticeSheet; nextSheet: Pr
   const stored = app.practiceProgress.find((p) => p.id === sheet.id)
   const [answers, setAnswers] = useState<Answers>(stored?.answers ?? {})
   const [checked, setChecked] = useState(stored?.checked ?? false)
-  const [celebrate, setCelebrate] = useState<{ newBest: boolean; confetti: boolean } | null>(null)
+  const [celebrate, setCelebrate] = useState<{ newBest: boolean; confetti: boolean; toReview: number } | null>(null)
   const progressRef = useRef<PracticeProgress>(stored ?? { id: sheet.id, answers: {}, checked: false, times: 0 })
   const timer = useRef<number | undefined>(undefined)
   const topRef = useRef<HTMLDivElement>(null)
@@ -121,8 +127,12 @@ function SheetRunner({ sheet, nextSheet }: { sheet: PracticeSheet; nextSheet: Pr
     const prev = progressRef.current
     const best = Math.max(prev.best ?? 0, score.correct)
     const today = localDay()
+    // Los fallos pasan al repaso espaciado (y lo que tocaba repasar y se acierta, avanza).
+    const rv = reviewAfterCheck(sheet, answers, reviewOf(sheet, prev, today), today)
     const next: PracticeProgress = {
       ...prev,
+      review: rv.review,
+      mastered: (prev.mastered ?? 0) + rv.mastered,
       answers,
       checked: true,
       lastScore: score.correct,
@@ -133,7 +143,7 @@ function SheetRunner({ sheet, nextSheet }: { sheet: PracticeSheet; nextSheet: Pr
       days: Array.from(new Set([today, ...(prev.days ?? [])])).slice(0, 400)
     }
     setChecked(true)
-    setCelebrate({ newBest: (prev.times ?? 0) > 0 && score.correct > (prev.best ?? 0), confetti: score.percent >= 80 })
+    setCelebrate({ newBest: (prev.times ?? 0) > 0 && score.correct > (prev.best ?? 0), confetti: score.percent >= 80, toReview: total - score.correct })
     persist(next)
     window.requestAnimationFrame(() => topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
   }
@@ -190,7 +200,7 @@ function SheetRunner({ sheet, nextSheet }: { sheet: PracticeSheet; nextSheet: Pr
           </ProgressRing>
           <div className="sheet-result-text">
             <h2 className="h2">{t('sheet.resultTitle', { correct: score.correct, total })}</h2>
-            <p className="text-muted">{resultMessage(score.percent)}</p>
+            <Mascot mood={resultMood(score.percent)} size={72} message={<>{resultMessage(score.percent)}{celebrate && celebrate.toReview > 0 ? <> {tn('sheet.toReview', celebrate.toReview)}</> : null}</>} />
             {celebrate?.newBest ? (
               <p className="celebrate-msg"><Trophy size={15} aria-hidden /> {t('sheet.newBest')}</p>
             ) : best !== undefined && (progressRef.current.times ?? 0) > 1 ? (
@@ -295,7 +305,7 @@ function renderGapped(text: string, renderGap: (index: number) => ReactNode): Re
   ))
 }
 
-function optionText(options: string[], value: string | undefined): string | undefined {
+export function optionText(options: string[], value: string | undefined): string | undefined {
   return value === undefined || value === '' ? undefined : `${OPTION_LETTERS[Number(value)]} · ${options[Number(value)]}`
 }
 
@@ -304,7 +314,7 @@ function verdictOf(task: PracticeTask, ii: number, value: string | undefined, ch
   return checkItem(task, ii, value)
 }
 
-function Explanation({ ok, expected, explain, given }: { ok: boolean | null; expected: string[]; explain?: string; given?: string }) {
+export function Explanation({ ok, expected, explain, given }: { ok: boolean | null; expected: string[]; explain?: string; given?: string }) {
   return (
     <div className={`explain${ok ? ' is-ok' : ' is-bad'}`}>
       {ok ? <CheckCircle2 size={16} aria-hidden /> : <XCircle size={16} aria-hidden />}
@@ -321,7 +331,7 @@ function Explanation({ ok, expected, explain, given }: { ok: boolean | null; exp
   )
 }
 
-function OptionButtons({ options, value, answer, checked, onPick, label, wide }: { options: string[]; value?: string; answer: number; checked: boolean; onPick(i: number): void; label: string; wide?: boolean }) {
+export function OptionButtons({ options, value, answer, checked, onPick, label, wide }: { options: string[]; value?: string; answer: number; checked: boolean; onPick(i: number): void; label: string; wide?: boolean }) {
   return (
     <div className={`sheet-options${wide ? ' is-wide' : ''}`} role="radiogroup" aria-label={label}>
       {options.map((o, i) => {
@@ -377,7 +387,7 @@ function McCloze({ task, ti, numbers, answers, checked, onAnswer }: TaskProps & 
   )
 }
 
-function GapInput({ value, onChange, disabled, label, verdict, base }: { value: string; onChange(v: string): void; disabled: boolean; label: string; verdict: boolean | null | undefined; base?: string }) {
+export function GapInput({ value, onChange, disabled, label, verdict, base }: { value: string; onChange(v: string): void; disabled: boolean; label: string; verdict: boolean | null | undefined; base?: string }) {
   const width = Math.max(7, Math.min(22, (value?.length ?? 0) + 2))
   return (
     <span className={`gap-field${verdict === true ? ' is-ok' : verdict === undefined ? '' : ' is-bad'}`}>

@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react'
-import { ArrowRight, BookOpenCheck, CheckCircle2, Clock, Flame, FolderPlus, NotebookPen, Play, PlayCircle, Timer, Trash2 } from 'lucide-react'
-import { countItems, nextSheet, practiceStats } from '@shared/practice'
+import { ArrowRight, BellRing, BookOpenCheck, CheckCircle2, Clock, Flame, FolderPlus, Play, PlayCircle, RotateCcw, Timer, Trash2 } from 'lucide-react'
+import { countItems, localDay, nextSheet, practiceStats } from '@shared/practice'
+import { reviewSummary } from '@shared/review'
+import { Mascot } from '../components/Mascot'
 import { useAllSheets } from '../lib/practice'
 import { skillLabel } from '../components/SkillBadge'
 import { progressSummary } from '@shared/stats'
@@ -224,19 +226,31 @@ export function HomeScreen() {
   )
 }
 
-/** Tarjeta de práctica rápida: la siguiente hoja de ejercicios y el avance. */
+/** Tarjeta de práctica: Bubi cuenta qué toca hoy (repaso, racha o una hoja nueva). */
 function PracticeCard() {
-  const { practiceProgress, navigate } = useApp()
+  const { practiceProgress, navigate, settings, updateSettings, notify } = useApp()
   const sheets = useAllSheets()
   if (!sheets) return null
+  const today = localDay()
   const stats = practiceStats(sheets, practiceProgress)
   const next = nextSheet(sheets, practiceProgress)
+  const review = reviewSummary(sheets, practiceProgress, today)
   if (!next) return null
   const p = practiceProgress.find((x) => x.id === next.id)
   const started = !!p && !p.checked && Object.keys(p.answers).length > 0
+  const practicedToday = practiceProgress.some((x) => x.days?.includes(today))
+  const name = settings.userName.split(' ')[0]
+  const message = review.due > 0
+    ? tn('home.bubiReview', review.due, { name })
+    : practicedToday
+      ? tn('home.bubiDone', stats.streak)
+      : stats.streak > 0
+        ? tn('home.bubiStreak', stats.streak)
+        : t('home.bubiStart')
+  const mood = review.due > 0 ? 'think' : practicedToday ? 'celebrate' : stats.streak > 0 ? 'cheer' : 'wave'
   return (
     <section className="card home-practice" aria-labelledby="home-practice-title">
-      <span className="home-practice-icon" aria-hidden><NotebookPen size={24} /></span>
+      <Mascot mood={mood} size={88} message={message} className="home-bubi" />
       <div className="home-practice-text">
         <p className="eyebrow">{t('home.practiceEyebrow')}</p>
         <h2 id="home-practice-title" className="h-small">{next.number ? `${t('practice.sheetN', { n: next.number })} · ` : ''}{next.title}</h2>
@@ -244,12 +258,31 @@ function PracticeCard() {
         <div className="home-practice-meter">
           <span className="sheet-progress-bar" aria-hidden><span style={{ width: `${(stats.done / Math.max(1, stats.total)) * 100}%` }} /></span>
           <span>{t('home.practiceDone', { done: stats.done, total: stats.total })}</span>
-          {stats.streak > 0 && <span className="row-gap"><Flame size={13} aria-hidden /> {t('home.practiceStreak', { n: stats.streak })}</span>}
+          {stats.streak > 0 && <span className="row-gap"><Flame size={13} aria-hidden /> {tn('home.practiceStreak', stats.streak)}</span>}
+        </div>
+        <div className="row-gap home-practice-actions">
+          {review.due > 0 && (
+            <button type="button" className="btn btn-primary btn-sm" onClick={() => navigate({ name: 'review' })}>
+              <RotateCcw size={15} aria-hidden /> {t('home.reviewGo', { n: review.due })}
+            </button>
+          )}
+          <button type="button" className={`btn btn-sm ${review.due > 0 ? 'btn-secondary' : 'btn-primary'}`} onClick={() => navigate({ name: 'sheet', sheetId: next.id })}>
+            {started ? t('practice.nextContinue') : t('home.practiceGo')} <ArrowRight size={15} aria-hidden />
+          </button>
+          {!settings.reminder.enabled && (
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              onClick={async () => {
+                await updateSettings({ reminder: { enabled: true, background: true } })
+                notify('success', t('home.reminderOn', { time: settings.reminder.time }))
+              }}
+            >
+              <BellRing size={15} aria-hidden /> {t('home.reminderOffer')}
+            </button>
+          )}
         </div>
       </div>
-      <button type="button" className="btn btn-secondary" onClick={() => navigate({ name: 'sheet', sheetId: next.id })}>
-        {started ? t('practice.nextContinue') : t('home.practiceGo')} <ArrowRight size={16} aria-hidden />
-      </button>
     </section>
   )
 }

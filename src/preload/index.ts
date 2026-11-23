@@ -81,6 +81,13 @@ const api: BridgeApi = {
     ipcRenderer.on('whisper:progress', listener)
     return () => ipcRenderer.removeListener('whisper:progress', listener)
   },
+  onNavigate: (handler) => {
+    const listener = (_e: Electron.IpcRendererEvent, route: unknown) => {
+      if (route === 'practice' || route === 'review') handler(route)
+    }
+    ipcRenderer.on('app:navigate', listener)
+    return () => ipcRenderer.removeListener('app:navigate', listener)
+  },
   onBeforeClose: (handler) => {
     closeHandlers.add(handler)
     return () => {

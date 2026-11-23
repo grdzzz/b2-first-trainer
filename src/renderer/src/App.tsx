@@ -17,6 +17,7 @@ const ExamScreen = lazy(() => import('./screens/ExamScreen').then((m) => ({ defa
 const AttemptScreen = lazy(() => import('./screens/AttemptScreen').then((m) => ({ default: m.AttemptScreen })))
 const ResultsScreen = lazy(() => import('./screens/ResultsScreen').then((m) => ({ default: m.ResultsScreen })))
 const PracticeScreen = lazy(() => import('./screens/PracticeScreen').then((m) => ({ default: m.PracticeScreen })))
+const ReviewScreen = lazy(() => import('./screens/ReviewScreen').then((m) => ({ default: m.ReviewScreen })))
 const SheetScreen = lazy(() => import('./screens/SheetScreen').then((m) => ({ default: m.SheetScreen })))
 
 export function App() {
@@ -38,7 +39,7 @@ const NAV: Array<{ route: Route['name']; label: () => string; icon: typeof Libra
 function activeSection(route: Route): Route['name'] {
   if (route.name === 'exam') return 'library'
   if (route.name === 'results') return 'history'
-  if (route.name === 'sheet') return 'practice'
+  if (route.name === 'sheet' || route.name === 'review') return 'practice'
   return route.name
 }
 
@@ -159,6 +160,8 @@ function Screen({ route }: { route: Route }) {
       return <ResultsScreen key={route.attemptId} attemptId={route.attemptId} />
     case 'practice':
       return <PracticeScreen />
+    case 'review':
+      return <ReviewScreen />
     case 'sheet':
       return <SheetScreen key={route.sheetId} sheetId={route.sheetId} />
     case 'history':

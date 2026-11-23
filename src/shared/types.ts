@@ -95,6 +95,8 @@ export interface AnswerValue {
   recording?: Recording
   /** Transcripción o notas de lo dicho en Speaking. */
   transcript?: string
+  /** Writing: tipo de texto elegido para la ayuda (si no, se deduce de la consigna). */
+  writingType?: 'essay' | 'article' | 'email' | 'report' | 'review'
   /** En modo práctica: el alumno pidió ver la corrección. */
   revealed?: boolean
   updatedAt?: string
@@ -202,7 +204,23 @@ export interface Settings {
   userName: string
   /** Ya se ha mostrado la bienvenida inicial. */
   onboarded: boolean
+  /** Mostrar a Bubi, la mascota. */
+  mascot: boolean
+  reminder: ReminderSettings
 }
+
+export interface ReminderSettings {
+  /** Aviso diario si ese día aún no has practicado. */
+  enabled: boolean
+  /** Hora del aviso, «HH:MM» (24 h). */
+  time: string
+  /** Al cerrar la ventana, la app sigue en segundo plano (junto al reloj) para poder avisar. */
+  background: boolean
+  /** Abrir la app en segundo plano al iniciar sesión en el ordenador. */
+  openAtLogin: boolean
+}
+
+export const DEFAULT_REMINDER: ReminderSettings = { enabled: false, time: '19:00', background: true, openAtLogin: false }
 
 export interface GradingOptions {
   ignoreCase: boolean
@@ -219,7 +237,9 @@ export const DEFAULT_SETTINGS: Settings = {
   autosaveSeconds: 3,
   checkUpdates: true,
   userName: '',
-  onboarded: false
+  onboarded: false,
+  mascot: true,
+  reminder: DEFAULT_REMINDER
 }
 
 export const PAPER_ORDER: PaperType[] = ['reading', 'writing', 'listening', 'speaking']

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import { ArrowLeft, ArrowRight, X } from 'lucide-react'
 import { useApp, type Route } from '../lib/store'
 import { t, type TKey } from '../i18n'
+import { MascotSvg } from './Mascot'
 
 interface Step {
   /** Pantalla en la que se muestra el paso. */
@@ -63,36 +64,43 @@ export function Tour() {
     const route = step.route(examId)
     if (route) navigate(route)
     setReady(false)
-    let tries = 0
+    // Se espera a que el elemento exista y deje de moverse (las pantallas entran con una animación breve):
+    // así se mide una sola vez y la tarjeta aparece directamente en su sitio, sin saltos.
     let raf = 0
-    let settle: number | undefined
-    const measure = (el: HTMLElement) => {
-      const r = el.getBoundingClientRect()
-      setRect({ top: r.top - PAD, left: r.left - PAD, width: r.width + PAD * 2, height: r.height + PAD * 2 })
+    let frames = 0
+    let still = 0
+    let lastKey = ''
+    let scrolled = false
+    const finish = (el: HTMLElement | null) => {
+      if (el) {
+        const r = el.getBoundingClientRect()
+        setRect({ top: r.top - PAD, left: r.left - PAD, width: r.width + PAD * 2, height: r.height + PAD * 2 })
+      } else setRect(null)
+      setReady(true)
     }
     const find = () => {
+      frames++
       const el = step.target ? document.querySelector<HTMLElement>(step.target) : null
-      if (el || !step.target || tries > 40) {
-        if (el) {
-          el.scrollIntoView({ block: 'center', behavior: 'auto' })
-          measure(el)
-          // Las pantallas entran con una animación breve: se vuelve a medir cuando termina para que el foco encaje.
-          settle = window.setTimeout(() => {
-            el.scrollIntoView({ block: 'center', behavior: 'auto' })
-            measure(el)
-          }, 480)
-        } else setRect(null)
-        setReady(true)
+      if (!step.target) return finish(null)
+      if (!el) {
+        if (frames > 90) return finish(null)
+        raf = requestAnimationFrame(find)
         return
       }
-      tries++
+      if (!scrolled) {
+        el.scrollIntoView({ block: 'center', behavior: 'auto' })
+        scrolled = true
+      }
+      const r = el.getBoundingClientRect()
+      const key = `${Math.round(r.top)}:${Math.round(r.left)}:${Math.round(r.width)}:${Math.round(r.height)}`
+      still = key === lastKey ? still + 1 : 0
+      lastKey = key
+      // Quieto durante 6 fotogramas (~100 ms) o, como mucho, ~1,2 s.
+      if (still >= 6 || frames > 75) return finish(el)
       raf = requestAnimationFrame(find)
     }
     raf = requestAnimationFrame(find)
-    return () => {
-      cancelAnimationFrame(raf)
-      window.clearTimeout(settle)
-    }
+    return () => cancelAnimationFrame(raf)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tourStep, examId])
 
@@ -147,6 +155,7 @@ export function Tour() {
       <div className={`tour-spot${rect ? '' : ' is-center'}`} style={rect ? { top: rect.top, left: rect.left, width: rect.width, height: rect.height } : undefined} aria-hidden />
       <div ref={card} className="tour-card" style={style} role="dialog" aria-modal="true" aria-labelledby="tour-title" tabIndex={-1} key={tourStep}>
         <div className="tour-head">
+          {settings.mascot && <MascotSvg mood={tourStep === 0 ? 'wave' : last ? 'celebrate' : 'happy'} size={44} />}
           <span className="tour-count">{t('tour.count', { n: (tourStep ?? 0) + 1, total: STEPS.length })}</span>
           <button type="button" className="icon-btn icon-btn-sm" onClick={close} aria-label={t('tour.close')}>
             <X size={16} aria-hidden />

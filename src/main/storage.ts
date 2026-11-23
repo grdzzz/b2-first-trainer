@@ -415,6 +415,18 @@ export class DataStore {
   }
 }
 
+function mergeReminder(raw: unknown): Settings['reminder'] {
+  const r = (raw && typeof raw === 'object' ? raw : {}) as Partial<Settings['reminder']>
+  const d = DEFAULT_SETTINGS.reminder
+  const time = typeof r.time === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(r.time) ? r.time : d.time
+  return {
+    enabled: typeof r.enabled === 'boolean' ? r.enabled : d.enabled,
+    time,
+    background: typeof r.background === 'boolean' ? r.background : d.background,
+    openAtLogin: typeof r.openAtLogin === 'boolean' ? r.openAtLogin : d.openAtLogin
+  }
+}
+
 export function mergeSettings(raw: Partial<Settings> | null | undefined): Settings {
   const r = raw ?? {}
   const theme = r.theme === 'light' || r.theme === 'dark' || r.theme === 'system' ? r.theme : DEFAULT_SETTINGS.theme
@@ -430,6 +442,8 @@ export function mergeSettings(raw: Partial<Settings> | null | undefined): Settin
     checkUpdates: typeof r.checkUpdates === 'boolean' ? r.checkUpdates : DEFAULT_SETTINGS.checkUpdates,
     userName: typeof r.userName === 'string' ? r.userName.replace(/\s+/g, ' ').trim().slice(0, 40) : DEFAULT_SETTINGS.userName,
     onboarded: typeof r.onboarded === 'boolean' ? r.onboarded : DEFAULT_SETTINGS.onboarded,
+    mascot: typeof r.mascot === 'boolean' ? r.mascot : DEFAULT_SETTINGS.mascot,
+    reminder: mergeReminder(r.reminder),
     grading: {
       ignoreCase: typeof g.ignoreCase === 'boolean' ? g.ignoreCase : DEFAULT_SETTINGS.grading.ignoreCase,
       ignoreExtraSpaces: typeof g.ignoreExtraSpaces === 'boolean' ? g.ignoreExtraSpaces : DEFAULT_SETTINGS.grading.ignoreExtraSpaces,

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
-import { BookOpenCheck, Cloud, Compass, Database, Download, FolderOpen, FolderSync, HardDriveDownload, Mic, Monitor, Moon, NotebookPen, Palette, RefreshCw, RotateCcw, SpellCheck, Sun, UserRound } from 'lucide-react'
+import { BellRing, BookOpenCheck, Cloud, Compass, Database, Download, FolderOpen, FolderSync, HardDriveDownload, Mic, Monitor, Moon, NotebookPen, Palette, RefreshCw, RotateCcw, SpellCheck, Sun, UserRound } from 'lucide-react'
 import { ConfirmDialog } from '../components/Modal'
+import { Mascot, MascotSvg } from '../components/Mascot'
 import type { DataLocation } from '@shared/api'
 import { Modal } from '../components/Modal'
 import type { AppInfo } from '@shared/api'
@@ -21,6 +22,7 @@ const SECTIONS: Array<{ id: string; label: () => string; icon: typeof Sun }> = [
   { id: 'set-appearance', label: () => t('settings.appearance'), icon: Palette },
   { id: 'set-grading', label: () => t('settings.gradingShort'), icon: SpellCheck },
   { id: 'set-data', label: () => t('settings.data'), icon: Database },
+  { id: 'set-reminder', label: () => t('settings.reminderShort'), icon: BellRing },
   { id: 'set-practice', label: () => t('settings.practice'), icon: NotebookPen },
   { id: 's-sync', label: () => t('settings.syncShort'), icon: Cloud },
   { id: 'set-transcription', label: () => t('settings.transcriptionShort'), icon: Mic },
@@ -34,6 +36,57 @@ function SectionTitle({ id, icon: Icon, children }: { id: string; icon: typeof S
       <span className="section-icon" aria-hidden><Icon size={17} /></span>
       {children}
     </h2>
+  )
+}
+
+/** Recordatorio diario (aviso del sistema) y segundo plano. */
+function ReminderSection() {
+  const { settings, updateSettings } = useApp()
+  const r = settings.reminder
+  const [platform, setPlatform] = useState('')
+  useEffect(() => {
+    window.api.getAppInfo().then((i) => setPlatform(i.platform)).catch(() => undefined)
+  }, [])
+  return (
+    <section className="card settings-section" aria-labelledby="s-reminder" id="set-reminder">
+      <SectionTitle id="s-reminder" icon={BellRing}>{t('settings.reminder')}</SectionTitle>
+      <Mascot mood={r.enabled ? 'cheer' : 'sleep'} size={64} message={r.enabled ? t('settings.reminderBubiOn', { time: r.time }) : t('settings.reminderBubiOff')} />
+      <label className="setting setting-toggle">
+        <div>
+          <span className="setting-name">{t('settings.reminderEnable')}</span>
+          <span className="setting-desc">{t('settings.reminderEnableDesc')}</span>
+        </div>
+        <input type="checkbox" className="toggle" checked={r.enabled} onChange={(e) => void updateSettings({ reminder: { enabled: e.target.checked } })} />
+      </label>
+      {r.enabled && (
+        <>
+          <div className="setting">
+            <div>
+              <label className="setting-name" htmlFor="reminder-time">{t('settings.reminderTime')}</label>
+              <p className="setting-desc">{t('settings.reminderTimeDesc')}</p>
+            </div>
+            <input id="reminder-time" type="time" className="input input-sm time-input" value={r.time} onChange={(e) => /^\d{2}:\d{2}$/.test(e.target.value) && void updateSettings({ reminder: { time: e.target.value } })} />
+          </div>
+          <label className="setting setting-toggle">
+            <div>
+              <span className="setting-name">{t('settings.reminderBackground')}</span>
+              <span className="setting-desc">{t('settings.reminderBackgroundDesc')}</span>
+            </div>
+            <input type="checkbox" className="toggle" checked={r.background} onChange={(e) => void updateSettings({ reminder: { background: e.target.checked } })} />
+          </label>
+          {platform && platform !== 'linux' && (
+            <label className="setting setting-toggle">
+              <div>
+                <span className="setting-name">{t('settings.reminderLogin')}</span>
+                <span className="setting-desc">{platform === 'darwin' ? t('settings.reminderLoginDescMac') : t('settings.reminderLoginDesc')}</span>
+              </div>
+              <input type="checkbox" className="toggle" checked={r.openAtLogin} onChange={(e) => void updateSettings({ reminder: { openAtLogin: e.target.checked } })} />
+            </label>
+          )}
+          {!r.background && <p className="notice notice-warning"><BellRing size={16} aria-hidden /> {t('settings.reminderNeedsBackground')}</p>}
+        </>
+      )}
+    </section>
   )
 }
 
@@ -180,6 +233,8 @@ export function SettingsScreen() {
         <p className="text-subtle text-sm">{t('settings.restoreHint')}</p>
       </section>
 
+      <ReminderSection />
+
       <PracticeSection />
 
       <SyncSection />
@@ -315,6 +370,16 @@ function ProfileSection() {
           onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
         />
       </div>
+      <label className="setting setting-toggle">
+        <div className="setting-with-mascot">
+          <MascotSvg mood="wave" size={44} />
+          <div>
+            <span className="setting-name">{t('settings.mascot')}</span>
+            <span className="setting-desc">{t('settings.mascotDesc')}</span>
+          </div>
+        </div>
+        <input type="checkbox" className="toggle" checked={settings.mascot} onChange={(e) => void updateSettings({ mascot: e.target.checked })} />
+      </label>
       <div className="setting">
         <div>
           <p className="setting-name">{t('settings.help')}</p>

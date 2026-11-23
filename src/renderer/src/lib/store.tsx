@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import type { Attempt, Exam, Settings } from '@shared/types'
+import type { Attempt, Exam, GradingOptions, ReminderSettings, Settings } from '@shared/types'
 import { DEFAULT_SETTINGS } from '@shared/types'
 import type { PracticeProgress, PracticeSheet } from '@shared/practice'
 import { newId } from '@shared/ids'
@@ -13,8 +13,12 @@ export type Route =
   | { name: 'results'; attemptId: string }
   | { name: 'history' }
   | { name: 'practice' }
+  | { name: 'review' }
   | { name: 'sheet'; sheetId: string }
   | { name: 'settings' }
+
+/** Cambio parcial de ajustes (los grupos anidados también pueden ser parciales). */
+export type SettingsPatch = Partial<Omit<Settings, 'grading' | 'reminder'>> & { grading?: Partial<GradingOptions>; reminder?: Partial<ReminderSettings> }
 
 export interface Toast {
   id: number
@@ -44,7 +48,7 @@ interface AppState {
   navigate(route: Route): void
   notify(kind: Toast['kind'], message: string): void
   dismissToast(id: number): void
-  updateSettings(patch: Partial<Settings>): Promise<void>
+  updateSettings(patch: SettingsPatch): Promise<void>
   saveExam(exam: Exam): Promise<Exam>
   deleteExam(id: string): Promise<void>
   saveAttempt(attempt: Attempt): Promise<Attempt>
@@ -132,11 +136,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
     void reload()
   }, [reload])
 
+  // El recordatorio diario abre la pantalla de práctica o de repaso.
+  useEffect(() => window.api.onNavigate((name) => setRoute(name === 'review' ? { name: 'review' } : { name: 'practice' })), [])
+
   // Aviso en directo si otro ordenador abre la misma carpeta de datos mientras se usa la app.
   useEffect(() => window.api.onLockConflict((lock) => setLockConflict(lock)), [])
 
-  const updateSettings = useCallback(async (patch: Partial<Settings>) => {
-    const next = { ...settingsRef.current, ...patch, grading: { ...settingsRef.current.grading, ...(patch.grading ?? {}) } }
+  const updateSettings = useCallback(async (patch: SettingsPatch) => {
+    const next = { ...settingsRef.current, ...patch, grading: { ...settingsRef.current.grading, ...(patch.grading ?? {}) }, reminder: { ...settingsRef.current.reminder, ...(patch.reminder ?? {}) } }
     setSettings(next)
     try {
       setSettings(await window.api.saveSettings(next))

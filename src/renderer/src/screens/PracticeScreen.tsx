@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react'
-import { ArrowRight, Check, Clock3, Flame, Play, Sparkles, Target, Trash2, Trophy, UserRound } from 'lucide-react'
-import { countItems, nextSheet, practiceStats, PRACTICE_SKILLS, type PracticeProgress, type PracticeSheet, type PracticeSkill } from '@shared/practice'
+import { ArrowRight, Check, Clock3, Flame, Play, RotateCcw, Sparkles, Target, Trash2, Trophy, UserRound } from 'lucide-react'
+import { countItems, localDay, nextSheet, practiceStats, PRACTICE_SKILLS, type PracticeProgress, type PracticeSheet, type PracticeSkill } from '@shared/practice'
+import { reviewSummary } from '@shared/review'
+import { Mascot } from '../components/Mascot'
 import { errorMessage, useApp } from '../lib/store'
 import { useAllSheets } from '../lib/practice'
 import { ProgressRing } from '../components/ProgressRing'
@@ -8,7 +10,7 @@ import { CountUp } from '../components/CountUp'
 import { ConfirmDialog } from '../components/Modal'
 import { SKILL_ICON, SkillBadge, skillLabel } from '../components/SkillBadge'
 import { CreateSheetsModal } from '../components/CreateSheetsModal'
-import { t } from '../i18n'
+import { formatDate, t, tn } from '../i18n'
 
 type SkillFilter = PracticeSkill | 'all' | 'mine'
 type StatusFilter = 'all' | 'todo' | 'done'
@@ -112,11 +114,13 @@ export function PracticeScreen() {
             </div>
             <div className={`practice-stat${stats.streak > 0 ? ' is-hot' : ''}`} title={t('practice.streakHint')}>
               <span className="practice-stat-icon" aria-hidden><Flame size={16} /></span>
-              <span><strong className="tabular"><CountUp value={stats.streak} /></strong> {t('practice.statStreak')}</span>
+              <span><strong className="tabular"><CountUp value={stats.streak} /></strong> {stats.streak === 1 ? t('practice.statStreakOne') : t('practice.statStreak')}</span>
             </div>
           </div>
         </div>
       </section>
+
+      <ReviewBanner />
 
       <div className="practice-filters">
         <div className="seg" role="group" aria-label={t('practice.filterSkill')}>
@@ -148,8 +152,7 @@ export function PracticeScreen() {
 
       {visible.length === 0 ? (
         <div className="card empty-state">
-          <Sparkles size={28} aria-hidden />
-          <p className="measure">{skill === 'mine' && mineCount === 0 ? t('practice.emptyMine') : t('practice.empty')}</p>
+          <Mascot mood={skill === 'mine' && mineCount === 0 ? 'wave' : 'think'} size={88} layout="below" message={skill === 'mine' && mineCount === 0 ? t('practice.emptyMine') : t('practice.empty')} />
           {skill === 'mine' && (
             <button type="button" className="btn btn-primary" onClick={() => setCreating(true)}>
               <Sparkles size={16} aria-hidden /> {t('practice.create')}
@@ -231,5 +234,32 @@ function SheetCard({ sheet, progress, onOpen, onDelete }: { sheet: PracticeSheet
         </button>
       )}
     </li>
+  )
+}
+
+/** Repaso de fallos: cuántas preguntas tocan hoy. */
+function ReviewBanner() {
+  const app = useApp()
+  const sheets = useAllSheets()
+  if (!sheets) return null
+  const today = localDay()
+  const r = reviewSummary(sheets, app.practiceProgress, today)
+  const text = r.due > 0 ? tn('review.cardDue', r.due) : r.total > 0 ? t('review.cardNone', { date: formatDate(r.nextDue ?? today, { weekday: 'long', day: 'numeric', month: 'long' }) }) : t('review.cardEmpty')
+  return (
+    <section className={`card review-banner${r.due > 0 ? ' has-due' : ''}`} aria-labelledby="review-banner-title">
+      <Mascot mood={r.due > 0 ? 'think' : r.total > 0 ? 'happy' : 'wave'} size={64} />
+      <div className="review-banner-text">
+        <h2 id="review-banner-title" className="h-small">
+          <RotateCcw size={16} aria-hidden /> {t('review.cardTitle')}
+          {r.due > 0 && <span className="review-count tabular">{r.due}</span>}
+        </h2>
+        <p className="text-muted text-sm">{text}{r.mastered > 0 ? ` · ${t('review.cardMastered', { n: r.mastered })}` : ''}</p>
+      </div>
+      {r.due > 0 && (
+        <button type="button" className="btn btn-primary" onClick={() => app.navigate({ name: 'review' })}>
+          <RotateCcw size={16} aria-hidden /> {t('review.cardGo')}
+        </button>
+      )}
+    </section>
   )
 }
