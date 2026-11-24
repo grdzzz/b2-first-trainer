@@ -17,6 +17,12 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '1.9.1',
+    items: [
+      { icon: 'sparkles', title: 'Tarjetas más estables', text: 'Las tarjetas de la bienvenida, el inicio, los exámenes y las hojas ya no tiemblan si dejas el ratón justo en su borde, y vuelven a elevarse un poco al pasar por encima.' }
+    ]
+  },
+  {
     version: '1.9.0',
     items: [
       { icon: 'level', title: 'Prueba de nivel', text: 'Una prueba corta (24 preguntas, unos 10 minutos) te dice tu nivel aproximado (B1, B2, C1…) con su nota en la escala Cambridge y te recomienda qué practicar.' },

@@ -3578,6 +3578,8 @@ input[type='range'] {
   color: var(--text-subtle);
 }
 
+/* «rise» se usa con fill-mode «backwards»: al terminar no fija ninguna transformación,
+   así las tarjetas pueden subir al pasar el ratón. */
 @keyframes rise {
   from {
     opacity: 0;
@@ -3769,7 +3771,7 @@ input[type='range'] {
 /* ---------- Animaciones generales ---------- */
 /* Las secciones de cada pantalla entran escalonadas. */
 .page > * {
-  animation: rise 360ms var(--ease-out) both;
+  animation: rise 360ms var(--ease-out) backwards;
 }
 .page > :nth-child(2) { animation-delay: 40ms; }
 .page > :nth-child(3) { animation-delay: 80ms; }
@@ -3781,7 +3783,7 @@ input[type='range'] {
 .paper-grid > *,
 .exam-grid > *,
 .stats-row > * {
-  animation: rise 420ms var(--ease-out) both;
+  animation: rise 420ms var(--ease-out) backwards;
 }
 .paper-grid > :nth-child(2),
 .exam-grid > :nth-child(2),
@@ -4105,7 +4107,7 @@ input[type='range'] {
 }
 
 .sheet-grid > * {
-  animation: rise 380ms var(--ease-out) both;
+  animation: rise 380ms var(--ease-out) backwards;
 }
 .sheet-grid > :nth-child(2) { animation-delay: 30ms; }
 .sheet-grid > :nth-child(3) { animation-delay: 60ms; }
@@ -4627,7 +4629,7 @@ input[type='range'] {
   padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-md);
   font-size: var(--text-sm);
-  animation: rise 300ms var(--ease-out) both;
+  animation: rise 300ms var(--ease-out) backwards;
 }
 
 .explain > svg {
@@ -6147,7 +6149,7 @@ input[type='range'] {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
-  animation: rise 320ms var(--ease-out) both;
+  animation: rise 320ms var(--ease-out) backwards;
 }
 
 .review-card-head {
@@ -6382,7 +6384,7 @@ input[type='range'] {
   align-items: flex-start;
   font-size: var(--text-sm);
   line-height: 1.45;
-  animation: rise 260ms var(--ease-out) both;
+  animation: rise 260ms var(--ease-out) backwards;
 }
 
 .writing-check svg {
@@ -7323,7 +7325,7 @@ input[type='range'] {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
-  animation: rise 320ms var(--ease-out) both;
+  animation: rise 320ms var(--ease-out) backwards;
 }
 
 .placement-home-head {
@@ -7388,7 +7390,7 @@ input[type='range'] {
   display: flex;
   align-items: flex-start;
   gap: var(--space-3);
-  animation: rise 360ms var(--ease-out) both;
+  animation: rise 360ms var(--ease-out) backwards;
 }
 
 .whats-new-list li > span:last-child {
@@ -7427,4 +7429,42 @@ input[type='range'] {
     flex-direction: column;
     align-items: flex-start;
   }
+}
+
+/* ---------- Tarjetas que suben al pasar el ratón: sin temblor en el borde ----------
+ * Al subir 2–3 px, el borde inferior se alejaba del puntero, se perdía el hover, la tarjeta bajaba
+ * y volvía a ganarlo (temblor). Mientras dura el hover, una franja invisible rellena el hueco de abajo. */
+.onb-choice,
+.stat,
+.paper-card,
+.exam-card,
+.sheet-card {
+  position: relative;
+}
+
+.onb-choice:hover:not(:disabled)::after,
+.stat:hover::after,
+.paper-card:hover::after,
+.exam-card:hover::after,
+.sheet-card:hover::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -5px;
+  height: 6px;
+}
+
+/* La franja queda fuera de la tarjeta: las que recortaban su contenido ahora recortan solo lo necesario. */
+.exam-card,
+.sheet-card {
+  overflow: visible;
+}
+
+.exam-cover {
+  border-radius: calc(var(--radius-lg) - 1px) calc(var(--radius-lg) - 1px) 0 0;
+}
+
+.sheet-card::before {
+  border-radius: calc(var(--radius-lg) - 1px) calc(var(--radius-lg) - 1px) 0 0;
 }

@@ -136,6 +136,17 @@ jobs:
         run: |
           npm i --no-save playwright-core@1.65.1
           xvfb-run -a -s "-screen 0 1440x900x24" node scripts/smoke-test.cjs "dist/linux-unpacked/b2-first-trainer" smoke-linux.png
+      - name: Pruebas de extremo a extremo (tests/e2e)
+        env:
+          E2E_QUICK: '1'
+          E2E_SHOTS: e2e-shots
+        run: xvfb-run -a -s "-screen 0 1440x900x24" npm run test:e2e
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: capturas-e2e
+          path: e2e-shots
+          if-no-files-found: ignore
       - uses: actions/upload-artifact@v7
         if: always()
         with:

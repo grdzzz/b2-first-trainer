@@ -116,6 +116,15 @@ Abre la app con recarga en caliente. En desarrollo, `F12` abre las herramientas 
 npm test
 ```
 
+Pruebas de extremo a extremo (la app real con Electron + Playwright, en `tests/e2e/`): bienvenida y prueba de nivel, novedades, Bubi (hover, clics, reacciones, sueño, movimiento reducido), esqueletos de carga sin saltos, tarjetas sin temblor, exámenes, hojas (progreso, repaso, exportar/importar con IA, portapapeles) y el aviso de carpeta abierta en otro ordenador. Necesitan la compilación y `playwright-core` (o `playwright`):
+
+```bash
+npm run build && npm i --no-save playwright-core
+npm run test:e2e            # en Linux sin pantalla: xvfb-run -a npm run test:e2e
+```
+
+Con `E2E_QUICK=1` se salta la prueba lenta (esperar a que Bubi se duerma) y con un argumento se filtra por nombre (`npm run test:e2e mascot`). La publicación las ejecuta en Linux antes de publicar.
+
 Las pruebas (Vitest) cubren la prueba de nivel (puntuación y recomendaciones), la máquina de estados de Bubi, las novedades, la lógica de corrección, el parseo y la aplicación de claves, la escritura atómica y la recuperación de datos, el modo repaso, las estadísticas y el texto de «Copiar para corregir».
 
 ## Generar el ejecutable
