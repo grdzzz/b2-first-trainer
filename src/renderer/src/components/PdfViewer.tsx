@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { Sk, SkeletonRegion, SkText } from './Skeleton'
 import { FileWarning, Minus, Moon, Plus, ScanLine } from 'lucide-react'
 import type { PDFDocumentProxy } from 'pdfjs-dist'
 import { openPdf } from '../lib/pdf'
@@ -101,7 +102,7 @@ export function PdfViewer({ load, sourceKey, title, initialPage }: Props) {
     <section className="pdf" aria-label={title}>
       <div className="pdf-toolbar">
         <span className="pdf-title" title={title}>{title}</span>
-        {doc && <span className="pdf-pages" aria-live="polite">{t('pdf.page', { page, total: doc.numPages })}</span>}
+        {doc ? <span className="pdf-pages" aria-live="polite">{t('pdf.page', { page, total: doc.numPages })}</span> : !error && <span className="pdf-pages"><SkText w="6em" /></span>}
         <div className="pdf-actions">
           <button type="button" className="icon-btn icon-btn-sm" onClick={() => setZoomIdx((i) => Math.max(0, i - 1))} disabled={zoomIdx === 0} aria-label={t('pdf.zoomOut')} title={t('pdf.zoomOut')}>
             <Minus size={16} aria-hidden />
@@ -126,7 +127,22 @@ export function PdfViewer({ load, sourceKey, title, initialPage }: Props) {
             <p className="text-subtle text-sm">{error}</p>
           </div>
         )}
-        {!doc && !error && <div className="pdf-loading">{t('common.loading')}</div>}
+        {!doc && !error && width > 0 && (
+          <SkeletonRegion className="pdf-skeleton">
+            {[0, 1].map((i) => (
+              <div key={i} className="pdf-page pdf-page-sk" style={{ width: pageWidth, height: pageWidth * 1.414 }}>
+                <span className="pdf-page-sk-lines" aria-hidden>
+                  <Sk w="46%" h={14} />
+                  <Sk w="88%" h={8} />
+                  <Sk w="92%" h={8} />
+                  <Sk w="84%" h={8} />
+                  <Sk w="90%" h={8} />
+                  <Sk w="60%" h={8} />
+                </span>
+              </div>
+            ))}
+          </SkeletonRegion>
+        )}
         {doc && width > 0 &&
           Array.from({ length: doc.numPages }, (_, i) => <PdfPage key={`${sourceKey}-${i}`} doc={doc} number={i + 1} width={pageWidth} />)}
       </div>

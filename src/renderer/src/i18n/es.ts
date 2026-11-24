@@ -592,6 +592,79 @@ export const es = {
     emptyDesc: 'Puedes ver el recorrido más tarde desde Ajustes.',
     privacy: 'Tu nombre y tus datos se quedan en tu ordenador.'
   },
+  placement: {
+    eyebrow: 'Prueba de nivel',
+    title: 'Vamos a ver tu nivel',
+    intro: 'Antes de empezar, una prueba cortita para saber más o menos tu nivel de inglés. Así Bubi te puede recomendar por dónde empezar.',
+    introExisting: '{name}, hay una novedad: ahora la app empieza con una prueba de nivel. Es obligatoria y solo se hace una vez; después te diremos tu nivel y te recomendaremos qué practicar.',
+    introExistingNoName: 'Hay una novedad: ahora la app empieza con una prueba de nivel. Es obligatoria y solo se hace una vez; después te diremos tu nivel y te recomendaremos qué practicar.',
+    facts: {
+      questions: '24 preguntas de gramática, vocabulario y lectura',
+      time: 'Unos 10 minutos',
+      noHistory: 'No cuenta como examen ni se guarda en el historial'
+    },
+    honest: 'Si no sabes una respuesta, pulsa «No lo sé»: el resultado será más fiable que si adivinas.',
+    start: 'Empezar la prueba',
+    resume: 'Seguir con la prueba',
+    question: 'Pregunta {n} de {total}',
+    skills: {
+      grammar: 'Gramática',
+      vocabulary: 'Vocabulario',
+      reading: 'Lectura'
+    },
+    instructions: {
+      grammar: 'Elige la opción correcta para completar la frase.',
+      vocabulary: 'Elige la palabra que encaja mejor en el hueco.',
+      reading: 'Lee el texto y responde a la pregunta.'
+    },
+    dontKnow: 'No lo sé',
+    next: 'Siguiente',
+    prev: 'Anterior',
+    finish: 'Ver mi nivel',
+    keysHint: 'Atajos: teclas 1–4 para elegir, Intro para seguir.',
+    calculating: 'Calculando tu nivel…',
+    resultEyebrow: 'Tu nivel inicial',
+    resultLevel: 'Nivel {level}',
+    belowA2: 'Por debajo de A2',
+    scale: '{score} en la escala Cambridge English',
+    correct: '{correct} de {total} respuestas correctas',
+    levels: {
+      A1: 'Estás empezando. Aún te falta base para el B2, pero con constancia se llega: céntrate primero en la gramática y el vocabulario básicos.',
+      A2: 'Entiendes frases y textos sencillos. Te queda camino hasta el B2: practica un poco cada día la gramática y el vocabulario más frecuentes.',
+      B1: 'Te defiendes bien. Estás cerca del B2: amplía vocabulario y practica las estructuras típicas del examen.',
+      B2: 'Tienes el nivel del examen. Ahora toca practicar con exámenes completos y controlar el tiempo.',
+      C1: 'Tu nivel está por encima del B2. Con un poco de práctica del formato, el First debería salirte muy bien.'
+    },
+    skillsTitle: 'Por destrezas',
+    tipsTitle: 'Te recomendamos',
+    tips: {
+      grammar: { title: 'Refuerza la gramática', text: 'Es lo que más te ha costado. Empieza por las hojas de gramática.' },
+      vocabulary: { title: 'Amplía vocabulario', text: 'Es lo que más te ha costado. Las hojas de vocabulario trabajan colocaciones y phrasal verbs.' },
+      reading: { title: 'Practica la lectura', text: 'Es lo que más te ha costado. Las hojas de lectura te entrenan para el Part 5 y el Part 7.' },
+      dailySheets: { title: 'Una hoja al día', text: 'Unos 10 minutos diarios rinden más que una tarde entera a la semana.' },
+      wordFormation: { title: 'Formación de palabras', text: 'El Part 3 es donde más se nota el salto de B1 a B2.' },
+      fullExam: { title: 'Haz un examen completo', text: 'Importa un examen en la biblioteca y hazlo en modo examen para ver tu nota Cambridge.' },
+      timed: { title: 'Practica con tiempo', text: 'Tu nivel es bueno: el reto es el formato y el reloj. Usa el modo examen.' },
+      review: { title: 'Repasa tus fallos', text: 'El repaso espaciado vuelve a preguntarte lo que fallas hasta dominarlo.' },
+      reminder: { title: 'Activa el recordatorio', text: 'Bubi te avisa cada día a la hora que elijas si aún no has practicado.' }
+    },
+    go: 'Ir',
+    done: 'Empezar a practicar',
+    note: 'Es una prueba orientativa y corta: tu nota real se verá mejor con exámenes completos.',
+    homeTitle: 'Tu nivel inicial',
+    homeHide: 'Ocultar',
+    homeHidden: 'Puedes volver a ver tu nivel inicial en Ajustes › Perfil.',
+    settingsLabel: 'Nivel inicial',
+    showHome: 'Mostrar en el inicio'
+  },
+  whatsNew: {
+    title: 'Novedades de la versión {version}',
+    titleMany: 'Novedades',
+    sub: 'Esto es lo que ha cambiado desde la última vez.',
+    version: 'Versión {version}',
+    ok: 'Entendido',
+    open: 'Ver novedades'
+  },
   tour: {
     count: '{n} de {total}',
     close: 'Cerrar el recorrido',
@@ -783,7 +856,7 @@ export const es = {
     name: 'Tu nombre',
     nameDesc: 'Para saludarte en el inicio. Opcional.',
     help: 'Ayuda',
-    helpDesc: 'Repite el recorrido guiado o vuelve a añadir el examen de ejemplo.',
+    helpDesc: 'Repite el recorrido guiado, mira las novedades de esta versión o vuelve a añadir el examen de ejemplo.',
     tour: 'Ver el recorrido',
     addExample: 'Añadir examen de ejemplo',
     exampleAdded: 'Examen de ejemplo añadido'

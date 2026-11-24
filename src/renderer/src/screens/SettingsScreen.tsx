@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
-import { BellRing, BookOpenCheck, Cloud, Compass, Database, Download, FolderOpen, FolderSync, HardDriveDownload, Mic, Monitor, Moon, NotebookPen, Palette, RefreshCw, RotateCcw, SpellCheck, Sun, UserRound } from 'lucide-react'
+import { BellRing, BookOpenCheck, Gauge, Sparkles, Cloud, Compass, Database, Download, FolderOpen, FolderSync, HardDriveDownload, Mic, Monitor, Moon, NotebookPen, Palette, RefreshCw, RotateCcw, SpellCheck, Sun, UserRound } from 'lucide-react'
 import { ConfirmDialog } from '../components/Modal'
 import { Mascot, MascotSvg } from '../components/Mascot'
+import { SkText } from '../components/Skeleton'
+import { openWhatsNew } from '../components/WhatsNew'
+import { PlacementLevel } from '../components/PlacementResult'
 import type { DataLocation } from '@shared/api'
 import { Modal } from '../components/Modal'
 import type { AppInfo } from '@shared/api'
@@ -219,7 +222,7 @@ export function SettingsScreen() {
         <div className="setting">
           <div>
             <p className="setting-name">{t('settings.folder')}</p>
-            <p className="setting-desc path">{info?.dataPath ?? '…'}</p>
+            <p className="setting-desc path">{info?.dataPath ?? <SkText w="24em" />}</p>
           </div>
           <div className="row-gap">
             <button type="button" className="btn btn-secondary" onClick={() => window.api.openDataFolder().catch((e) => notify('error', errorMessage(e)))}>
@@ -243,7 +246,7 @@ export function SettingsScreen() {
 
       <UpdatesSection version={info?.version} />
 
-      {info && <p className="text-subtle text-sm about">{t('settings.about', { version: info.version, electron: info.electron })}</p>}
+      <p className="text-subtle text-sm about">{info ? t('settings.about', { version: info.version, electron: info.electron }) : <SkText w="18em" />}</p>
     </div>
   )
 }
@@ -277,7 +280,7 @@ function UpdatesSection({ version }: { version?: string }) {
       <SectionTitle id="s-updates" icon={RefreshCw}>{t('updates.title')}</SectionTitle>
       <div className="setting">
         <div>
-          <p className="setting-name">{t('updates.version', { version: version ?? '…' })}</p>
+          <p className="setting-name">{version ? t('updates.version', { version }) : <SkText w="9em" />}</p>
           <p className="setting-desc" aria-live="polite">{statusText(status)}</p>
         </div>
         <div className="row-gap">
@@ -322,7 +325,7 @@ function TranscriptionSection() {
         <div>
           <p className="setting-name">{t('settings.whisperModel')}</p>
           <p className="setting-desc">
-            {status === null ? '…' : status.installed ? t('settings.whisperInstalled', { mb: Math.round(status.sizeBytes / 1e6) }) : t('settings.whisperMissing')}
+            {status === null ? <SkText w="22em" /> : status.installed ? t('settings.whisperInstalled', { mb: Math.round(status.sizeBytes / 1e6) }) : t('settings.whisperMissing')}
           </p>
         </div>
         {status?.installed && (
@@ -380,6 +383,24 @@ function ProfileSection() {
         </div>
         <input type="checkbox" className="toggle" checked={settings.mascot} onChange={(e) => void updateSettings({ mascot: e.target.checked })} />
       </label>
+      {settings.placement && (
+        <div className="setting">
+          <div className="setting-with-icon">
+            <Gauge size={18} aria-hidden />
+            <div>
+              <p className="setting-name">{t('placement.settingsLabel')}</p>
+              <p className="setting-desc">
+                <PlacementLevel level={settings.placement.level} /> · {t('placement.scale', { score: settings.placement.score })} · {formatDate(settings.placement.date, { day: 'numeric', month: 'long', year: 'numeric' })}
+              </p>
+            </div>
+          </div>
+          {settings.placement.dismissed && (
+            <button type="button" className="btn btn-secondary" onClick={() => void updateSettings({ placement: { ...settings.placement!, dismissed: false } })}>
+              {t('placement.showHome')}
+            </button>
+          )}
+        </div>
+      )}
       <div className="setting">
         <div>
           <p className="setting-name">{t('settings.help')}</p>
@@ -388,6 +409,9 @@ function ProfileSection() {
         <div className="row-gap">
           <button type="button" className="btn btn-secondary" onClick={() => setTourStep(0)}>
             <Compass size={16} aria-hidden /> {t('settings.tour')}
+          </button>
+          <button type="button" className="btn btn-secondary" onClick={openWhatsNew}>
+            <Sparkles size={16} aria-hidden /> {t('whatsNew.open')}
           </button>
           {!hasExample && (
             <button
@@ -456,8 +480,8 @@ function SyncSection() {
       <p className="setting-desc">{t('sync.intro')}</p>
       <div className="setting">
         <div>
-          <p className="setting-name">{loc?.isDefault ? t('sync.local') : t('sync.custom')}</p>
-          <p className="setting-desc path">{loc?.path ?? '…'}</p>
+          <p className="setting-name">{loc ? (loc.isDefault ? t('sync.local') : t('sync.custom')) : <SkText w="10em" />}</p>
+          <p className="setting-desc path">{loc?.path ?? <SkText w="24em" />}</p>
         </div>
         <div className="row-gap">
           <button type="button" className="btn btn-primary" onClick={choose}>

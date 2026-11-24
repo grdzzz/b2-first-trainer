@@ -20,6 +20,7 @@ import { errorMessage, useApp } from '../lib/store'
 import { useAllSheets } from '../lib/practice'
 import { SkillBadge } from '../components/SkillBadge'
 import { Mascot, type MascotMood } from '../components/Mascot'
+import { SheetSkeleton } from '../components/ScreenSkeletons'
 import { reviewAfterCheck, reviewOf } from '@shared/review'
 import { ProgressRing } from '../components/ProgressRing'
 import { Confetti } from '../components/Confetti'
@@ -30,7 +31,7 @@ type Answers = Record<string, string>
 export function SheetScreen({ sheetId }: { sheetId: string }) {
   const app = useApp()
   const sheets = useAllSheets()
-  if (!sheets) return <div className="page"><p className="text-muted" aria-busy="true">{t('practice.loading')}</p></div>
+  if (!sheets) return <SheetSkeleton />
   const sheet = sheets.find((s) => s.id === sheetId)
   if (!sheet) {
     return (
@@ -200,7 +201,7 @@ function SheetRunner({ sheet, nextSheet }: { sheet: PracticeSheet; nextSheet: Pr
           </ProgressRing>
           <div className="sheet-result-text">
             <h2 className="h2">{t('sheet.resultTitle', { correct: score.correct, total })}</h2>
-            <Mascot mood={resultMood(score.percent)} size={72} message={<>{resultMessage(score.percent)}{celebrate && celebrate.toReview > 0 ? <> {tn('sheet.toReview', celebrate.toReview)}</> : null}</>} />
+            <Mascot mood={resultMood(score.percent)} size={72} react={celebrate ? (celebrate.newBest ? 'achievement' : score.percent >= 80 ? undefined : score.percent >= 50 ? 'happy' : 'sad') : undefined} message={<>{resultMessage(score.percent)}{celebrate && celebrate.toReview > 0 ? <> {tn('sheet.toReview', celebrate.toReview)}</> : null}</>} />
             {celebrate?.newBest ? (
               <p className="celebrate-msg"><Trophy size={15} aria-hidden /> {t('sheet.newBest')}</p>
             ) : best !== undefined && (progressRef.current.times ?? 0) > 1 ? (

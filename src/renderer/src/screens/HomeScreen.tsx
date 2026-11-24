@@ -3,6 +3,8 @@ import { ArrowRight, BellRing, BookOpenCheck, CheckCircle2, Clock, Flame, Folder
 import { countItems, localDay, nextSheet, practiceStats } from '@shared/practice'
 import { reviewSummary } from '@shared/review'
 import { Mascot } from '../components/Mascot'
+import { HomePracticeSkeleton } from '../components/ScreenSkeletons'
+import { PlacementCard } from '../components/PlacementResult'
 import { useAllSheets } from '../lib/practice'
 import { skillLabel } from '../components/SkillBadge'
 import { progressSummary } from '@shared/stats'
@@ -47,6 +49,8 @@ export function HomeScreen() {
           </button>
         )}
       </header>
+
+      <PlacementCard />
 
       {exams.length === 0 && (
         <section className="card hero-empty">
@@ -230,7 +234,7 @@ export function HomeScreen() {
 function PracticeCard() {
   const { practiceProgress, navigate, settings, updateSettings, notify } = useApp()
   const sheets = useAllSheets()
-  if (!sheets) return null
+  if (!sheets) return <HomePracticeSkeleton />
   const today = localDay()
   const stats = practiceStats(sheets, practiceProgress)
   const next = nextSheet(sheets, practiceProgress)
@@ -250,7 +254,7 @@ function PracticeCard() {
   const mood = review.due > 0 ? 'think' : practicedToday ? 'celebrate' : stats.streak > 0 ? 'cheer' : 'wave'
   return (
     <section className="card home-practice" aria-labelledby="home-practice-title">
-      <Mascot mood={mood} size={88} message={message} className="home-bubi" />
+      <Mascot mood={mood} size={88} message={message} className="home-bubi" greet />
       <div className="home-practice-text">
         <p className="eyebrow">{t('home.practiceEyebrow')}</p>
         <h2 id="home-practice-title" className="h-small">{next.number ? `${t('practice.sheetN', { n: next.number })} · ` : ''}{next.title}</h2>

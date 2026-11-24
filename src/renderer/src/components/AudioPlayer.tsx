@@ -109,7 +109,7 @@ export function AudioPlayer({ load, sourceKey, mime, title, shortcuts = false, k
   const pct = duration > 0 ? Math.min(100, (time / duration) * 100) : 0
 
   return (
-    <div className={`player${compact ? ' player-compact' : ''}`} role="group" aria-label={title ?? t('player.label')}>
+    <div className={`player${compact ? ' player-compact' : ''}${!url && !error ? ' is-loading' : ''}`} role="group" aria-label={title ?? t('player.label')} aria-busy={!url && !error}>
       {url && (
         <audio
           ref={audio}

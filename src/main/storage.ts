@@ -6,6 +6,7 @@ import type { Attempt, Exam, FileRef, Settings } from '../shared/types'
 import type { PracticeProgress, PracticeSheet } from '../shared/practice'
 import { DEFAULT_SETTINGS, SCHEMA_VERSION } from '../shared/types'
 import { isSafeId } from '../shared/ids'
+import { parsePlacement } from '../shared/placement'
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
@@ -448,6 +449,7 @@ export function mergeSettings(raw: Partial<Settings> | null | undefined): Settin
     onboarded: typeof r.onboarded === 'boolean' ? r.onboarded : DEFAULT_SETTINGS.onboarded,
     mascot: typeof r.mascot === 'boolean' ? r.mascot : DEFAULT_SETTINGS.mascot,
     reminder: mergeReminder(r.reminder),
+    placement: parsePlacement(r.placement),
     grading: {
       ignoreCase: typeof g.ignoreCase === 'boolean' ? g.ignoreCase : DEFAULT_SETTINGS.grading.ignoreCase,
       ignoreExtraSpaces: typeof g.ignoreExtraSpaces === 'boolean' ? g.ignoreExtraSpaces : DEFAULT_SETTINGS.grading.ignoreExtraSpaces,

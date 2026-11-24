@@ -3,6 +3,7 @@ import { ArrowRight, Check, Clock3, Flame, Play, RotateCcw, Sparkles, Target, Tr
 import { countItems, localDay, nextSheet, practiceStats, PRACTICE_SKILLS, type PracticeProgress, type PracticeSheet, type PracticeSkill } from '@shared/practice'
 import { reviewSummary } from '@shared/review'
 import { Mascot } from '../components/Mascot'
+import { PracticeSkeleton } from '../components/ScreenSkeletons'
 import { errorMessage, useApp } from '../lib/store'
 import { useAllSheets } from '../lib/practice'
 import { ProgressRing } from '../components/ProgressRing'
@@ -49,13 +50,7 @@ export function PracticeScreen() {
   const stats = useMemo(() => (sheets ? practiceStats(sheets, app.practiceProgress) : null), [sheets, app.practiceProgress])
   const next = useMemo(() => (sheets ? nextSheet(sheets, app.practiceProgress) : null), [sheets, app.practiceProgress])
 
-  if (!sheets || !stats) {
-    return (
-      <div className="page">
-        <p className="text-muted" aria-busy="true">{t('practice.loading')}</p>
-      </div>
-    )
-  }
+  if (!sheets || !stats) return <PracticeSkeleton />
 
   const mineCount = sheets.filter((s) => !s.builtIn).length
   const visible = sheets.filter((s) => {

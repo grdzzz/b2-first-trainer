@@ -234,18 +234,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
 }
 
 /** Aplica tema y tamaño de texto al documento. */
-export function useThemeEffect(settings: Settings): void {
+export function useThemeEffect(settings: Settings, ready = true): void {
   useEffect(() => {
+    // Hasta tener los ajustes se mantiene el tema de la última vez (ver main.tsx).
+    if (!ready) return
     const mq = window.matchMedia('(prefers-color-scheme: dark)')
     const apply = () => {
       const dark = settings.theme === 'dark' || (settings.theme === 'system' && mq.matches)
       document.documentElement.dataset.theme = dark ? 'dark' : 'light'
+      try {
+        localStorage.setItem('b2ft.theme', dark ? 'dark' : 'light')
+      } catch {
+        /* sin almacenamiento local */
+      }
     }
     apply()
     void window.api.setThemeSource(settings.theme).catch(() => undefined)
     mq.addEventListener('change', apply)
     return () => mq.removeEventListener('change', apply)
-  }, [settings.theme])
+  }, [settings.theme, ready])
 
   useEffect(() => {
     document.documentElement.style.setProperty('--font-scale', String(settings.fontScale))

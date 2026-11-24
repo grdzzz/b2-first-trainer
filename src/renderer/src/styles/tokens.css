@@ -100,6 +100,9 @@
   --shadow-md: 0 4px 14px rgba(23, 24, 28, 0.07), 0 1px 3px rgba(23, 24, 28, 0.05);
   --shadow-lg: 0 18px 48px rgba(23, 24, 28, 0.16), 0 4px 12px rgba(23, 24, 28, 0.08);
   --pdf-filter: none;
+  /* Skeleton loading */
+  --sk-base: #ebe9e2;
+  --sk-shine: #f7f6f2;
   color-scheme: light;
 }
 
@@ -147,6 +150,8 @@
   --shadow-md: 0 6px 18px rgba(0, 0, 0, 0.35);
   --shadow-lg: 0 20px 52px rgba(0, 0, 0, 0.55);
   --pdf-filter: invert(0.88) hue-rotate(180deg) contrast(0.92);
+  --sk-base: #25272c;
+  --sk-shine: #31343b;
   color-scheme: dark;
 }
 

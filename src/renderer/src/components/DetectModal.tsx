@@ -1,4 +1,7 @@
 import { useState } from 'react'
+import { Sk, SkeletonRegion, SkText } from './Skeleton'
+import { MascotSvg } from './Mascot'
+import { useApp } from '../lib/store'
 import { CheckCircle2, CircleAlert, ScanSearch } from 'lucide-react'
 import type { Paper } from '@shared/types'
 import type { Detection } from '@shared/detect'
@@ -17,6 +20,7 @@ interface Props {
 export function DetectModal({ paper, detection, error, onClose, onApply }: Props) {
   const [applyTime, setApplyTime] = useState(true)
   const [applyKey, setApplyKey] = useState(true)
+  const { settings } = useApp()
   const d = detection
   const usable = !!d && d.parts.length > 0
   const timeDiffers = !!d?.timeLimitMin && d.timeLimitMin !== paper.timeLimitMin
@@ -38,10 +42,16 @@ export function DetectModal({ paper, detection, error, onClose, onApply }: Props
       }
     >
       {!d && !error && (
-        <div className="empty-state" aria-busy="true">
-          <ScanSearch size={28} aria-hidden />
-          <p>{t('detect.reading')}</p>
-        </div>
+        <SkeletonRegion className="detect-loading" label={t('detect.reading')}>
+          <div className="detect-loading-head">
+            {settings.mascot ? <MascotSvg mood="thinking" size={56} /> : <ScanSearch size={28} aria-hidden />}
+            <p>{t('detect.reading')}</p>
+          </div>
+          <p className="detect-summary"><SkText w="16em" /></p>
+          <div className="sk-table">
+            {Array.from({ length: 4 }, (_, i) => <Sk key={i} h="2.25rem" r="var(--radius-sm)" />)}
+          </div>
+        </SkeletonRegion>
       )}
       {error && <p className="field-error" role="alert">{t('detect.error', { error })}</p>}
       {d && !d.hasText && <p className="notice notice-warning"><CircleAlert size={16} aria-hidden /> {t('detect.scanned')}</p>}

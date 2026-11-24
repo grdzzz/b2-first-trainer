@@ -60,7 +60,8 @@ async function main() {
     if (!page) await sleep(1000)
   }
   if (!page) throw new Error('No se ha encontrado la ventana de la app.')
-  await page.waitForSelector('.sidebar, .onboarding', { timeout: 60000 })
+  // (El esqueleto de arranque también tiene barra lateral: se espera a la app ya cargada.)
+  await page.waitForSelector('.app:not(.app-booting) .sidebar, .onboarding', { timeout: 60000 })
   const readyMs = Date.now() - started
   const info = await page.evaluate(() => window.api.getAppInfo())
   // Primera vez: bienvenida con nombre y examen de ejemplo (comprueba que sus archivos se copian).
@@ -68,7 +69,20 @@ async function main() {
     await page.fill('.onb-input', 'Smoke')
     await page.click('button:has-text("Continuar")')
     await page.click('.onb-choice.is-primary')
+    // Prueba de nivel obligatoria: «No lo sé» en todas (teclas 0 e Intro) y comprobar que se guarda.
+    await page.waitForSelector('.placement-facts', { timeout: 30000 })
+    await page.click('.placement .onb-actions .btn-primary')
+    for (let i = 0; i < 24; i++) {
+      await page.waitForSelector(`.placement-top >> text=/\\b${i + 1} de 24/`, { timeout: 10000 })
+      await page.keyboard.press('0')
+      await page.keyboard.press('Enter')
+    }
+    await page.waitForSelector('.placement-result-head', { timeout: 30000 })
+    await page.click('.placement-result .onb-actions .btn-primary')
     await page.waitForSelector('.tour-card', { timeout: 30000 })
+    const placement = JSON.parse(fs.readFileSync(path.join(dataDir, 'settings.json'), 'utf8')).placement
+    if (!placement || placement.level !== 'A1' || placement.score !== 110) throw new Error(`La prueba de nivel no se ha guardado bien: ${JSON.stringify(placement)}`)
+    if (fs.existsSync(path.join(dataDir, 'attempts')) && fs.readdirSync(path.join(dataDir, 'attempts')).length) throw new Error('La prueba de nivel no debe guardarse como intento.')
     await page.keyboard.press('Escape')
     await page.waitForSelector('.sidebar', { timeout: 30000 })
   }
@@ -84,8 +98,9 @@ async function main() {
   if (exams.length !== 2) throw new Error(`Se esperaban 2 exámenes guardados (ejemplo + nuevo) y hay ${exams.length}.`)
   // Práctica: las 50 hojas incluidas, hacer la primera y comprobar que el progreso se guarda.
   await page.click('.nav-item[data-nav="practice"]')
-  await page.waitForSelector('.sheet-card', { timeout: 30000 })
-  const sheetCount = await page.locator('.sheet-card').count()
+  // (Mientras cargan se ven tarjetas-esqueleto: se cuentan solo las reales.)
+  await page.waitForSelector('.page:not(.sk-region) .sheet-card', { timeout: 30000 })
+  const sheetCount = await page.locator('.page:not(.sk-region) .sheet-card').count()
   if (sheetCount !== 50) throw new Error(`Se esperaban 50 hojas de práctica y hay ${sheetCount}.`)
   await page.click('.practice-next-btn')
   await page.waitForSelector('.sheet-option', { timeout: 30000 })

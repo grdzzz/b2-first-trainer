@@ -1,4 +1,5 @@
 // Modelo de datos de la aplicación. Todo se guarda como JSON en la carpeta de datos del usuario.
+import type { PlacementResult } from './placement'
 
 export const SCHEMA_VERSION = 1
 
@@ -216,6 +217,8 @@ export interface Settings {
   /** Mostrar a Bubi, la mascota. */
   mascot: boolean
   reminder: ReminderSettings
+  /** Resultado de la prueba de nivel inicial (obligatoria una vez; null = aún no hecha). */
+  placement: PlacementResult | null
 }
 
 export interface ReminderSettings {
@@ -248,7 +251,8 @@ export const DEFAULT_SETTINGS: Settings = {
   userName: '',
   onboarded: false,
   mascot: true,
-  reminder: DEFAULT_REMINDER
+  reminder: DEFAULT_REMINDER,
+  placement: null
 }
 
 export const PAPER_ORDER: PaperType[] = ['reading', 'writing', 'listening', 'speaking']

@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useRef } from 'react'
 import { BarChart3, CloudOff, History, Library, MonitorSmartphone, NotebookPen, Settings as SettingsIcon, TriangleAlert } from 'lucide-react'
 import { AppProvider, useApp, useThemeEffect, type Route } from './lib/store'
 import { Toasts } from './components/Toasts'
@@ -8,6 +8,9 @@ import { UpdateBanner } from './components/UpdateBanner'
 import { Onboarding } from './components/Onboarding'
 import { Tour } from './components/Tour'
 import { Modal } from './components/Modal'
+import { BootSkeleton, RouteSkeleton } from './components/ScreenSkeletons'
+import { PlacementTest } from './components/PlacementTest'
+import { WhatsNew } from './components/WhatsNew'
 import { HistoryScreen } from './screens/HistoryScreen'
 import { SettingsScreen } from './screens/SettingsScreen'
 import { t } from './i18n'
@@ -45,11 +48,12 @@ function activeSection(route: Route): Route['name'] {
 
 function Shell() {
   const { ready, loadError, missingDataPath, dataProblem, lockConflict, dismissLockConflict, settings, route, navigate, reload } = useApp()
-  useThemeEffect(settings)
+  useThemeEffect(settings, ready)
+  // ¿Ya usaba la app antes de abrirla esta vez? (para la prueba de nivel y las novedades)
+  const wasOnboarded = useRef<boolean | null>(null)
+  if (ready && !loadError && !missingDataPath && wasOnboarded.current === null) wasOnboarded.current = settings.onboarded
 
-  if (!ready) {
-    return <div className="boot" aria-busy="true"><span className="boot-mark">B2</span></div>
-  }
+  if (!ready) return <BootSkeleton />
   if (loadError) {
     return (
       <div className="boot">
@@ -82,6 +86,8 @@ function Shell() {
   }
 
   if (!settings.onboarded) return <Onboarding />
+  // Prueba de nivel obligatoria (una sola vez, también para quien ya usaba la app).
+  if (!settings.placement) return <PlacementTest existing={wasOnboarded.current === true} />
 
   const focusMode = route.name === 'attempt'
   const section = activeSection(route)
@@ -119,12 +125,13 @@ function Shell() {
         </nav>
       )}
       <main id="main" className="main" tabIndex={-1}>
-        <Suspense fallback={<div className="screen-loading" aria-busy="true" />}>
+        <Suspense fallback={<RouteSkeleton route={route} />}>
           <Screen route={route} />
         </Suspense>
       </main>
       <Toasts />
       <Tour />
+      <WhatsNew existingUser={wasOnboarded.current === true} />
       <Modal
         open={lockConflict !== null}
         size="sm"

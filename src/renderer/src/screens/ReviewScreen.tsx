@@ -4,14 +4,15 @@ import { checkItem, expectedAnswers, localDay, TASK_PART, type PracticeProgress 
 import { answerReview, gapContext, reviewOf, reviewSession, reviewSummary, type ReviewItem } from '@shared/review'
 import { errorMessage, useApp } from '../lib/store'
 import { useAllSheets } from '../lib/practice'
-import { Mascot } from '../components/Mascot'
+import { Mascot, MascotSvg } from '../components/Mascot'
+import { ReviewSkeleton } from '../components/ScreenSkeletons'
 import { SkillBadge } from '../components/SkillBadge'
 import { Explanation, GapInput, OptionButtons, optionText } from './SheetScreen'
 import { formatDate, t, tn } from '../i18n'
 
 export function ReviewScreen() {
   const sheets = useAllSheets()
-  if (!sheets) return <div className="page"><p className="text-muted" aria-busy="true">{t('practice.loading')}</p></div>
+  if (!sheets) return <ReviewSkeleton />
   return <ReviewRunner sheets={sheets} />
 }
 
@@ -113,6 +114,7 @@ function ReviewRunner({ sheets }: { sheets: NonNullable<ReturnType<typeof useAll
         <section className="card review-done">
           <Mascot
             mood={pct >= 0.8 ? 'celebrate' : pct >= 0.5 ? 'cheer' : 'happy'}
+            react={mastered > 0 ? 'achievement' : pct >= 0.5 ? 'happy' : undefined}
             size={120}
             layout="below"
             message={
@@ -249,6 +251,14 @@ function ReviewRunner({ sheets }: { sheets: NonNullable<ReturnType<typeof useAll
         {body}
         {checked && <Explanation ok={verdict ?? null} expected={expectedAnswers(task, ii)} explain={explain} given={given || undefined} />}
         <div className="review-actions">
+          {app.settings.mascot && (
+            <MascotSvg
+              mood={checked ? 'happy' : 'thinking'}
+              size={40}
+              react={checked ? (verdict ? (results[results.length - 1]?.mastered ? 'achievement' : 'happy') : 'sad') : undefined}
+              reactKey={index}
+            />
+          )}
           {checked ? (
             <>
               <span className={`review-verdict${verdict ? ' is-ok' : ' is-bad'}`}>
