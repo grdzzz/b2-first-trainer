@@ -6958,9 +6958,9 @@ input[type='range'] {
 .placement-facts {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
-  margin: var(--space-4) 0;
-  padding: var(--space-4);
+  gap: var(--space-3);
+  margin: var(--space-5) 0 var(--space-3);
+  padding: var(--space-4) var(--space-5);
   border-radius: var(--radius-lg);
   background: var(--bg-sunken);
   list-style: none;
@@ -7074,10 +7074,32 @@ input[type='range'] {
 }
 
 .placement-passage .reading-text {
+  position: relative;
   max-height: 15rem;
   overflow-y: auto;
-  padding: 0 var(--space-4) var(--space-4);
+  margin: 0;
+  padding: var(--space-3) var(--space-5) var(--space-4);
+  border: 0;
+  border-top: 1px solid var(--border);
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
   font-size: var(--text-base);
+}
+
+.placement-passage .reading-text p + p {
+  margin-top: var(--space-3);
+}
+
+/* Frase a la que se refiere la pregunta */
+.placement-mark {
+  padding: 0.05em 0.2em;
+  border-radius: 4px;
+  color: inherit;
+  background: color-mix(in srgb, var(--warning) 26%, transparent);
+  box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--warning) 70%, transparent);
+}
+
+.placement-honest {
+  margin-bottom: var(--space-2);
 }
 
 .placement-passage .reading-text p {
@@ -7252,7 +7274,6 @@ input[type='range'] {
 
 .placement-skills,
 .placement-tips,
-.placement-facts,
 .whats-new-list {
   margin: 0;
   padding-left: 0;

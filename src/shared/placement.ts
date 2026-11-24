@@ -17,6 +17,8 @@ export interface PlacementQuestion {
   band: PlacementBand
   /** Texto de lectura asociado (solo en Reading). */
   passage?: string
+  /** Frase del texto a la que se refiere la pregunta (se resalta en el texto). */
+  highlight?: string
   /** Enunciado; «___» marca el hueco. */
   prompt: string
   options: string[]
@@ -69,7 +71,7 @@ export const PLACEMENT_QUESTIONS: PlacementQuestion[] = [
   { id: 'r4', skill: 'reading', band: 'B1', passage: 'edinburgh', prompt: 'What does Marta regret?', options: ['not packing suitable clothes', 'choosing a host family', 'missing the trip to the castle'], answer: 0 },
   { id: 'r5', skill: 'reading', band: 'B2', passage: 'multitasking', prompt: 'According to the text, what is multitasking really?', options: ['doing two things at exactly the same time', 'moving quickly from one task to another', 'a skill that improves with practice'], answer: 1 },
   { id: 'r6', skill: 'reading', band: 'B2', passage: 'multitasking', prompt: 'What does the writer say about people who multitask a lot?', options: ['They avoid demanding tasks.', 'They do well on attention tests.', 'They overestimate their own ability.'], answer: 2 },
-  { id: 'r7', skill: 'reading', band: 'C1', passage: 'multitasking', prompt: 'The phrase "errors creep in" suggests that mistakes…', options: ['appear gradually, almost without being noticed.', 'are deliberately ignored.', 'only happen at the start of a task.'], answer: 0 },
+  { id: 'r7', skill: 'reading', band: 'C1', passage: 'multitasking', highlight: 'errors creep in', prompt: 'The phrase "errors creep in" suggests that mistakes…', options: ['appear gradually, almost without being noticed.', 'are deliberately ignored.', 'only happen at the start of a task.'], answer: 0 },
   { id: 'r8', skill: 'reading', band: 'C1', passage: 'multitasking', prompt: "What is the writer's overall conclusion?", options: ['Multitasking should be avoided in every situation.', 'Simple activities can be combined, but complex ones need full concentration.', 'The research on multitasking is still inconclusive.'], answer: 1 }
 ]
 

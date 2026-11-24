@@ -132,5 +132,31 @@ module.exports = [
         await win.waitForSelector('.placement-progress[aria-valuenow="5"]')
       })
     }
+  },
+  {
+    name: 'la pregunta sobre una frase la resalta en el texto y lo desplaza hasta ella',
+    async run() {
+      await withApp({ settings: existingUser({ placement: null }) }, async ({ win }) => {
+        await win.waitForSelector('.placement-facts')
+        // El recuadro de datos tiene su relleno (no pegado al borde).
+        const pad = await win.evaluate(() => getComputedStyle(document.querySelector('.placement-facts')).paddingLeft)
+        assert(parseFloat(pad) >= 16, `Relleno del recuadro: ${pad}`)
+        await win.click('.placement .onb-actions .btn-primary')
+        for (let i = 0; i < 22; i++) {
+          await win.waitForSelector(`.placement-progress[aria-valuenow="${i}"]`)
+          await win.keyboard.press('1')
+          await win.keyboard.press('Enter')
+        }
+        await win.waitForSelector('.placement-progress[aria-valuenow="22"]')
+        await sleep(900)
+        assertEqual(await win.textContent('.placement-passage .placement-mark'), 'errors creep in', 'Frase resaltada en el texto')
+        const visible = await win.evaluate(() => {
+          const box = document.querySelector('.placement-passage .reading-text').getBoundingClientRect()
+          const m = document.querySelector('.placement-passage .placement-mark').getBoundingClientRect()
+          return m.top >= box.top && m.bottom <= box.bottom
+        })
+        assert(visible, 'El texto se desplaza hasta la frase resaltada')
+      })
+    }
   }
 ]

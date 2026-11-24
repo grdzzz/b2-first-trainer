@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { ArrowLeft, ArrowRight, BookOpen, CircleHelp, Clock3, History, ListChecks, Sparkles } from 'lucide-react'
 import {
   PLACEMENT_PASSAGES,
@@ -46,6 +46,19 @@ function save(v: Saved | null): void {
   }
 }
 
+/** Resalta la frase de la pregunta dentro de un párrafo del texto. */
+function withHighlight(text: string, phrase?: string): ReactNode {
+  const at = phrase ? text.indexOf(phrase) : -1
+  if (!phrase || at < 0) return text
+  return (
+    <>
+      {text.slice(0, at)}
+      <mark className="placement-mark">{phrase}</mark>
+      {text.slice(at + phrase.length)}
+    </>
+  )
+}
+
 type Step = { s: 'intro' } | { s: 'question' } | { s: 'calculating' } | { s: 'result'; result: PlacementResult }
 
 /**
@@ -62,6 +75,14 @@ export function PlacementTest({ existing }: { existing: boolean }) {
   const name = settings.userName.split(' ')[0]
 
   const q = PLACEMENT_QUESTIONS[index]
+  // Si la pregunta habla de una frase concreta, el texto se desplaza hasta ella (está resaltada).
+  const passageRef = useRef<HTMLElement>(null)
+  useEffect(() => {
+    const box = passageRef.current
+    const mark = box?.querySelector<HTMLElement>('mark')
+    if (!box || !mark) return
+    box.scrollTo({ top: Math.max(0, mark.offsetTop - box.clientHeight / 3), behavior: prefersReducedMotion() ? 'auto' : 'smooth' })
+  }, [q.id])
   const chosen = answers[q.id]
   const answered = chosen !== undefined
 
@@ -164,8 +185,8 @@ export function PlacementTest({ existing }: { existing: boolean }) {
               {q.passage && (
                 <details className="placement-passage" open>
                   <summary><BookOpen size={15} aria-hidden /> {PLACEMENT_PASSAGES[q.passage].title}</summary>
-                  <article className="reading-text">
-                    {PLACEMENT_PASSAGES[q.passage].text.split(/\n\s*\n/).map((p, i) => <p key={i}>{p}</p>)}
+                  <article className="reading-text" ref={passageRef}>
+                    {PLACEMENT_PASSAGES[q.passage].text.split(/\n\s*\n/).map((p, i) => <p key={i}>{withHighlight(p, q.highlight)}</p>)}
                   </article>
                 </details>
               )}
@@ -173,7 +194,7 @@ export function PlacementTest({ existing }: { existing: boolean }) {
               <h1 id="placement-title" className="placement-prompt" lang="en">
                 {q.prompt.split('___').map((part, i, all) => (
                   <span key={i}>
-                    {part}
+                    {withHighlight(part, q.highlight)}
                     {i < all.length - 1 && <span className={`placement-gap${answered && chosen >= 0 ? ' is-filled' : ''}`}>{answered && chosen >= 0 ? q.options[chosen] : ' '}</span>}
                   </span>
                 ))}

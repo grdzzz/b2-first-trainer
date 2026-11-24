@@ -17,6 +17,12 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '1.9.2',
+    items: [
+      { icon: 'level', title: 'Prueba de nivel más clara', text: 'Mejor espaciado en la presentación de la prueba y, en la pregunta sobre una frase del texto, la frase sale resaltada y el texto se desplaza hasta ella.' }
+    ]
+  },
+  {
     version: '1.9.1',
     items: [
       { icon: 'sparkles', title: 'Tarjetas más estables', text: 'Las tarjetas de la bienvenida, el inicio, los exámenes y las hojas ya no tiemblan si dejas el ratón justo en su borde, y vuelven a elevarse un poco al pasar por encima.' }
