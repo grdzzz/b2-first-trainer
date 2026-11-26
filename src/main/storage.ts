@@ -451,6 +451,16 @@ function mergeDashboard(raw: unknown): Settings['dashboard'] {
   return { order, hidden }
 }
 
+function mergeAdmin(raw: unknown): Settings['admin'] {
+  const r = (raw && typeof raw === 'object' ? raw : {}) as Partial<Settings['admin']>
+  const outfit: Record<string, string> = {}
+  const slots = ['head', 'eyes', 'ears', 'neck', 'accessory', 'color']
+  if (r.outfit && typeof r.outfit === 'object') {
+    for (const [slot, id] of Object.entries(r.outfit)) if (slots.includes(slot) && typeof id === 'string' && /^[a-z-]{1,40}$/.test(id)) outfit[slot] = id
+  }
+  return { enabled: r.enabled === true, outfit }
+}
+
 /** Tema nativo de la ventana (OLED y Midnight son variantes oscuras). */
 export function nativeThemeOf(theme: Settings['theme']): 'system' | 'light' | 'dark' {
   return theme === 'system' || theme === 'light' ? theme : 'dark'
@@ -477,6 +487,7 @@ export function mergeSettings(raw: Partial<Settings> | null | undefined): Settin
     appearance: mergeAppearance(r.appearance),
     gamification: typeof r.gamification === 'boolean' ? r.gamification : DEFAULT_SETTINGS.gamification,
     dashboard: mergeDashboard(r.dashboard),
+    admin: mergeAdmin(r.admin),
     grading: {
       ignoreCase: typeof g.ignoreCase === 'boolean' ? g.ignoreCase : DEFAULT_SETTINGS.grading.ignoreCase,
       ignoreExtraSpaces: typeof g.ignoreExtraSpaces === 'boolean' ? g.ignoreExtraSpaces : DEFAULT_SETTINGS.grading.ignoreExtraSpaces,

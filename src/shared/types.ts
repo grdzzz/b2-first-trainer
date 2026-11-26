@@ -214,7 +214,7 @@ export const DEFAULT_APPEARANCE: AppearanceSettings = { accent: 'indigo', densit
 
 /** Módulos del inicio que se pueden ocultar y reordenar. */
 export type DashboardModule = 'today' | 'goal' | 'progress' | 'review' | 'week' | 'missions' | 'evolution' | 'milestones' | 'achievements' | 'quick' | 'resume'
-export const DASHBOARD_MODULES: DashboardModule[] = ['resume', 'today', 'goal', 'progress', 'review', 'week', 'missions', 'evolution', 'milestones', 'achievements', 'quick']
+export const DASHBOARD_MODULES: DashboardModule[] = ['resume', 'today', 'goal', 'progress', 'review', 'week', 'missions', 'milestones', 'achievements', 'evolution', 'quick']
 
 export interface DashboardSettings {
   order: DashboardModule[]
@@ -245,6 +245,16 @@ export interface Settings {
   /** Mostrar XP, niveles, logros y misiones (los datos se siguen guardando aunque se oculten). */
   gamification: boolean
   dashboard: DashboardSettings
+  /**
+   * Modo administrador: muestra el nivel máximo y desbloquea todos los accesorios sin tocar los datos reales.
+   * Lo que se viste en este modo se guarda aparte (`outfit`); al desactivarlo vuelve todo como estaba.
+   */
+  admin: AdminSettings
+}
+
+export interface AdminSettings {
+  enabled: boolean
+  outfit: Record<string, string>
 }
 
 export interface ReminderSettings {
@@ -281,7 +291,8 @@ export const DEFAULT_SETTINGS: Settings = {
   placement: null,
   appearance: DEFAULT_APPEARANCE,
   gamification: true,
-  dashboard: { order: DASHBOARD_MODULES, hidden: [] }
+  dashboard: { order: DASHBOARD_MODULES, hidden: [] },
+  admin: { enabled: false, outfit: {} }
 }
 
 export const PAPER_ORDER: PaperType[] = ['reading', 'writing', 'listening', 'speaking']

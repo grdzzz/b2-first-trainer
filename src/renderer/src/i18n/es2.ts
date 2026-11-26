@@ -49,7 +49,7 @@ export const es2 = {
     noPlanText: 'En dos minutos creamos un plan a tu medida: cuánto tiempo tienes, qué días y qué quieres conseguir.',
     bubiNoPlan: '¡Hola! ¿Organizamos tu estudio? Cada día te propondré lo que más te ayuda.',
     seePlan: 'Ver el plan',
-    goal: 'Progreso hacia el objetivo',
+    goal: 'Tu objetivo',
     target: 'objetivo {n}',
     details: 'Detalles',
     progress: 'Nivel y racha',
@@ -68,6 +68,7 @@ export const es2 = {
     recentAchievements: 'Logros recientes',
     noAchievements: 'Tus primeros logros aparecerán aquí en cuanto completes una actividad.',
     quick: 'Acciones rápidas',
+    evolutionEmpty: 'Cuando termines un paper de examen verás aquí cómo evoluciona tu nota.',
     quickAddError: 'Anotar un error',
     quickPalette: 'Buscar ({keys})'
   },
@@ -687,5 +688,48 @@ export const es2 = {
     footer: 'Estimación orientativa, no es una nota oficial de Cambridge.'
   },
   common2: { undo: 'Deshacer' },
+  admin: {
+    title: 'Modo administrador',
+    short: 'Administrador',
+    tag: 'Admin',
+    maxLevel: 'Nivel máx.',
+    desc: 'Desbloquea todos los niveles, rangos y accesorios de Bubi para probarlos. No cambia tu experiencia, tus logros ni lo que Bubi lleva puesto: al desactivarlo, todo vuelve a como estaba.',
+    password: 'Contraseña',
+    activate: 'Activar',
+    deactivate: 'Desactivar y volver a mi nivel',
+    wrong: 'Contraseña incorrecta.',
+    active: 'Activo: nivel máximo y todos los accesorios desbloqueados.',
+    activeDesc: 'Lo que le pongas a Bubi ahora se guarda aparte y se descarta al desactivarlo. Tu progreso real sigue contando con normalidad.',
+    on: 'Modo administrador activado.',
+    off: 'Modo administrador desactivado: has vuelto a tu nivel y tus accesorios.',
+    wardrobeNote: 'Modo administrador: todo está desbloqueado. Al desactivarlo, Bubi volverá a llevar lo de antes.'
+  },
+  whatsNew2: {
+    tour: 'Ver el recorrido',
+    notNow: 'Ahora no',
+    tourHint: 'Hemos reorganizado los menús y añadido secciones. Si quieres, te las enseño en un recorrido rápido (1 minuto).'
+  },
+  tour2: {
+    menuTitle: 'Menú reorganizado',
+    menuText: 'Las secciones están agrupadas: General (lo de cada día), Aprendizaje (tus errores y tu evolución) y Personal (perfil, logros, Bubi y ajustes). «Exámenes» ahora se llama Biblioteca.',
+    homeTitle: 'Un inicio más útil',
+    homeText: '«Continuar estudiando» te lleva a lo siguiente de tu plan. Debajo, tu sesión de hoy, tu progreso y tus repasos. Con «Personalizar» ocultas o reordenas los módulos.',
+    planTitle: 'Mi plan',
+    planText: 'Configura tu objetivo y tu tiempo, y cada día tendrás una sesión a tu medida que se ajusta sola. Aquí también están el calendario y tu preparación estimada.',
+    notebookTitle: 'Mis errores',
+    notebookText: 'Todos tus fallos con la respuesta correcta y su explicación. Búscalos, ponles notas y repásalos hasta dominarlos.',
+    reviewTitle: 'Repaso, ahora en el menú',
+    reviewText: 'El repaso espaciado tiene su propia entrada. El número indica cuántas preguntas tocan hoy.',
+    statsTitle: 'Estadísticas',
+    statsText: 'Las medias por paper, la evolución y los puntos débiles que antes estaban en el inicio, ahora aquí, junto a tu nivel en cada destreza y competencia.',
+    personalTitle: 'Tu perfil, tus logros y Bubi',
+    personalText: 'Tu nivel, tu calendario de actividad y tus récords; la galería de logros y el armario para vestir a Bubi.',
+    searchTitle: 'Buscar y hacer cualquier cosa',
+    searchText: 'Pulsa Ctrl + K (⌘ + K en Mac) para ir a cualquier pantalla, buscar exámenes, hojas o errores, o cambiar el tema.',
+    bottomTitle: 'Nivel, avisos y barra lateral',
+    bottomText: 'Tu nivel y tu experiencia, la campana con tus avisos y el botón para contraer la barra lateral (Ctrl + B).',
+    doneTitle: '¡Eso es todo!',
+    doneText: 'Puedes repetir este recorrido cuando quieras desde Ajustes › Perfil › «Ver novedades».'
+  },
   sheet2: { checkShortcut: 'Comprobar (Ctrl + Intro)', seeErrors: 'Ver en Mis errores' }
 }

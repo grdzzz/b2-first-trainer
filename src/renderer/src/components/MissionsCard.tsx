@@ -23,7 +23,7 @@ export function MissionsCard({ compact }: { compact?: boolean }) {
   ]
   return (
     <section className={`card missions-card${compact ? ' is-compact' : ''}`} aria-labelledby="missions-title">
-      <header className="row-between">
+      <header className="card-head">
         <h2 id="missions-title" className="h-small"><Target size={16} aria-hidden /> {t('missions.title')}</h2>
         <span className="text-subtle text-xs">{t('missions.optional')}</span>
       </header>

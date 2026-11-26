@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Archive, BellRing, BookOpenCheck, Circle, LayoutDashboard, Stars, Trophy, Gauge, Sparkles, Cloud, Compass, Database, Download, FolderOpen, FolderSync, HardDriveDownload, Mic, Monitor, Moon, NotebookPen, Palette, RefreshCw, RotateCcw, SpellCheck, Sun, UserRound } from 'lucide-react'
+import { Archive, ShieldCheck, BellRing, BookOpenCheck, Circle, LayoutDashboard, Stars, Trophy, Gauge, Sparkles, Cloud, Compass, Database, Download, FolderOpen, FolderSync, HardDriveDownload, Mic, Monitor, Moon, NotebookPen, Palette, RefreshCw, RotateCcw, SpellCheck, Sun, UserRound } from 'lucide-react'
 import { ConfirmDialog } from '../components/Modal'
 import { Mascot, MascotSvg } from '../components/Mascot'
 import { SkText } from '../components/Skeleton'
@@ -9,7 +9,7 @@ import type { DataLocation } from '@shared/api'
 import { Modal } from '../components/Modal'
 import type { AppInfo } from '@shared/api'
 import { ACCENTS, DASHBOARD_MODULES, type ThemePreference } from '@shared/types'
-import { useLearningOptional } from '../lib/learning'
+import { ADMIN_PASSWORD, useLearningOptional } from '../lib/learning'
 import { errorMessage, useApp } from '../lib/store'
 import { formatDate, t } from '../i18n'
 import { useUpdateStatus } from '../lib/updates'
@@ -27,6 +27,7 @@ const SECTIONS: Array<{ id: string; label: () => string; icon: typeof Sun }> = [
   { id: 'set-profile', label: () => t('settings.profile'), icon: UserRound },
   { id: 'set-appearance', label: () => t('settings.appearance'), icon: Palette },
   { id: 'set-gamification', label: () => t('appearance.gamificationShort'), icon: Trophy },
+  { id: 'set-admin', label: () => t('admin.short'), icon: ShieldCheck },
   { id: 'set-grading', label: () => t('settings.gradingShort'), icon: SpellCheck },
   { id: 'set-data', label: () => t('settings.data'), icon: Database },
   { id: 'set-reminder', label: () => t('settings.reminderShort'), icon: BellRing },
@@ -35,6 +36,60 @@ const SECTIONS: Array<{ id: string; label: () => string; icon: typeof Sun }> = [
   { id: 'set-transcription', label: () => t('settings.transcriptionShort'), icon: Mic },
   { id: 'set-updates', label: () => t('updates.title'), icon: RefreshCw }
 ]
+
+/** Modo administrador: con contraseña; todo desbloqueado en pantalla y, al salir, todo vuelve como estaba. */
+function AdminSection() {
+  const { settings, updateSettings, notify } = useApp()
+  const learning = useLearningOptional()
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState(false)
+  const on = settings.admin.enabled
+  const activate = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (password !== ADMIN_PASSWORD) {
+      setError(true)
+      return
+    }
+    setError(false)
+    setPassword('')
+    // Empieza con la ropa que Bubi lleva ahora; lo que se cambie en este modo se guarda aparte.
+    void updateSettings({ admin: { enabled: true, outfit: { ...(learning?.state.game.cosmetics.equipped ?? {}) } } })
+    notify('success', t('admin.on'))
+  }
+  return (
+    <section className="card settings-section" aria-labelledby="s-admin" id="set-admin">
+      <SectionTitle id="s-admin" icon={ShieldCheck}>{t('admin.title')}</SectionTitle>
+      <p className="setting-desc">{t('admin.desc')}</p>
+      {on ? (
+        <div className="setting">
+          <div>
+            <p className="setting-name"><span className="admin-tag">{t('admin.tag')}</span> {t('admin.active')}</p>
+            <p className="setting-desc">{t('admin.activeDesc')}</p>
+          </div>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={() => {
+              void updateSettings({ admin: { enabled: false, outfit: {} } })
+              notify('success', t('admin.off'))
+            }}
+          >
+            {t('admin.deactivate')}
+          </button>
+        </div>
+      ) : (
+        <form className="admin-form" onSubmit={activate}>
+          <label className="field">
+            <span className="field-label">{t('admin.password')}</span>
+            <input type="password" className="input" value={password} autoComplete="off" inputMode="numeric" onChange={(e) => { setPassword(e.target.value); setError(false) }} aria-invalid={error} aria-describedby={error ? 'admin-error' : undefined} />
+          </label>
+          <button type="submit" className="btn btn-primary" disabled={!password}>{t('admin.activate')}</button>
+          {error && <p id="admin-error" className="field-error" role="alert">{t('admin.wrong')}</p>}
+        </form>
+      )}
+    </section>
+  )
+}
 
 /** Título de sección con icono. */
 function SectionTitle({ id, icon: Icon, children }: { id: string; icon: typeof Sun; children: React.ReactNode }) {
@@ -256,6 +311,8 @@ export function SettingsScreen({ section }: { section?: string }) {
           <button type="button" className="btn btn-secondary btn-sm" onClick={() => void updateSettings({ dashboard: { order: DASHBOARD_MODULES, hidden: [] } })}>{t('appearance.dashboardReset')}</button>
         </div>
       </section>
+
+      <AdminSection />
 
       <section className="card settings-section" aria-labelledby="s-grading" id="set-grading">
         <SectionTitle id="s-grading" icon={SpellCheck}>{t('settings.grading')}</SectionTitle>

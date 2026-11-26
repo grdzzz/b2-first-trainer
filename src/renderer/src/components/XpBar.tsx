@@ -7,7 +7,7 @@ import { t } from '../i18n'
 /** Nivel, rango y barra de experiencia (animada al ganar XP). Se oculta si la gamificación está desactivada. */
 export function XpBar({ compact = false, onClick }: { compact?: boolean; onClick?(): void }) {
   const { settings } = useApp()
-  const { level, rank, lastGain, ready } = useLearning()
+  const { level, rank, lastGain, ready, admin } = useLearning()
   const [gain, setGain] = useState<{ amount: number; key: number } | null>(null)
   useEffect(() => {
     if (!lastGain) return
@@ -16,7 +16,7 @@ export function XpBar({ compact = false, onClick }: { compact?: boolean; onClick
     return () => window.clearTimeout(id)
   }, [lastGain])
   if (!settings.gamification || !ready) return null
-  const pct = Math.round(level.progress * 100)
+  const pct = admin ? 100 : Math.round(level.progress * 100)
   const label = t('xp.barLabel', { level: level.level, into: level.into, needed: level.needed })
   const Tag = onClick ? 'button' : 'div'
   return (
@@ -25,8 +25,8 @@ export function XpBar({ compact = false, onClick }: { compact?: boolean; onClick
       {!compact && (
         <span className="xp-body">
           <span className="xp-head">
-            <span className="xp-rank">{rank.name}</span>
-            <span className="xp-num tabular">{level.into}/{level.needed} XP</span>
+            <span className="xp-rank">{rank.name}{admin && <span className="admin-tag">{t('admin.tag')}</span>}</span>
+            <span className="xp-num tabular">{admin ? t('admin.maxLevel') : `${level.into}/${level.needed} XP`}</span>
           </span>
           <span className="xp-track" role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={level.needed} aria-valuenow={level.into}>
             <span className="xp-fill" style={{ transform: `scaleX(${pct / 100})` }} />

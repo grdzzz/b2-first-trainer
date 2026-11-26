@@ -250,6 +250,8 @@ describe('logros', () => {
     expect(unlockedCosmetics(1, {}).map((c) => c.id)).toEqual(['classic'])
     expect(effectiveOutfit({ head: 'crown', eyes: 'round-glasses' }, 2, {})).toEqual({ eyes: 'round-glasses' })
     expect(effectiveOutfit({ head: 'crown' }, 1, { 'final-boss': {} })).toEqual({ head: 'crown' })
+    // Modo administrador: todo desbloqueado solo para mostrar (sin logros ni nivel reales).
+    expect(effectiveOutfit({ head: 'crown', color: 'gold' }, 1, {}, true)).toEqual({ head: 'crown', color: 'gold' })
   })
 })
 

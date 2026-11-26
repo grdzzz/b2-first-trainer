@@ -266,6 +266,11 @@ la interfaz lo dice expresamente.
   descanso planificados.
 - **Misiones**: 2 diarias y 3 semanales elegidas de forma estable para el periodo (se guardan), sin cuenta
   atrás ni penalización; no duplican lo que ya pide el plan.
+- **Modo administrador** (2.0.1): `settings.admin = { enabled, outfit }`. Con él activo, `useLearning()`
+  muestra el nivel `ADMIN_LEVEL` (100) y `isUnlocked(..., all = true)` desbloquea todos los cosméticos.
+  Es solo de vista: no genera eventos, XP ni logros, y `equip()` escribe en `settings.admin.outfit` en vez
+  de en `game.json`. Al desactivarlo se descarta ese atuendo y reaparecen el nivel y el equipamiento reales.
+  La contraseña está en el código (no es una medida de seguridad, solo evita activarlo por accidente).
 
 ## 8. Seguridad
 

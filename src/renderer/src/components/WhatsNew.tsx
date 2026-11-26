@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { AudioLines, Bell, BookX, CalendarRange, CheckCheck, Command, Gauge, LayoutTemplate, NotebookPen, PenLine, RefreshCw, RotateCcw, Smile, Sparkles, Trophy, Video } from 'lucide-react'
+import { AudioLines, Bell, BookX, CalendarRange, CheckCheck, Command, Compass, Gauge, LayoutTemplate, NotebookPen, PenLine, RefreshCw, RotateCcw, Smile, Sparkles, Trophy, Video } from 'lucide-react'
 import { changesSince, CHANGELOG, type ChangeIcon, type ChangelogEntry } from '@shared/changelog'
 import { Modal } from './Modal'
 import { MascotSvg } from './Mascot'
@@ -53,7 +53,7 @@ export function openWhatsNew(): void {
  * equipo). En una instalación nueva no aparece: todo es nuevo. `existingUser`: ya usaba la app antes.
  */
 export function WhatsNew({ existingUser }: { existingUser: boolean }) {
-  const { settings, tourStep } = useApp()
+  const { settings, tourStep, setTourStep } = useApp()
   const [version, setVersion] = useState<string | null>(null)
   const [entries, setEntries] = useState<ChangelogEntry[] | null>(null)
 
@@ -100,19 +100,41 @@ export function WhatsNew({ existingUser }: { existingUser: boolean }) {
   // No se abre encima del recorrido guiado.
   const open = entries !== null && tourStep === null
   const single = entries?.length === 1
+  // Si alguna versión cambió menús o secciones, se ofrece (opcional) un recorrido por los cambios.
+  const tourOf = entries?.find((e) => e.tour)?.tour
   return (
     <Modal
       open={open}
       size="md"
       title={single ? t('whatsNew.title', { version: entries![0].version }) : t('whatsNew.titleMany')}
       onClose={close}
-      footer={<button type="button" className="btn btn-primary" onClick={close} autoFocus>{t('whatsNew.ok')}</button>}
+      footer={
+        tourOf ? (
+          <>
+            <button type="button" className="btn btn-ghost" onClick={close}>{t('whatsNew.notNow')}</button>
+            <button
+              type="button"
+              className="btn btn-primary"
+              autoFocus
+              onClick={() => {
+                close()
+                setTourStep(0, tourOf)
+              }}
+            >
+              <Compass size={16} aria-hidden /> {t('whatsNew.tour')}
+            </button>
+          </>
+        ) : (
+          <button type="button" className="btn btn-primary" onClick={close} autoFocus>{t('whatsNew.ok')}</button>
+        )
+      }
     >
       <div className="whats-new">
         <div className="whats-new-hero">
           {settings.mascot && <MascotSvg mood="cheer" size={64} react="happy" />}
           <p className="text-muted">{t('whatsNew.sub')}</p>
         </div>
+        {tourOf && <p className="whats-new-tour text-sm"><Compass size={15} aria-hidden /> {t('whatsNew.tourHint')}</p>}
         {entries?.map((entry) => (
           <section key={entry.version} className="whats-new-version" aria-label={t('whatsNew.version', { version: entry.version })}>
             {!single && <h3 className="eyebrow">{t('whatsNew.version', { version: entry.version })}</h3>}

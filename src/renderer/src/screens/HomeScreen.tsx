@@ -12,7 +12,6 @@ import { errorMessage, useApp } from '../lib/store'
 import { useLearning } from '../lib/learning'
 import { useLaunchActivity } from '../lib/launch'
 import { useCalendarInfo } from '../lib/calendarInfo'
-import { reasonText } from '../lib/reasons'
 import { Mascot } from '../components/Mascot'
 import { HomeSkeleton } from '../components/ScreenSkeletons'
 import { PlacementCard } from '../components/PlacementResult'
@@ -54,17 +53,21 @@ function Dashboard() {
   const gamification = settings.gamification
 
   const setOrder = (o: DashboardModule[]) => void app.updateSettings({ dashboard: { order: o } })
+  // Subir y bajar dentro de su columna (intercambia con el módulo vecino visible de la misma columna).
   const move = (m: DashboardModule, dir: -1 | 1) => {
-    const i = order.indexOf(m)
-    const j = i + dir
-    if (j < 0 || j >= order.length) return
+    const same = order.filter((x) => COLUMN[x] === COLUMN[m])
+    const k = same.indexOf(m) + dir
+    if (k < 0 || k >= same.length) return
+    const other = same[k]
     const o = order.slice()
+    const i = o.indexOf(m)
+    const j = o.indexOf(other)
     ;[o[i], o[j]] = [o[j], o[i]]
     setOrder(o)
   }
   const toggleHidden = (m: DashboardModule) => void app.updateSettings({ dashboard: { hidden: hidden.has(m) ? settings.dashboard.hidden.filter((x) => x !== m) : [...settings.dashboard.hidden, m] } })
   const dropOn = (target: DashboardModule) => {
-    if (!dragging || dragging === target) return
+    if (!dragging || dragging === target || COLUMN[dragging] !== COLUMN[target]) return
     const o = order.filter((x) => x !== dragging)
     o.splice(o.indexOf(target), 0, dragging)
     setOrder(o)
@@ -113,41 +116,62 @@ function Dashboard() {
 
       {customizing && <p className="customize-hint text-sm text-muted">{t('home.customizeHint')}</p>}
 
-      <div className={`dash-grid${customizing ? ' is-customizing' : ''}`}>
-        {order.map((m) => {
-          const node = modules[m]
-          // Sin contenido (p. ej. ningún intento a medias): no ocupa sitio en la rejilla.
-          if (!node && (!customizing || m === 'resume' || m === 'milestones')) return null
-          if (hidden.has(m) && !customizing) return null
-          return (
-            <div
-              key={m}
-              className={`dash-mod mod-${m}${hidden.has(m) ? ' is-hidden' : ''}${dragging === m ? ' is-dragging' : ''}`}
-              draggable={customizing}
-              onDragStart={() => setDragging(m)}
-              onDragEnd={() => setDragging(null)}
-              onDragOver={(e) => customizing && e.preventDefault()}
-              onDrop={() => dropOn(m)}
-            >
-              {customizing && (
-                <div className="mod-tools">
-                  <GripVertical size={15} aria-hidden className="mod-grip" />
-                  <span className="mod-name">{t(`home.modules.${m}`)}</span>
-                  <span className="spacer" />
-                  <button type="button" className="icon-btn icon-btn-sm" onClick={() => move(m, -1)} aria-label={t('home.moveUp', { name: t(`home.modules.${m}`) })}><ArrowUp size={14} aria-hidden /></button>
-                  <button type="button" className="icon-btn icon-btn-sm" onClick={() => move(m, 1)} aria-label={t('home.moveDown', { name: t(`home.modules.${m}`) })}><ArrowDown size={14} aria-hidden /></button>
-                  <button type="button" className="icon-btn icon-btn-sm" onClick={() => toggleHidden(m)} aria-pressed={!hidden.has(m)} aria-label={hidden.has(m) ? t('home.show', { name: t(`home.modules.${m}`) }) : t('home.hide', { name: t(`home.modules.${m}`) })}>
-                    {hidden.has(m) ? <EyeOff size={14} aria-hidden /> : <Eye size={14} aria-hidden />}
-                  </button>
-                </div>
-              )}
-              {node ?? <p className="card text-subtle text-sm">{t('home.moduleOff')}</p>}
-            </div>
-          )
-        })}
+      <div className={`dash-layout${customizing ? ' is-customizing' : ''}`}>
+        {(['main', 'side'] as const).map((col) => (
+          <div key={col} className={`dash-col dash-col-${col}`}>
+            {order
+              .filter((m) => COLUMN[m] === col)
+              .map((m) => {
+                const node = modules[m]
+                // Sin contenido (p. ej. ningún intento a medias): no ocupa sitio.
+                if (!node && (!customizing || m === 'resume' || m === 'milestones')) return null
+                if (hidden.has(m) && !customizing) return null
+                return (
+                  <div
+                    key={m}
+                    className={`dash-mod mod-${m}${hidden.has(m) ? ' is-hidden' : ''}${dragging === m ? ' is-dragging' : ''}`}
+                    draggable={customizing}
+                    onDragStart={() => setDragging(m)}
+                    onDragEnd={() => setDragging(null)}
+                    onDragOver={(e) => customizing && e.preventDefault()}
+                    onDrop={() => dropOn(m)}
+                  >
+                    {customizing && (
+                      <div className="mod-tools">
+                        <GripVertical size={15} aria-hidden className="mod-grip" />
+                        <span className="mod-name">{t(`home.modules.${m}`)}</span>
+                        <span className="spacer" />
+                        <button type="button" className="icon-btn icon-btn-sm" onClick={() => move(m, -1)} aria-label={t('home.moveUp', { name: t(`home.modules.${m}`) })}><ArrowUp size={14} aria-hidden /></button>
+                        <button type="button" className="icon-btn icon-btn-sm" onClick={() => move(m, 1)} aria-label={t('home.moveDown', { name: t(`home.modules.${m}`) })}><ArrowDown size={14} aria-hidden /></button>
+                        <button type="button" className="icon-btn icon-btn-sm" onClick={() => toggleHidden(m)} aria-pressed={!hidden.has(m)} aria-label={hidden.has(m) ? t('home.show', { name: t(`home.modules.${m}`) }) : t('home.hide', { name: t(`home.modules.${m}`) })}>
+                          {hidden.has(m) ? <EyeOff size={14} aria-hidden /> : <Eye size={14} aria-hidden />}
+                        </button>
+                      </div>
+                    )}
+                    {node ?? <p className="card text-subtle text-sm">{t('home.moduleOff')}</p>}
+                  </div>
+                )
+              })}
+          </div>
+        ))}
       </div>
     </div>
   )
+}
+
+/** Columna de cada módulo: la principal para lo que se hace; la lateral para el seguimiento. */
+const COLUMN: Record<DashboardModule, 'main' | 'side'> = {
+  resume: 'main',
+  today: 'main',
+  week: 'main',
+  evolution: 'main',
+  quick: 'main',
+  goal: 'side',
+  progress: 'side',
+  review: 'side',
+  missions: 'main',
+  milestones: 'side',
+  achievements: 'side'
 }
 
 // ---------- Módulos ----------
@@ -161,7 +185,7 @@ function TodayModule() {
   if (!learning.state.plan.config) {
     return (
       <section className="card home-practice home-today" aria-labelledby="today-title">
-        <Mascot mood="wave" size={88} message={t('home.bubiNoPlan', { name })} className="home-bubi" greet />
+        <Mascot mood="wave" size={72} message={t('home.bubiNoPlan', { name })} className="home-bubi" greet />
         <div className="home-practice-text">
           <p className="eyebrow">{t('home.todayEyebrow')}</p>
           <h2 id="today-title" className="h-small">{t('home.noPlanTitle')}</h2>
@@ -178,10 +202,10 @@ function TodayModule() {
   const planned = acts.reduce((n, a) => n + a.minutes, 0)
   const done = acts.filter((a) => a.status === 'done').reduce((n, a) => n + a.minutes, 0)
   const allDone = acts.length > 0 && done === planned
-  const message = session?.restDay ? t('plan.bubiRest', { name }) : allDone ? t('plan.bubiDone') : acts[0] ? reasonText(acts.find((a) => a.status === 'todo')?.reasons[0] ?? acts[0].reasons[0] ?? { code: 'neverDone' }, learning.patterns) : t('home.bubiStart')
+  const message = session?.restDay ? t('plan.bubiRest', { name }) : allDone ? t('plan.bubiDone') : !acts.length ? t('home.bubiStart') : done > 0 ? t('plan.bubiProgress', { left: planned - done }) : t('plan.bubiStart', { n: acts.length, minutes: planned })
   return (
     <section className="card home-practice home-today" aria-labelledby="today-title">
-      <Mascot mood={session?.restDay ? 'resting' : allDone ? 'celebrate' : 'happy'} size={88} message={message} className="home-bubi" greet />
+      <Mascot mood={session?.restDay ? 'resting' : allDone ? 'celebrate' : 'happy'} size={72} message={message} className="home-bubi" greet />
       <div className="home-practice-text">
         <p className="eyebrow">{t('home.todayEyebrow')}</p>
         <h2 id="today-title" className="h-small">{session?.restDay ? t('plan.restTitle') : t('plan.todayTitle', { minutes: planned })}</h2>
@@ -274,7 +298,7 @@ function GoalModule() {
   const { readiness } = useLearning()
   return (
     <section className="card dash-card" aria-labelledby="goal-title">
-      <div className="row-between">
+      <div className="card-head">
         <h2 id="goal-title" className="h-small">{t('home.goal')}</h2>
         <button type="button" className="btn btn-ghost btn-xs" onClick={() => app.navigate({ name: 'plan', tab: 'readiness' })}>{t('home.details')} <ArrowRight size={13} aria-hidden /></button>
       </div>
@@ -296,7 +320,7 @@ function ProgressModule() {
   const { stats } = useLearning()
   return (
     <section className="card dash-card" aria-labelledby="prog-title">
-      <h2 id="prog-title" className="h-small">{t('home.progress')}</h2>
+      <div className="card-head"><h2 id="prog-title" className="h-small">{t('home.progress')}</h2></div>
       {app.settings.gamification && <XpBar onClick={() => app.navigate({ name: 'profile' })} />}
       <div className="dash-pair">
         <span><Flame size={16} aria-hidden className="flame" /> <strong className="tabular">{stats.streak.current}</strong> {tn('home.streakDays', stats.streak.current)}</span>
@@ -313,7 +337,7 @@ function ReviewModule() {
   const recurring = errors.filter((e) => !e.mastered && e.fails >= 3).length
   return (
     <section className="card dash-card" aria-labelledby="rev-title">
-      <h2 id="rev-title" className="h-small">{t('home.reviewTitle')}</h2>
+      <div className="card-head"><h2 id="rev-title" className="h-small">{t('home.reviewTitle')}</h2></div>
       <p className="dash-big tabular">{pending}<span className="text-subtle text-sm"> {tn('home.reviewPending', pending)}</span></p>
       <p className="text-subtle text-xs">{t('home.reviewMore', { errors: errors.filter((e) => !e.mastered).length, recurring, exam: due.exam })}</p>
       <div className="row-gap">
@@ -332,7 +356,7 @@ function WeekModule() {
   const days = Array.from({ length: 7 }, (_, i) => addDays(start, i))
   return (
     <section className="card dash-card dash-week" aria-labelledby="week-title">
-      <div className="row-between">
+      <div className="card-head">
         <h2 id="week-title" className="h-small">{t('home.week')}</h2>
         <button type="button" className="btn btn-ghost btn-xs" onClick={() => app.navigate({ name: 'plan', tab: 'calendar' })}>{t('home.calendar')} <ArrowRight size={13} aria-hidden /></button>
       </div>
@@ -357,16 +381,16 @@ function WeekModule() {
 }
 
 function EvolutionModule() {
-  const { attempts } = useApp()
-  const summary = useMemo(() => progressSummary(attempts), [attempts])
   const app = useApp()
+  const summary = useMemo(() => progressSummary(app.attempts), [app.attempts])
+  const hasData = Object.values(summary.series).some((s) => s.length > 0)
   return (
     <section className="card dash-card" aria-labelledby="chart-title">
-      <div className="row-between">
+      <div className="card-head">
         <h2 id="chart-title" className="h-small">{t('home.evolution')}</h2>
         <button type="button" className="btn btn-ghost btn-xs" onClick={() => app.navigate({ name: 'stats' })}>{t('nav.stats')} <ArrowRight size={13} aria-hidden /></button>
       </div>
-      <LineChart series={summary.series} />
+      {hasData ? <LineChart series={summary.series} /> : <p className="text-muted text-sm">{t('home.evolutionEmpty')}</p>}
     </section>
   )
 }
@@ -378,13 +402,13 @@ function MilestonesModule() {
   if (!config) return null
   return (
     <section className="card dash-card" aria-labelledby="ms-title">
-      <h2 id="ms-title" className="h-small"><Flag size={15} aria-hidden /> {t('home.milestones')}</h2>
+      <div className="card-head"><h2 id="ms-title" className="h-small"><Flag size={15} aria-hidden /> {t('home.milestones')}</h2></div>
       {upcoming.length ? (
         <ul className="ms-list">
           {upcoming.map((m) => (
             <li key={m.kind + m.date}>
-              <span>{t(`milestones.${m.kind}`)}</span>
-              <span className="text-subtle text-sm">{formatDate(`${m.date}T12:00:00`, { day: 'numeric', month: 'short' })} · {tn('home.inDays', daysUntil(learning.today, m.date))}</span>
+              <span className="ms-name">{t(`milestones.${m.kind}`)}</span>
+              <span className="text-subtle text-xs">{formatDate(`${m.date}T12:00:00`, { weekday: 'short', day: 'numeric', month: 'short' })} · {tn('home.inDays', daysUntil(learning.today, m.date))}</span>
             </li>
           ))}
         </ul>
@@ -405,7 +429,7 @@ function AchievementsModule() {
     .filter((x) => !!x.def)
   return (
     <section className="card dash-card" aria-labelledby="ach-title">
-      <div className="row-between">
+      <div className="card-head">
         <h2 id="ach-title" className="h-small"><Trophy size={15} aria-hidden /> {t('home.recentAchievements')}</h2>
         <button type="button" className="btn btn-ghost btn-xs" onClick={() => app.navigate({ name: 'achievements' })}>{t('home.seeAll')} <ArrowRight size={13} aria-hidden /></button>
       </div>
@@ -425,7 +449,9 @@ function QuickModule() {
   const isMac = typeof navigator !== 'undefined' && /Mac/i.test(navigator.platform)
   return (
     <section className="card dash-card" aria-labelledby="quick-title">
-      <h2 id="quick-title" className="h-small">{t('home.quick')}</h2>
+      <div className="card-head">
+        <h2 id="quick-title" className="h-small">{t('home.quick')}</h2>
+      </div>
       <div className="quick-grid">
         <button type="button" className="quick-btn" onClick={() => app.navigate({ name: 'practice' })}><NotebookPen size={18} aria-hidden /> {t('nav.practice')}</button>
         <button type="button" className="quick-btn" onClick={() => app.navigate({ name: 'review' })}><RotateCcw size={18} aria-hidden /> {t('nav.review')}</button>
