@@ -13,7 +13,7 @@ interface Step {
   text: TKey
 }
 
-const STEPS: Step[] = [
+const INTRO: Step[] = [
   { route: () => ({ name: 'home' }), target: '.home-header', title: 'tour.homeTitle', text: 'tour.homeText' },
   { route: () => ({ name: 'library' }), target: '.exam-card', title: 'tour.libraryTitle', text: 'tour.libraryText' },
   { route: (id) => (id ? { name: 'exam', examId: id } : null), target: '.paper-section .paper-files', title: 'tour.filesTitle', text: 'tour.filesText' },
@@ -23,6 +23,22 @@ const STEPS: Step[] = [
   { route: () => ({ name: 'settings' }), target: '#s-sync', title: 'tour.syncTitle', text: 'tour.syncText' },
   { route: () => ({ name: 'home' }), title: 'tour.doneTitle', text: 'tour.doneText' }
 ]
+
+/** Recorrido de los cambios de menús y secciones de la 2.0 (opcional, desde «Novedades»). */
+const V2: Step[] = [
+  { route: () => ({ name: 'home' }), target: '.sidebar-v2 .nav-groups', title: 'tour2.menuTitle', text: 'tour2.menuText' },
+  { route: () => ({ name: 'home' }), target: '.home-header', title: 'tour2.homeTitle', text: 'tour2.homeText' },
+  { route: () => ({ name: 'plan' }), target: '.nav-item[data-nav="plan"]', title: 'tour2.planTitle', text: 'tour2.planText' },
+  { route: () => ({ name: 'notebook' }), target: '.nav-item[data-nav="notebook"]', title: 'tour2.notebookTitle', text: 'tour2.notebookText' },
+  { route: () => ({ name: 'review' }), target: '.nav-item[data-nav="review"]', title: 'tour2.reviewTitle', text: 'tour2.reviewText' },
+  { route: () => ({ name: 'stats' }), target: '.nav-item[data-nav="stats"]', title: 'tour2.statsTitle', text: 'tour2.statsText' },
+  { route: () => ({ name: 'profile' }), target: '.nav-group[data-group="personal"]', title: 'tour2.personalTitle', text: 'tour2.personalText' },
+  { route: () => ({ name: 'home' }), target: '.nav-search', title: 'tour2.searchTitle', text: 'tour2.searchText' },
+  { route: () => ({ name: 'home' }), target: '.sidebar-bottom', title: 'tour2.bottomTitle', text: 'tour2.bottomText' },
+  { route: () => ({ name: 'home' }), title: 'tour2.doneTitle', text: 'tour2.doneText' }
+]
+
+const TOURS = { intro: INTRO, v2: V2 }
 
 interface Rect {
   top: number
@@ -35,7 +51,9 @@ const PAD = 8
 
 /** Recorrido guiado: ilumina partes de la interfaz con una tarjeta explicativa. */
 export function Tour() {
-  const { tourStep, setTourStep, exams, navigate, settings } = useApp()
+  const { tourStep, tourName, setTourStep, exams, navigate, settings } = useApp()
+  const STEPS = TOURS[tourName]
+  const intro = tourName === 'intro'
   const [rect, setRect] = useState<Rect | null>(null)
   const [ready, setReady] = useState(false)
   const card = useRef<HTMLDivElement>(null)
@@ -53,9 +71,9 @@ export function Tour() {
       while (i >= 0 && i < STEPS.length && STEPS[i].route(examId) === null) i += delta
       if (i < 0) return
       if (i >= STEPS.length) close()
-      else setTourStep(i)
+      else setTourStep(i, tourName)
     },
-    [tourStep, examId, setTourStep, close]
+    [tourStep, examId, setTourStep, close, STEPS, tourName]
   )
 
   // Navega a la pantalla del paso y busca el elemento a iluminar.
@@ -102,7 +120,7 @@ export function Tour() {
     raf = requestAnimationFrame(find)
     return () => cancelAnimationFrame(raf)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tourStep, examId])
+  }, [tourStep, examId, tourName])
 
   // Recoloca el foco si cambia el tamaño de la ventana.
   useEffect(() => {
@@ -143,10 +161,17 @@ export function Tour() {
   const cardW = Math.min(380, vw - 32)
   let style: React.CSSProperties = { width: cardW, left: (vw - cardW) / 2, top: vh / 2 - 120 }
   if (rect) {
-    const below = rect.top + rect.height + 16
-    const top = below + 220 < vh ? below : Math.max(16, rect.top - 236)
-    const left = Math.min(Math.max(16, rect.left + rect.width / 2 - cardW / 2), vw - cardW - 16)
-    style = { width: cardW, left, top }
+    const cardH = card.current?.offsetHeight || 320
+    const right = rect.left + rect.width + 16
+    if (rect.width < vw / 3 && right + cardW + 16 < vw) {
+      // Elementos estrechos (barra lateral, botones): la tarjeta a su derecha, a la altura del elemento.
+      style = { width: cardW, left: right, top: Math.min(Math.max(16, rect.top), vh - cardH - 16) }
+    } else {
+      const below = rect.top + rect.height + 16
+      const top = below + cardH + 16 < vh ? below : Math.max(16, rect.top - cardH - 16)
+      const left = Math.min(Math.max(16, rect.left + rect.width / 2 - cardW / 2), vw - cardW - 16)
+      style = { width: cardW, left, top: Math.min(top, vh - cardH - 16) }
+    }
   }
   const name = settings.userName.split(' ')[0]
 
@@ -161,7 +186,7 @@ export function Tour() {
             <X size={16} aria-hidden />
           </button>
         </div>
-        <h2 id="tour-title" className="tour-title">{last && name ? t('tour.doneTitleName', { name }) : t(step.title)}</h2>
+        <h2 id="tour-title" className="tour-title">{last && name && intro ? t('tour.doneTitleName', { name }) : t(step.title)}</h2>
         <p className="tour-text">{t(step.text)}</p>
         <div className="tour-progress" aria-hidden><span style={{ width: `${(((tourStep ?? 0) + 1) / STEPS.length) * 100}%` }} /></div>
         <div className="tour-actions">
@@ -174,7 +199,7 @@ export function Tour() {
           {last ? (
             <>
               <button type="button" className="btn btn-ghost btn-sm" onClick={close}>{t('tour.finish')}</button>
-              {examId && (
+              {examId && intro && (
                 <button
                   type="button"
                   className="btn btn-primary btn-sm"

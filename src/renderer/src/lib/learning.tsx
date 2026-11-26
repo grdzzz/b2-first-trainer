@@ -12,7 +12,7 @@ import type { LearningMetaInfo } from '@shared/api'
 import { reconcile } from '@shared/learning/sources'
 import { learnerStats, processEvents, type DomainEvent, type LearningState, type ProcessContext } from '@shared/learning/events'
 import { emptyNotebook, mergeNotebooks, patchError, activeErrors, errorStatus, type ErrorPatch, type ErrorRecord, type Lesson, type StatusContext } from '@shared/learning/notebook'
-import { emptyGame, levelInfo, mergeGames, rankOf, totalXp, type AvatarConfig, type CosmeticSlot, type LevelInfo } from '@shared/learning/game'
+import { emptyGame, levelInfo, mergeGames, rankOf, totalXp, xpForLevel, type AvatarConfig, type CosmeticSlot, type LevelInfo } from '@shared/learning/game'
 import { emptyPlan, fingerprint, mergePlans, movedAway, movedTo, prunePlan, type PlanActivity, type PlanConfig, type PlanDoc, type PlanSession } from '@shared/learning/plan'
 import { alternativesFor, generateSession, needsReplan, type EngineInput } from '@shared/learning/engine'
 import { computeProfile, detectPatterns, type Pattern, type Profile } from '@shared/learning/competency'
@@ -37,6 +37,8 @@ export type Celebration =
 
 export interface LearningApi {
   ready: boolean
+  /** Modo administrador activo (nivel máximo y accesorios desbloqueados solo en pantalla). */
+  admin: boolean
   error: string | null
   meta: LearningMetaInfo | null
   state: LearningState
@@ -95,6 +97,10 @@ export function useLearningOptional(): LearningApi | null {
 const EMPTY: LearningState = { notebook: emptyNotebook(new Date(0)), game: emptyGame(new Date(0)), plan: emptyPlan(new Date(0)) }
 type DocName = keyof LearningState
 const SAVE_DELAY = 700
+/** Nivel que se muestra en modo administrador (desbloquea todos los rangos y accesorios por nivel). */
+export const ADMIN_LEVEL = 100
+/** Contraseña del modo administrador (no es una medida de seguridad: solo evita activarlo sin querer). */
+export const ADMIN_PASSWORD = '4182'
 
 function useToday(): string {
   const [today, setToday] = useState(() => localDay())
@@ -273,7 +279,9 @@ export function LearningProvider({ children }: { children: ReactNode }) {
   const errors = useMemo(() => activeErrors(state.notebook), [state.notebook])
   const due = useMemo(() => dueCounts(errors, statusCtx), [errors, statusCtx])
   const xp = useMemo(() => totalXp(state.game), [state.game])
-  const level = useMemo(() => levelInfo(xp), [xp])
+  // Modo administrador: nivel máximo y todo desbloqueado solo en pantalla (los datos reales no cambian).
+  const admin = app.settings.admin.enabled
+  const level = useMemo(() => (admin ? levelInfo(Math.max(xp, xpForLevel(ADMIN_LEVEL))) : levelInfo(xp)), [xp, admin])
   const patterns = useMemo(() => detectPatterns(errors, activity, profile), [errors, activity, profile])
   const stats = useMemo(() => learnerStats(state, processCtx()), [state, processCtx])
 
@@ -336,8 +344,8 @@ export function LearningProvider({ children }: { children: ReactNode }) {
 
   // ---------- Bubi: accesorios y clics ----------
   useEffect(() => {
-    setOutfit(effectiveOutfit(state.game.cosmetics.equipped, level.level, state.game.achievements))
-  }, [state.game.cosmetics.equipped, level.level, state.game.achievements])
+    setOutfit(admin ? effectiveOutfit(app.settings.admin.outfit, level.level, state.game.achievements, true) : effectiveOutfit(state.game.cosmetics.equipped, level.level, state.game.achievements))
+  }, [admin, app.settings.admin.outfit, state.game.cosmetics.equipped, level.level, state.game.achievements])
 
   const pokeQueue = useRef(0)
   const pokeTimer = useRef<number | undefined>(undefined)
@@ -505,8 +513,20 @@ export function LearningProvider({ children }: { children: ReactNode }) {
     [commit]
   )
 
+  const adminRef = useRef(app.settings.admin)
+  adminRef.current = app.settings.admin
+  const updateSettingsRef = useRef(app.updateSettings)
+  updateSettingsRef.current = app.updateSettings
   const equip = useCallback(
     (slot: CosmeticSlot, id: string | null) => {
+      // En modo administrador se viste aparte: no cuenta para logros ni cambia lo guardado.
+      if (adminRef.current.enabled) {
+        const outfit = { ...adminRef.current.outfit }
+        if (id) outfit[slot] = id
+        else delete outfit[slot]
+        void updateSettingsRef.current({ admin: { enabled: true, outfit } })
+        return
+      }
       const at = new Date().toISOString()
       const s = stateRef.current
       const equipped = { ...s.game.cosmetics.equipped }
@@ -531,6 +551,7 @@ export function LearningProvider({ children }: { children: ReactNode }) {
   const value = useMemo<LearningApi>(
     () => ({
       ready,
+      admin,
       error,
       meta,
       state,
@@ -568,7 +589,7 @@ export function LearningProvider({ children }: { children: ReactNode }) {
       setProfile,
       forceSessionToday
     }),
-    [ready, error, meta, state, sheets, today, statusCtx, errors, due, xp, level, profile, patterns, readiness, stats, todaySession, missionsResult, engine, celebrations, dismissCelebration, lastGain, emit, featureUsed, savePlanConfig, replaceActivity, alternatives, moveActivity, markStarted, patchErrors, deleteErrors, applyExplanations, addLesson, deleteLesson, equip, setProfile, forceSessionToday]
+    [ready, admin, error, meta, state, sheets, today, statusCtx, errors, due, xp, level, profile, patterns, readiness, stats, todaySession, missionsResult, engine, celebrations, dismissCelebration, lastGain, emit, featureUsed, savePlanConfig, replaceActivity, alternatives, moveActivity, markStarted, patchErrors, deleteErrors, applyExplanations, addLesson, deleteLesson, equip, setProfile, forceSessionToday]
   )
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }

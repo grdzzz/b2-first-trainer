@@ -13,11 +13,23 @@ export interface ChangeItem {
 export interface ChangelogEntry {
   version: string
   items: ChangeItem[]
+  /** Recorrido guiado opcional cuando la versión cambia menús o secciones. */
+  tour?: 'v2'
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '2.0.1',
+    items: [
+      { icon: 'bell', title: 'Avisos que se leen bien', text: 'El panel de avisos se abre al lado de la barra lateral, ya no se corta y cada aviso muestra su título, el texto y la hora ordenados.' },
+      { icon: 'sparkles', title: 'Inicio más ordenado', text: 'El inicio va en dos columnas: a la izquierda lo de hoy (tu sesión, la semana, las misiones) y a la derecha tu objetivo, tu nivel, los repasos y los próximos hitos.' },
+      { icon: 'check', title: 'Recorrido por las novedades', text: 'Cuando una versión cambia menús o secciones, el panel de novedades te ofrece un recorrido opcional para verlas en un minuto.' },
+      { icon: 'level', title: 'Modo administrador', text: 'En Ajustes, con contraseña, puedes ver todos los niveles y accesorios de Bubi. Al desactivarlo vuelves a tu nivel y a lo que llevaba puesto Bubi.' }
+    ]
+  },
+  {
     version: '2.0.0',
+    tour: 'v2',
     items: [
       { icon: 'plan', title: 'Mi plan', text: 'Un plan de estudio a tu medida: cada día una sesión con el tiempo que tienes, que se ajusta sola a tus resultados y tus errores, con calendario y tu preparación estimada para el examen.' },
       { icon: 'notebook', title: 'Mis errores', text: 'Todos tus fallos (hojas, exámenes, Writing, Speaking…) en un cuaderno con la respuesta correcta y su explicación, con búsqueda, filtros, repasos a medida y ejercicios personalizados con IA.' },

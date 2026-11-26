@@ -122,4 +122,9 @@ describe('migración desde 1.9.2', () => {
     expect(mergeSettings({ theme: 'neon' } as never).theme).toBe('system')
     expect(nativeThemeOf('midnight')).toBe('dark')
   })
+
+  it('modo administrador: valida lo guardado y por defecto está desactivado', () => {
+    expect(mergeSettings({} as never).admin).toEqual({ enabled: false, outfit: {} })
+    expect(mergeSettings({ admin: { enabled: true, outfit: { head: 'crown', evil: 'x', eyes: '../../hack' } } } as never).admin).toEqual({ enabled: true, outfit: { head: 'crown' } })
+  })
 })

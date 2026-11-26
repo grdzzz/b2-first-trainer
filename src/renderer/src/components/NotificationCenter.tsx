@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { Award, BellOff, CalendarCheck, Info, Target, TrendingUp, Trash2 } from 'lucide-react'
 import { ACHIEVEMENT_BY_ID } from '@shared/learning/achievements'
 import { clearNotifications, markAllRead, useNotifications, type NotificationKind } from '../lib/notifications'
@@ -8,7 +9,7 @@ import { formatDate, t } from '../i18n'
 const ICON: Record<NotificationKind, typeof Award> = { achievement: Award, level: TrendingUp, mission: Target, plan: CalendarCheck, info: Info }
 
 /** Historial de avisos locales (sin notificaciones del sistema ni presión). */
-export function NotificationCenter({ onClose }: { onClose(): void }) {
+export function NotificationCenter({ onClose, collapsed }: { onClose(): void; collapsed?: boolean }) {
   const items = useNotifications()
   const { navigate } = useApp()
   const ref = useRef<HTMLDivElement>(null)
@@ -26,8 +27,9 @@ export function NotificationCenter({ onClose }: { onClose(): void }) {
       markAllRead()
     }
   }, [onClose])
-  return (
-    <div ref={ref} className="notif-panel" role="dialog" aria-label={t('notifications.title')} tabIndex={-1}>
+  // Capa propia (fuera de la barra lateral, que tiene scroll y la recortaría).
+  return createPortal(
+    <div ref={ref} className={`notif-panel${collapsed ? ' is-collapsed' : ''}`} role="dialog" aria-label={t('notifications.title')} tabIndex={-1}>
       <header className="notif-head">
         <strong>{t('notifications.title')}</strong>
         {items.length > 0 && (
@@ -56,18 +58,19 @@ export function NotificationCenter({ onClose }: { onClose(): void }) {
                     onClose()
                   }}
                 >
-                  <Icon size={16} aria-hidden />
+                  <span className="notif-icon" aria-hidden><Icon size={15} /></span>
                   <span className="notif-text">
                     <span className="notif-title">{n.title}</span>
-                    <span className="text-muted text-sm">{body}</span>
+                    <span className="notif-body">{body}</span>
+                    <time className="notif-time" dateTime={n.at}>{formatDate(n.at, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</time>
                   </span>
-                  <time className="text-subtle text-xs" dateTime={n.at}>{formatDate(n.at, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</time>
                 </button>
               </li>
             )
           })}
         </ul>
       )}
-    </div>
+    </div>,
+    document.body
   )
 }

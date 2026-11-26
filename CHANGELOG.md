@@ -3,6 +3,23 @@
 Las notas para el usuario de cada versión están también en la app (panel «Novedades»,
 `src/shared/changelog.ts`). Aquí, el detalle técnico.
 
+## 2.0.1
+
+### Cambios
+
+- **Centro de avisos**: el panel se renderiza en un portal junto a la barra lateral (antes lo recortaba el
+  `overflow` de la barra) y cada aviso se maqueta como icono + título, texto y hora.
+- **Inicio en dos columnas**: principal (hoy, semana, misiones, evolución, accesos rápidos) y lateral
+  (objetivo, nivel y racha, repasos, hitos, logros). Personalizar reordena dentro de cada columna. Cabeceras
+  de tarjeta homogéneas, estado vacío en «Tu evolución» y mensaje de Bubi según el progreso de hoy.
+- **Recorrido de novedades**: una entrada de `changelog.ts` puede declarar `tour`; el panel de novedades
+  ofrece entonces «Ver el recorrido» (10 pasos por la barra lateral agrupada, Mi plan, Mis errores, Repaso,
+  Estadísticas, la sección Personal, la búsqueda y los avisos). La 2.0.0 lo declara.
+- **Modo administrador** (Ajustes › Administrador, contraseña `4182`): nivel máximo y todos los accesorios
+  de Bubi desbloqueados, solo en la vista. No se escribe XP, logros ni equipamiento en `learning/`: lo que
+  se equipa en este modo se guarda aparte en `settings.admin.outfit`, así que al desactivarlo vuelven el
+  nivel y el atuendo de antes.
+
 ## 2.0.0 · The Adaptive Learning Update
 
 ### Nuevo

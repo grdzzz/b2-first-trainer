@@ -837,23 +837,30 @@ button.xp-bar:hover {
   100% { opacity: 0; transform: translateY(-10px); }
 }
 
-/* Centro de avisos */
+/* Centro de avisos (capa fija junto a la barra lateral) */
 .notif-panel {
-  position: absolute;
-  left: calc(100% + 8px);
+  position: fixed;
+  left: calc(var(--sidebar-width) + var(--space-2));
   bottom: var(--space-4);
-  z-index: 40;
+  z-index: 70;
   display: flex;
   flex-direction: column;
   width: 340px;
+  max-width: calc(100vw - var(--sidebar-width) - var(--space-6));
   max-height: min(70vh, 520px);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   background: var(--surface-raised);
   box-shadow: var(--shadow-lg);
   outline: none;
+  overflow: hidden;
   animation: pop-in var(--dur-base) var(--ease-out);
   transform-origin: left bottom;
+}
+
+.notif-panel.is-collapsed {
+  left: calc(72px + var(--space-2));
+  max-width: calc(100vw - 72px - var(--space-6));
 }
 
 @keyframes pop-in {
@@ -880,6 +887,7 @@ button.xp-bar:hover {
   margin: 0;
   padding: var(--space-1);
   overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .notif-item button {
@@ -894,19 +902,43 @@ button.xp-bar:hover {
   text-align: left;
 }
 
+.notif-item + .notif-item {
+  border-top: 1px solid var(--border);
+}
+
 .notif-item button:hover {
   background: var(--surface-hover);
 }
 
-.notif-item svg {
-  margin-top: 2px;
-  color: var(--accent);
+.notif-icon {
+  display: grid;
+  place-items: center;
   flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent-text);
 }
 
-.notif-item.kind-achievement svg,
-.notif-item.kind-level svg {
+.notif-item.kind-achievement .notif-icon,
+.notif-item.kind-level .notif-icon,
+.notif-item.kind-mission .notif-icon {
+  background: var(--xp-soft);
   color: var(--xp);
+}
+
+.notif-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex: 1;
+  min-width: 0;
+}
+
+.notif-title {
+  font-weight: 600;
+  font-size: var(--text-sm);
 }
 
 .notif-item.is-unread .notif-title::after {
@@ -920,16 +952,15 @@ button.xp-bar:hover {
   vertical-align: middle;
 }
 
-.notif-text {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-width: 0;
+.notif-body {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
 }
 
-.notif-title {
-  font-weight: 600;
-  font-size: var(--text-sm);
+.notif-time {
+  font-size: var(--text-xs);
+  color: var(--text-subtle);
 }
 
 /* =====================================================================
@@ -1210,51 +1241,35 @@ button.xp-bar:hover {
 }
 
 /* =====================================================================
- * Dashboard
+ * Dashboard: dos columnas (principal y seguimiento), cada una apila sus módulos sin huecos.
  * ===================================================================== */
-.dash-grid {
+.dash-layout {
   display: grid;
-  grid-template-columns: repeat(12, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
   gap: var(--space-5);
   align-items: start;
 }
 
+.dash-col {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  min-width: 0;
+}
+
 .dash-mod {
-  grid-column: span 4;
   min-width: 0;
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
-}
-
-.dash-mod.mod-today,
-.dash-mod.mod-resume,
-.dash-mod.mod-week {
-  grid-column: span 12;
-}
-
-.dash-mod.mod-today {
-  grid-column: span 8;
-}
-
-.dash-mod.mod-evolution {
-  grid-column: span 8;
-}
-
-.dash-mod > .card {
-  height: 100%;
-}
-
-.dash-grid > .dash-mod {
   animation: rise 420ms var(--ease-out) backwards;
 }
 
-.dash-grid > .dash-mod:nth-child(2) { animation-delay: 40ms; }
-.dash-grid > .dash-mod:nth-child(3) { animation-delay: 80ms; }
-.dash-grid > .dash-mod:nth-child(4) { animation-delay: 120ms; }
-.dash-grid > .dash-mod:nth-child(n + 5) { animation-delay: 160ms; }
+.dash-col .dash-mod:nth-child(2) { animation-delay: 50ms; }
+.dash-col .dash-mod:nth-child(3) { animation-delay: 100ms; }
+.dash-col .dash-mod:nth-child(n + 4) { animation-delay: 150ms; }
 
-.dash-grid.is-customizing .dash-mod {
+.dash-layout.is-customizing .dash-mod {
   padding: var(--space-2);
   border: 1px dashed var(--border-strong);
   border-radius: var(--radius-lg);
@@ -1283,6 +1298,28 @@ button.xp-bar:hover {
 
 .customize-hint {
   margin-top: calc(-1 * var(--space-3));
+}
+
+/* Cabecera de tarjeta: título a la izquierda, acción a la derecha, siempre en una línea. */
+.card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-height: 1.75rem;
+}
+
+.card-head > h2,
+.card-head > h3 {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.card-head > .btn,
+.card-head > span {
+  flex-shrink: 0;
 }
 
 .dash-card {
@@ -1404,15 +1441,24 @@ button.xp-bar:hover {
 
 .ms-list li {
   display: flex;
-  justify-content: space-between;
-  gap: var(--space-3);
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 1px;
+  padding-left: var(--space-3);
+  border-left: 2px solid var(--border-strong);
+}
+
+.ms-name {
+  font-weight: 550;
 }
 
 .quick-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
   gap: var(--space-2);
+}
+
+.sidebar-v2 {
+  overflow-x: hidden;
 }
 
 .quick-btn {
@@ -3261,14 +3307,13 @@ button.xp-bar:hover {
 /* =====================================================================
  * Ventanas pequeñas
  * ===================================================================== */
+@media (max-width: 1100px) {
+  .dash-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 @media (max-width: 1180px) {
-  .dash-mod {
-    grid-column: span 6;
-  }
-  .dash-mod.mod-today,
-  .dash-mod.mod-evolution {
-    grid-column: span 12;
-  }
   .notebook-split.has-detail {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -3320,19 +3365,9 @@ button.xp-bar:hover {
     flex-direction: row;
     width: 100%;
   }
-  .notif-panel {
-    left: var(--space-2);
-    bottom: 64px;
-    position: fixed;
-  }
 }
 
 @media (max-width: 760px) {
-  .dash-mod,
-  .dash-mod.mod-today,
-  .dash-mod.mod-evolution {
-    grid-column: span 12;
-  }
   .form-grid,
   .wizard-summary,
   .readiness-papers,
@@ -3344,7 +3379,7 @@ button.xp-bar:hover {
 @media (prefers-reduced-motion: reduce) {
   .route-view,
   .tab-panel,
-  .dash-grid > .dash-mod,
+  .dash-mod,
   .activity-card,
   .celebrate-card,
   .ach-card.just-unlocked,
@@ -3388,4 +3423,70 @@ button.xp-bar:hover {
   .sidebar-v2 .nav-group-label {
     display: none;
   }
+}
+
+/* Novedades: aviso del recorrido opcional */
+.whats-new-tour {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
+/* Modo administrador */
+.admin-tag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 6px;
+  border-radius: var(--radius-full);
+  background: var(--danger-soft);
+  color: var(--danger);
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  vertical-align: 1px;
+}
+
+.admin-form {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.admin-form .field {
+  width: 200px;
+}
+
+.admin-form .field-error {
+  width: 100%;
+}
+
+.admin-note {
+  margin-top: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+/* Tarjeta de hoy en el inicio: Bubi y su mensaje arriba; debajo, la sesión a todo el ancho. */
+.home-today {
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-4);
+}
+
+.home-today .home-bubi {
+  flex: none;
+  max-width: none;
+}
+
+.home-today .home-practice-text {
+  flex: none;
+  min-width: 0;
 }

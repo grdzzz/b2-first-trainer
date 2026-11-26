@@ -7,6 +7,8 @@ import type { ReviewSessionSpec } from '@shared/learning/notebook'
 import { notifyMotionChange } from './bubi'
 import { t } from '../i18n'
 
+export type TourName = 'intro' | 'v2'
+
 export type Route =
   | { name: 'home' }
   | { name: 'library' }
@@ -54,7 +56,10 @@ interface AppState {
   dismissLockConflict(): void
   /** Paso actual del recorrido guiado (null = cerrado). */
   tourStep: number | null
-  setTourStep(step: number | null): void
+  /** Recorrido activo: el de bienvenida o el de los cambios de una versión. */
+  tourName: TourName
+  /** Empieza (o mueve) un recorrido. Sin nombre: el recorrido que ya estaba activo (o el de bienvenida). */
+  setTourStep(step: number | null, name?: TourName): void
   createExample(): Promise<Exam>
   settings: Settings
   exams: Exam[]
@@ -97,7 +102,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [missingDataPath, setMissingDataPath] = useState<string | null>(null)
   const [dataProblem, setDataProblem] = useState<{ error?: string; isDefault: boolean } | null>(null)
   const [lockConflict, setLockConflict] = useState<{ host: string; heartbeat: string } | null>(null)
-  const [tourStep, setTourStep] = useState<number | null>(null)
+  const [tourStep, setTourStepState] = useState<number | null>(null)
+  const [tourName, setTourName] = useState<TourName>('intro')
+  const setTourStep = useCallback((step: number | null, name?: TourName) => {
+    if (name) setTourName(name)
+    else if (step === 0) setTourName('intro')
+    setTourStepState(step)
+  }, [])
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS)
   const [exams, setExams] = useState<Exam[]>([])
   const [attempts, setAttempts] = useState<Attempt[]>([])
@@ -243,8 +254,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const value = useMemo<AppState>(
-    () => ({ ready, loadError, missingDataPath, dataProblem, lockConflict, dismissLockConflict, tourStep, setTourStep, createExample, settings, exams, attempts, route, toasts, navigate, notify, dismissToast, updateSettings, saveExam, deleteExam, saveAttempt, deleteAttempt, customSheets, practiceProgress, savePracticeProgress, resetPracticeProgress, addPracticeSheets, deletePracticeSheet, reload }),
-    [ready, loadError, missingDataPath, dataProblem, lockConflict, dismissLockConflict, tourStep, createExample, settings, exams, attempts, route, toasts, navigate, notify, dismissToast, updateSettings, saveExam, deleteExam, saveAttempt, deleteAttempt, customSheets, practiceProgress, savePracticeProgress, resetPracticeProgress, addPracticeSheets, deletePracticeSheet, reload]
+    () => ({ ready, loadError, missingDataPath, dataProblem, lockConflict, dismissLockConflict, tourStep, tourName, setTourStep, createExample, settings, exams, attempts, route, toasts, navigate, notify, dismissToast, updateSettings, saveExam, deleteExam, saveAttempt, deleteAttempt, customSheets, practiceProgress, savePracticeProgress, resetPracticeProgress, addPracticeSheets, deletePracticeSheet, reload }),
+    [ready, loadError, missingDataPath, dataProblem, lockConflict, dismissLockConflict, tourStep, tourName, setTourStep, createExample, settings, exams, attempts, route, toasts, navigate, notify, dismissToast, updateSettings, saveExam, deleteExam, saveAttempt, deleteAttempt, customSheets, practiceProgress, savePracticeProgress, resetPracticeProgress, addPracticeSheets, deletePracticeSheet, reload]
   )
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }

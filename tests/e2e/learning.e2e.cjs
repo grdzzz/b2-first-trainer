@@ -321,6 +321,63 @@ module.exports = [
         }
       })
     }
+  },
+  {
+    name: 'modo administrador: contraseña, todo desbloqueado y, al desactivarlo, vuelve el nivel y los accesorios de antes',
+    async run() {
+      const dataDir = tempDir('b2ft-data-')
+      seedXp(dataDir, 150)
+      await withApp({ settings: CALM, dataDir }, async ({ win }) => {
+        await win.waitForSelector('.xp-level:has-text("2")')
+        await win.click('[data-nav=settings]')
+        await win.fill('#set-admin input', '0000')
+        await win.click('#set-admin .btn-primary')
+        await win.waitForSelector('#admin-error')
+        await win.fill('#set-admin input', '4182')
+        await win.click('#set-admin .btn-primary')
+        await win.waitForSelector('.xp-level:has-text("100")')
+        await win.click('[data-nav=wardrobe]')
+        await waitReal(win, '.wardrobe-page .cos-item')
+        await win.click('.wardrobe-items .tab:has-text("Sombreros")')
+        await win.click('.cos-item:has-text("Corona")')
+        await win.waitForSelector('.stage-bubi .bubi .bubi-acc')
+        await sleep(800)
+        const game = readJson(learning(dataDir, 'game'))
+        assert(!game.cosmetics.equipped.head, 'La corona no se guarda en los datos reales')
+        assert(!Object.keys(game.achievements).includes('dressed-to-impress'), 'Vestir en modo administrador no da logros')
+        await win.click('[data-nav=settings]')
+        await win.click('#set-admin button:has-text("Desactivar")')
+        await win.waitForSelector('.xp-level:has-text("2")')
+        await win.click('[data-nav=home]')
+        await win.waitForSelector('.home-bubi .bubi')
+        assertEqual(await win.locator('.home-bubi .bubi .bubi-acc').count(), 0, 'Bubi vuelve a lo que llevaba antes')
+        assertEqual(readJson(path.join(dataDir, 'settings.json')).admin.enabled, false, 'Desactivado en los ajustes')
+      })
+    }
+  },
+  {
+    name: 'novedades: si cambian menús o secciones se ofrece un recorrido opcional que se puede hacer o saltar',
+    async run() {
+      await withApp({ settings: CALM, seenVersion: false }, async ({ win }) => {
+        await win.waitForSelector('dialog[open] .whats-new')
+        await win.waitForSelector('dialog[open] .whats-new-tour')
+        await win.click('dialog[open] button:has-text("Ver el recorrido")')
+        await win.waitForSelector('.tour-card #tour-title:has-text("Menú reorganizado")')
+        let steps = 1
+        for (; steps < 20 && (await win.locator('.tour-card').count()); steps++) {
+          await win.keyboard.press('ArrowRight')
+          await sleep(250)
+        }
+        assertEqual(await win.locator('.tour-card').count(), 0, 'El recorrido termina')
+        assert(steps >= 9, `Recorre todas las secciones (${steps} pasos)`)
+      })
+      // «Ahora no»: se cierra sin recorrido y no vuelve a salir.
+      await withApp({ settings: CALM, seenVersion: false }, async ({ win }) => {
+        await win.waitForSelector('dialog[open] .whats-new')
+        await win.click('dialog[open] button:has-text("Ahora no")')
+        await sleep(300)
+        assertEqual(await win.locator('.tour-card').count(), 0, 'Sin recorrido')
+      })
+    }
   }
 ]
-

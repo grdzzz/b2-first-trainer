@@ -80,17 +80,21 @@ export function HomeSkeleton() {
           <SkButton label={t('home.customize')} className="btn-ghost btn-sm" />
         </div>
       </header>
-      <div className="dash-grid">
-        <div className="dash-mod mod-today"><HomePracticeSkeleton /></div>
-        {[0, 1, 2].map((i) => (
-          <div key={i} className="dash-mod">
-            <section className="card dash-card sk-card">
-              <h2 className="h-small"><SkText w="8em" /></h2>
-              <p className="dash-big"><SkText w="3em" /></p>
-              <SkLines n={2} last="60%" />
-            </section>
-          </div>
-        ))}
+      <div className="dash-layout">
+        <div className="dash-col dash-col-main">
+          <div className="dash-mod mod-today"><HomePracticeSkeleton /></div>
+        </div>
+        <div className="dash-col dash-col-side">
+          {[0, 1].map((i) => (
+            <div key={i} className="dash-mod">
+              <section className="card dash-card sk-card">
+                <div className="card-head"><h2 className="h-small"><SkText w="8em" /></h2></div>
+                <p className="dash-big"><SkText w="3em" /></p>
+                <SkLines n={2} last="60%" />
+              </section>
+            </div>
+          ))}
+        </div>
       </div>
     </SkeletonRegion>
   )
@@ -101,7 +105,7 @@ export function HomePracticeSkeleton() {
   return (
     <section className="card home-practice home-today" aria-hidden>
       <div className="mascot mascot-side home-bubi">
-        <SkCircle size={88} />
+        <SkCircle size={72} />
         <div className="mascot-bubble sk-bubble"><SkLines n={2} last="70%" /></div>
       </div>
       <div className="home-practice-text">

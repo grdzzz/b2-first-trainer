@@ -56,7 +56,9 @@ export const COSMETICS: CosmeticDef[] = [
 
 export const COSMETIC_BY_ID = new Map(COSMETICS.map((c) => [c.id, c]))
 
-export function isUnlocked(c: CosmeticDef, level: number, achievements: Record<string, unknown>): boolean {
+/** `all`: modo administrador (todo desbloqueado, sin cambiar los datos). */
+export function isUnlocked(c: CosmeticDef, level: number, achievements: Record<string, unknown>, all = false): boolean {
+  if (all) return true
   if (c.level !== undefined && level >= c.level) return true
   if (c.achievement && achievements[c.achievement]) return true
   return false
@@ -67,11 +69,11 @@ export function unlockedCosmetics(level: number, achievements: Record<string, un
 }
 
 /** Lo que lleva puesto Bubi, descartando lo que no esté desbloqueado (p. ej. datos editados a mano). */
-export function effectiveOutfit(equipped: Partial<Record<CosmeticSlot, string>>, level: number, achievements: Record<string, unknown>): Partial<Record<CosmeticSlot, string>> {
+export function effectiveOutfit(equipped: Partial<Record<CosmeticSlot, string>>, level: number, achievements: Record<string, unknown>, all = false): Partial<Record<CosmeticSlot, string>> {
   const out: Partial<Record<CosmeticSlot, string>> = {}
   for (const [slot, id] of Object.entries(equipped) as Array<[CosmeticSlot, string]>) {
     const c = COSMETIC_BY_ID.get(id)
-    if (c && c.slot === slot && isUnlocked(c, level, achievements)) out[slot] = id
+    if (c && c.slot === slot && isUnlocked(c, level, achievements, all)) out[slot] = id
   }
   return out
 }

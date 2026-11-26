@@ -33,7 +33,7 @@ export function WardrobeScreen() {
   }
   const level = learning.level.level
   const ach = learning.state.game.achievements
-  const unlockedCount = unlockedCosmetics(level, ach).length
+  const unlockedCount = learning.admin ? COSMETICS.length : unlockedCosmetics(level, ach).length
   const outfit = preview ? { ...equipped, [preview.slot]: preview.id } : equipped
   const items = COSMETICS.filter((c) => c.slot === slot)
 
@@ -44,6 +44,7 @@ export function WardrobeScreen() {
           <p className="eyebrow">{t('wardrobe.eyebrow')}</p>
           <h1 className="h1">{t('wardrobe.title')}</h1>
           <p className="text-muted">{t('wardrobe.sub', { n: unlockedCount, total: COSMETICS.length })}</p>
+          {learning.admin && <p className="admin-note text-sm">{t('admin.wardrobeNote')}</p>}
         </div>
       </header>
       <div className="wardrobe">
@@ -80,7 +81,7 @@ export function WardrobeScreen() {
               </li>
             )}
             {items.map((c) => {
-              const open = isUnlocked(c, level, ach)
+              const open = isUnlocked(c, level, ach, learning.admin)
               const on = (equipped[slot] ?? (slot === 'color' ? 'classic' : undefined)) === c.id
               return (
                 <li key={c.id}>

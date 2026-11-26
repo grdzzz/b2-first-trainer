@@ -143,7 +143,7 @@ export function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle(
 
       <div className="nav-groups">
         {NAV_GROUPS.map((g) => (
-          <div key={g.label} className="nav-group" role="group" aria-label={t(g.label)}>
+          <div key={g.label} className="nav-group" data-group={g.label === 'nav.groupGeneral' ? 'general' : g.label === 'nav.groupLearning' ? 'learning' : 'personal'} role="group" aria-label={t(g.label)}>
             {!collapsed && <p className="nav-group-label" aria-hidden>{t(g.label)}</p>}
             <ul className="nav-list">
               {g.items
@@ -190,7 +190,7 @@ export function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle(
         {!collapsed && <UpdateBanner />}
         {!collapsed && <p className="sidebar-foot">{t('app.offline')}</p>}
       </div>
-      {bellOpen && <NotificationCenter onClose={() => setBellOpen(false)} />}
+      {bellOpen && <NotificationCenter collapsed={collapsed} onClose={() => setBellOpen(false)} />}
     </nav>
   )
 }
