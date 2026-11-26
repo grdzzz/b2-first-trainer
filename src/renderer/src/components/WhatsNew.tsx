@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { AudioLines, Bell, CheckCheck, Gauge, LayoutTemplate, NotebookPen, PenLine, RefreshCw, RotateCcw, Smile, Sparkles, Video } from 'lucide-react'
+import { AudioLines, Bell, BookX, CalendarRange, CheckCheck, Command, Gauge, LayoutTemplate, NotebookPen, PenLine, RefreshCw, RotateCcw, Smile, Sparkles, Trophy, Video } from 'lucide-react'
 import { changesSince, CHANGELOG, type ChangeIcon, type ChangelogEntry } from '@shared/changelog'
 import { Modal } from './Modal'
 import { MascotSvg } from './Mascot'
@@ -20,7 +20,11 @@ const ICONS: Record<ChangeIcon, typeof Sparkles> = {
   bell: Bell,
   writing: PenLine,
   sheets: NotebookPen,
-  sync: RefreshCw
+  sync: RefreshCw,
+  plan: CalendarRange,
+  notebook: BookX,
+  trophy: Trophy,
+  command: Command
 }
 
 function readSeen(): string | null {

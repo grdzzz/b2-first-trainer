@@ -1,5 +1,5 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { ArrowLeft, ArrowRight, CheckCircle2, Clock3, Download, Lightbulb, RotateCcw, Trophy, XCircle } from 'lucide-react'
+import { ArrowLeft, ArrowRight, BookX, CheckCircle2, Clock3, Download, Lightbulb, RotateCcw, Trophy, XCircle } from 'lucide-react'
 import {
   checkItem,
   countItems,
@@ -252,6 +252,11 @@ function SheetRunner({ sheet, nextSheet }: { sheet: PracticeSheet; nextSheet: Pr
               <button type="button" className="btn btn-secondary" onClick={retry}>
                 <RotateCcw size={16} aria-hidden /> {t('sheet.retry')}
               </button>
+              {score.correct < total && (
+                <button type="button" className="btn btn-ghost" onClick={() => app.navigate({ name: 'notebook' })}>
+                  <BookX size={16} aria-hidden /> {t('sheet.seeErrors')}
+                </button>
+              )}
               {nextSheet && (
                 <button type="button" className="btn btn-primary" onClick={() => app.navigate({ name: 'sheet', sheetId: nextSheet.id })}>
                   {t('sheet.next')} <ArrowRight size={16} aria-hidden />

@@ -46,6 +46,17 @@ En macOS y Linux la app avisa cuando hay una versión nueva y te lleva a la desc
 
 ## Qué hace
 
+### Novedades de la 2.0: aprendizaje adaptativo
+
+- **Mi plan.** Un asistente de 4 pasos (fecha del examen opcional, puntuación objetivo, minutos por sesión, días de estudio y de descanso, preferencias, destrezas prioritarias e intensidad) crea un plan que cada día propone una sesión a tu medida: repaso, corrección de errores, hojas, partes de examen o un simulacro, con el motivo de cada actividad («En Part 4 llevas un 45 % de aciertos»). Se ajusta solo cuando cambian tus resultados, tus errores, tu disponibilidad o tu objetivo (sin tocar una sesión ya empezada), respeta tus descansos y nunca supera tu tiempo. Incluye un **calendario** semanal y mensual (con arrastrar y soltar) y tu **preparación estimada** en la escala Cambridge con su margen y nivel de confianza; no es una nota oficial ni una probabilidad de aprobar.
+- **Mis errores.** Cada fallo (hojas, exámenes, repasos, correcciones de IA de Writing y Speaking o escrito a mano) se guarda con tu respuesta, la correcta, la explicación, la competencia y su historial. Búsqueda tolerante a erratas, filtros, notas, favoritos, exportación, repasos a medida (hoy, recurrentes, por competencia, por examen, antiguos…) sobre el mismo repaso espaciado de siempre, patrones detectados y ejercicios, explicaciones o lecciones personalizadas con un chat de IA (copiar y pegar; nada se envía solo).
+- **Niveles, logros y misiones.** Experiencia por aprender (no por repetir), niveles con rangos, 56 logros, misiones opcionales sin presión y rachas que respetan tus descansos. Nada se pierde por dejar de estudiar. Se puede ocultar en Ajustes.
+- **Mi perfil y Bubi.** Calendario de actividad, récords, hitos y una tarjeta de progreso en imagen; Bubi tiene nuevas actividades y un armario de accesorios que se desbloquean al avanzar.
+- **Interfaz renovada.** Inicio con módulos personalizables, barra lateral agrupada y contraíble, **paleta de comandos** (`Ctrl`/`Cmd` + `K`), Estadísticas, temas OLED y Midnight Blue, color de acento, densidad e intensidad de animaciones.
+- **Tus datos de antes se aprovechan.** Al actualizar se hace una copia de seguridad y tu historial (hojas, exámenes, correcciones de IA) inicializa el cuaderno, las estadísticas y la experiencia.
+
+### Todo lo demás
+
 - **Bienvenida y examen de ejemplo.** La primera vez la app te pregunta tu nombre (opcional) y te ofrece un **examen de ejemplo** corto con un **recorrido guiado** por la app. El ejemplo es material original (no de Cambridge), con Reading & Use of English, Writing, Listening (voz sintética) y Speaking. El recorrido se puede repetir y el ejemplo volver a añadir desde Ajustes.
 - **Práctica: 50 hojas de ejercicios.** Además de los exámenes, la app trae 50 hojas cortas (unos 10 minutos cada una) para practicar sin presión de examen: vocabulario (Part 1 + Part 4), gramática (Part 2 + Part 4), formación de palabras (Part 3 + Part 4), lectura (Part 5 y Part 7) y mixtas (Parts 1, 2 y 3). Son material original escrito siguiendo el formato del Reading & Use of English, no material de Cambridge. Se rellenan en la propia hoja (huecos dentro del texto), se corrigen con «Comprobar» y cada respuesta trae una explicación en español. La app guarda tu progreso, tu mejor nota en cada hoja y tu racha de días. No aparecen en la biblioteca ni en el historial de exámenes.
 - **Repaso de fallos (repetición espaciada).** Cada pregunta que fallas en una hoja vuelve a salir al día siguiente y, si la aciertas, a los 3, 7 y 14 días; después queda dominada. El repaso muestra la pregunta con su frase de contexto, la corrección y la explicación. Las hojas hechas antes de esta función aportan sus fallos automáticamente.
@@ -87,6 +98,15 @@ En macOS y Linux la app avisa cuando hay una versión nueva y te lleva a la desc
 | Listening | `Espacio` | Reproducir / pausar |
 | Listening | `←` / `→` | Retroceder / avanzar 5 segundos |
 | Divisor de paneles | `←` / `→` (con foco) | Redimensionar |
+| Toda la app | `Ctrl`/`Cmd` + `K` | Paleta de comandos |
+| Toda la app | `Ctrl`/`Cmd` + `B` | Contraer o expandir la barra lateral |
+| Toda la app | `?` | Ayuda de atajos |
+| Hojas de práctica | `Ctrl`/`Cmd` + `Intro` | Comprobar la hoja |
+| Hojas de práctica | `Alt` + `↓` / `↑` | Siguiente / anterior hueco sin responder |
+| Hojas de práctica | `A`–`D` (con foco en las opciones) | Elegir opción |
+| Repaso (autoevaluación) | `1` / `2` | «Aún no» / «Lo sabía» |
+| Mis errores | `/` | Ir al buscador |
+| Mis errores | `Mayús` + `F10` | Menú de acciones del error |
 
 Los atajos no se activan mientras escribes en un campo de texto.
 
@@ -116,7 +136,7 @@ Abre la app con recarga en caliente. En desarrollo, `F12` abre las herramientas 
 npm test
 ```
 
-Pruebas de extremo a extremo (la app real con Electron + Playwright, en `tests/e2e/`): bienvenida y prueba de nivel, novedades, Bubi (hover, clics, reacciones, sueño, movimiento reducido), esqueletos de carga sin saltos, tarjetas sin temblor, exámenes, hojas (progreso, repaso, exportar/importar con IA, portapapeles) y el aviso de carpeta abierta en otro ordenador. Necesitan la compilación y `playwright-core` (o `playwright`):
+Pruebas de extremo a extremo (la app real con Electron + Playwright, en `tests/e2e/`): plan adaptativo (asistente, completar una sesión, persistencia al reabrir), cuaderno de errores (búsqueda, detalle, repaso), subir de nivel y logros, armario de Bubi, paleta de comandos, temas, migración desde 1.9.2, teclado, ventanas pequeñas con movimiento reducido, bienvenida y prueba de nivel, novedades, Bubi (hover, clics, reacciones, sueño, movimiento reducido), esqueletos de carga sin saltos, tarjetas sin temblor, exámenes, hojas (progreso, repaso, exportar/importar con IA, portapapeles) y el aviso de carpeta abierta en otro ordenador. Necesitan la compilación y `playwright-core` (o `playwright`):
 
 ```bash
 npm run build && npm i --no-save playwright-core
@@ -125,7 +145,7 @@ npm run test:e2e            # en Linux sin pantalla: xvfb-run -a npm run test:e2
 
 Con `E2E_QUICK=1` se salta la prueba lenta (esperar a que Bubi se duerma) y con un argumento se filtra por nombre (`npm run test:e2e mascot`). La publicación las ejecuta en Linux antes de publicar.
 
-Las pruebas (Vitest) cubren la prueba de nivel (puntuación y recomendaciones), la máquina de estados de Bubi, las novedades, la lógica de corrección, el parseo y la aplicación de claves, la escritura atómica y la recuperación de datos, el modo repaso, las estadísticas y el texto de «Copiar para corregir».
+Las pruebas (Vitest) cubren el motor adaptativo (prioridades, sesiones, descansos, replanificación, previsión), la preparación estimada, el cuaderno de errores (registro idempotente, estados, búsqueda, sesiones, fusión), la integración con el Leitner, los eventos de dominio (idempotencia, sin bucles), XP, niveles, logros, misiones, rachas, la migración y la recuperación de datos, el contraste de todos los temas, la validación de las respuestas de IA, el rendimiento con un año de datos, la prueba de nivel (puntuación y recomendaciones), la máquina de estados de Bubi, las novedades, la lógica de corrección, el parseo y la aplicación de claves, la escritura atómica y la recuperación de datos, el modo repaso, las estadísticas y el texto de «Copiar para corregir».
 
 ## Generar el ejecutable
 
@@ -277,6 +297,8 @@ Todo se guarda en archivos JSON dentro de la carpeta de datos de la app:
 ├── recordings\<id>\…    grabaciones de Speaking (.webm)
 ├── practice\<id>.json   hojas de práctica que has creado o importado
 ├── practice\progress\   tu progreso en cada hoja (respuestas, nota, días)
+├── learning\            2.0: cuaderno de errores, progresión y plan (notebook.json, game.json, plan.json, meta.json)
+├── backups\             copia automática previa a la actualización a 2.0
 └── corrupt\             archivos dañados apartados automáticamente (si los hubiera)
 ```
 
@@ -293,7 +315,8 @@ Sin cuentas ni servidores: la app puede guardar sus datos en una carpeta de **On
 
 Detalles:
 - Si la app está abierta en otro ordenador con la misma carpeta, te avisa, tanto al abrirla como mientras la usas (lo comprueba cada 30 segundos; cada ordenador escribe su propio archivo `abierta-en-<equipo>.json`). Lo mejor es no usarla en los dos a la vez.
-- Si la nube crea «copias en conflicto» de un archivo, la app las ignora y usa el archivo correcto.
+- Si la nube crea «copias en conflicto» de un archivo, la app las ignora y usa el archivo correcto. En los datos de aprendizaje (`learning\`) va más allá: **fusiona** las copias registro a registro (no se pierde ningún error ni ninguna recompensa) y las borra.
+- Conviene tener la misma versión en todos los ordenadores: una versión 1.x no conoce los ajustes de apariencia nuevos y, al guardar sus ajustes, los devolvería a los valores por defecto.
 - Si un archivo todavía se está sincronizando (vacío o modificado hace menos de 10 minutos y aún incompleto), la app lo ignora por ahora y te avisa, **sin moverlo**. Solo aparta a `corrupt\` los archivos dañados de verdad.
 - Cada instalación tiene su propio identificador, así que dos ordenadores con el mismo nombre (por ejemplo, dos «MacBook-Pro») también se avisan entre sí.
 - Si la carpeta no está disponible (por ejemplo, la nube no está abierta), la app no muestra una biblioteca vacía: avisa y te deja reintentar o volver a la carpeta de este ordenador.
@@ -306,7 +329,9 @@ Detalles:
 
 ### Restaurar una copia
 
-Cierra la app y copia el contenido de la copia (las carpetas `exams`, `attempts`, `files`, `recordings`, `practice` y `settings.json`) dentro de `%APPDATA%\B2 First Trainer\data`. Sustituye lo que haya.
+Cierra la app y copia el contenido de la copia (las carpetas `exams`, `attempts`, `files`, `recordings`, `practice`, `learning` y `settings.json`) dentro de `%APPDATA%\B2 First Trainer\data`. Sustituye lo que haya.
+
+La copia automática previa a 2.0 (`backups\pre-2.0.0-<fecha>\`, con un `LEEME.json`) contiene los JSON de tu versión anterior; se abre desde Ajustes › Datos › «Copia previa a 2.0».
 
 > Para usar otra carpeta de datos (por ejemplo, en un USB), define la variable de entorno `B2FT_DATA_DIR` con la ruta antes de abrir la app. Las variables de prueba `B2FT_UPDATE_URL` y `B2FT_WHISPER_URL` solo aceptan direcciones locales en la app instalada.
 
@@ -321,6 +346,9 @@ src/
 ├── main/        proceso principal de Electron: ventana, IPC, almacenamiento (storage.ts)
 ├── preload/     puente seguro window.api (contextIsolation + sandbox)
 ├── shared/      lógica pura y testeada: tipos, plantilla, claves, corrección, intentos, estadísticas, prompts IA
+│   ├── learning/            2.0: taxonomía, cuaderno de errores, eventos de dominio, motor adaptativo, plan,
+│   │                        preparación, XP/niveles, logros, misiones, rachas, cosméticos y prompts de IA
+│   ├── fuzzy.ts             búsqueda tolerante a erratas
 │   ├── practice.ts          hojas de práctica: tipos, corrección, validación, progreso e instrucciones para la IA
 │   └── practiceSheets/      las 50 hojas incluidas (vocabulario, gramática, formación de palabras, lectura, mixtas)
 └── renderer/    interfaz React
@@ -329,13 +357,17 @@ src/
         ├── styles/app.css      estilos de componentes (solo usa tokens)
         ├── i18n/               textos de la interfaz (es.ts) y función t()
         ├── components/         visor PDF (pdf.js), reproductor, grabadora, gráfico…
-        └── screens/            Inicio, Exámenes, Examen, Intento, Resultados, Práctica, Hoja, Historial y Ajustes
+        ├── lib/learning.tsx    proveedor de aprendizaje (eventos, guardado, replanificación, celebraciones)
+        └── screens/            Inicio, Mi plan, Biblioteca, Examen, Intento, Resultados, Práctica, Hoja, Repaso,
+                                Mis errores, Estadísticas, Historial, Mi perfil, Logros, Armario de Bubi y Ajustes
 tests/           pruebas Vitest
 build/           icono de la app
 examples/        claves de ejemplo con respuestas ficticias
 ```
 
-**Internacionalización:** todos los textos de la interfaz están en `src/renderer/src/i18n/es.ts`. Para añadir otro idioma, crea un archivo con la misma forma y regístralo en `i18n/index.ts`. Las claves están tipadas y TypeScript avisa si falta alguna.
+**Documentación técnica de 2.0:** [`docs/ARQUITECTURA-2.0.md`](docs/ARQUITECTURA-2.0.md) (módulos, eventos de dominio, esquemas de datos, migración, motor adaptativo, seguridad y limitaciones). Cambios por versión: [`CHANGELOG.md`](CHANGELOG.md).
+
+**Internacionalización:** todos los textos de la interfaz están en `src/renderer/src/i18n/es.ts` y `es2.ts` (2.0). Para añadir otro idioma, crea un archivo con la misma forma y regístralo en `i18n/index.ts`. Las claves están tipadas y TypeScript avisa si falta alguna.
 
 **Tipografías e iconos incluidos:** Inter y Newsreader (vía `@fontsource-variable`) e iconos Lucide. Todo se empaqueta en la app y no se carga nada de internet.
 
@@ -344,9 +376,10 @@ examples/        claves de ejemplo con respuestas ficticias
 - La corrección con IA depende del chat que uses: es una estimación útil para practicar, no la nota de un examinador oficial. Si el chat no respeta el formato, la app avisa y no aplica nada.
 - Whisper base.en entiende bien el inglés de estudiantes, pero puede equivocarse con palabras poco claras: revisa la transcripción antes de copiarla.
 
-- No hay corrección automática de Writing ni de Speaking: se usa la autoevaluación y «Copiar para corregir».
-- No hay transcripción automática de voz, porque requeriría servicios en línea o modelos pesados. La transcripción se escribe a mano.
+- No hay corrección automática de Writing ni de Speaking: se usa la autoevaluación y la corrección con IA (copiar y pegar). Sus errores se repasan con autoevaluación y la pronunciación solo se puede anotar a mano.
 - Las preguntas con varias respuestas válidas se corrigen como acierto o fallo. No hay puntuación parcial (por ejemplo, 1 de 2 puntos en Key word transformation).
-- El porcentaje es tu nota sobre los puntos corregibles. No se convierte a la Cambridge English Scale.
+- La nota en la escala Cambridge y la preparación estimada son aproximaciones a partir de material de práctica, no notas oficiales.
+- Del historial anterior a 2.0, cada hoja cuenta una vez (la app solo guardaba la última comprobación).
+- Las preguntas de examen se repasan dentro del examen (con su PDF o audio), no como tarjetas sueltas.
 - Los PDF se muestran como imagen, sin selección de texto ni búsqueda.
 - La detección automática se basa en las instrucciones habituales de Cambridge («Part 1», «For questions 1–8…»). Con PDF de otras editoriales o escaneados puede no encontrar nada o equivocarse; siempre se puede corregir a mano.

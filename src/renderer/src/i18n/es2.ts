@@ -44,7 +44,7 @@ export const es2 = {
     moveDown: 'Bajar {name}',
     hide: 'Ocultar {name}',
     show: 'Mostrar {name}',
-    todayEyebrow: 'Tu entrenamiento',
+    todayEyebrow: 'Hoy',
     noPlanTitle: 'Aún no tienes un plan',
     noPlanText: 'En dos minutos creamos un plan a tu medida: cuánto tiempo tienes, qué días y qué quieres conseguir.',
     bubiNoPlan: '¡Hola! ¿Organizamos tu estudio? Cada día te propondré lo que más te ayuda.',
@@ -687,5 +687,5 @@ export const es2 = {
     footer: 'Estimación orientativa, no es una nota oficial de Cambridge.'
   },
   common2: { undo: 'Deshacer' },
-  sheet2: { checkShortcut: 'Comprobar (Ctrl + Intro)' }
+  sheet2: { checkShortcut: 'Comprobar (Ctrl + Intro)', seeErrors: 'Ver en Mis errores' }
 }

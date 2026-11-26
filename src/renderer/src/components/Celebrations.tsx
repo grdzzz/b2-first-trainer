@@ -1,6 +1,6 @@
 // Celebraciones moderadas: subir de nivel, desbloquear un logro o completar la sesión del plan.
 // No bloquean: tarjeta en una esquina que se cierra sola (o con Escape / el botón), con Bubi celebrando.
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { X } from 'lucide-react'
 import { ACHIEVEMENT_BY_ID } from '@shared/learning/achievements'
 import { rankOf } from '@shared/learning/game'
@@ -14,10 +14,18 @@ const DURATION = 6500
 
 function Card({ c, onClose }: { c: Celebration; onClose(): void }) {
   const { settings, navigate } = useApp()
+  // El temporizador se arma una sola vez (onClose cambia en cada render del padre).
+  const close = useRef(onClose)
+  close.current = onClose
+  const hovering = useRef(false)
   useEffect(() => {
-    const id = window.setTimeout(onClose, DURATION)
+    let id = 0
+    const arm = () => {
+      id = window.setTimeout(() => (hovering.current ? arm() : close.current()), DURATION)
+    }
+    arm()
     return () => window.clearTimeout(id)
-  }, [onClose])
+  }, [])
   let title = ''
   let body = ''
   let art = null
@@ -41,7 +49,7 @@ function Card({ c, onClose }: { c: Celebration; onClose(): void }) {
     go = () => navigate({ name: 'plan' })
   }
   return (
-    <div className={`celebrate-card kind-${c.kind}`} role="status">
+    <div className={`celebrate-card kind-${c.kind}`} role="status" onMouseEnter={() => (hovering.current = true)} onMouseLeave={() => (hovering.current = false)}>
       {art && <div className="celebrate-art">{art}</div>}
       <div className="celebrate-text">
         <strong>{title}</strong>

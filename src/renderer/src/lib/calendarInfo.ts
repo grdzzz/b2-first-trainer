@@ -10,7 +10,8 @@ import { t } from '../i18n'
 
 const FORECAST_DAYS = 42
 
-export function useCalendarInfo(): (day: string) => DayInfo {
+/** `horizon`: días de previsión (el calendario completo usa 6 semanas; la semana del inicio, 7 días). */
+export function useCalendarInfo(horizon = FORECAST_DAYS): (day: string) => DayInfo {
   const learning = useLearning()
   const app = useApp()
   const { state, engine, today } = learning
@@ -20,9 +21,9 @@ export function useCalendarInfo(): (day: string) => DayInfo {
   const future = useMemo(() => {
     const m = new Map<string, PlanSession>()
     if (!engine) return m
-    for (const s of forecast({ ...engine, history: { ...engine.history } }, addDays(today, 1), FORECAST_DAYS)) m.set(s.date, s)
+    for (const s of forecast({ ...engine, history: { ...engine.history } }, addDays(today, 1), horizon)) m.set(s.date, s)
     return m
-  }, [engine, today])
+  }, [engine, today, horizon])
 
   const doneByDay = useMemo(() => {
     const m = new Map<string, DayInfo['done']>()

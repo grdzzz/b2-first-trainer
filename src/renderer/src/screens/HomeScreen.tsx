@@ -327,7 +327,7 @@ function ReviewModule() {
 function WeekModule() {
   const app = useApp()
   const learning = useLearning()
-  const info = useCalendarInfo()
+  const info = useCalendarInfo(7)
   const start = weekStart(learning.today)
   const days = Array.from({ length: 7 }, (_, i) => addDays(start, i))
   return (

@@ -2,7 +2,7 @@
 // Textos para el usuario: cortos, claros y sin tecnicismos. La más reciente, primero.
 import { compareVersions } from './updates'
 
-export type ChangeIcon = 'level' | 'sparkles' | 'mascot' | 'loading' | 'video' | 'check' | 'review' | 'bell' | 'writing' | 'sheets' | 'sync'
+export type ChangeIcon = 'level' | 'sparkles' | 'mascot' | 'loading' | 'video' | 'check' | 'review' | 'bell' | 'writing' | 'sheets' | 'sync' | 'plan' | 'notebook' | 'trophy' | 'command'
 
 export interface ChangeItem {
   icon: ChangeIcon
@@ -16,6 +16,15 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '2.0.0',
+    items: [
+      { icon: 'plan', title: 'Mi plan', text: 'Un plan de estudio a tu medida: cada día una sesión con el tiempo que tienes, que se ajusta sola a tus resultados y tus errores, con calendario y tu preparación estimada para el examen.' },
+      { icon: 'notebook', title: 'Mis errores', text: 'Todos tus fallos (hojas, exámenes, Writing, Speaking…) en un cuaderno con la respuesta correcta y su explicación, con búsqueda, filtros, repasos a medida y ejercicios personalizados con IA.' },
+      { icon: 'trophy', title: 'Niveles, logros y misiones', text: 'Gana experiencia aprendiendo, desbloquea más de 50 logros y viste a Bubi con accesorios. Nada se pierde por descansar y se puede ocultar en Ajustes.' },
+      { icon: 'command', title: 'Más rápida y personalizable', text: 'Nuevo inicio, barra lateral agrupada, paleta de comandos (Ctrl + K), temas OLED y Midnight Blue, color de acento y densidad. Tus datos de antes se han incorporado y se guardó una copia de seguridad.' }
+    ]
+  },
   {
     version: '1.9.2',
     items: [
