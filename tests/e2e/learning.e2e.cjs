@@ -59,7 +59,10 @@ module.exports = [
       await withApp({ settings: CALM }, async ({ win, dataDir }) => {
         await win.click('[data-nav=plan]')
         await win.waitForSelector('.wizard')
-        for (let i = 0; i < 3; i++) await win.click('.wizard-foot .btn-primary')
+        await win.click('.wizard-foot .btn-primary')
+        // Todos los días de estudio: la prueba no depende del día de la semana en que se ejecute.
+        while (await win.locator('.weekday:not(.is-active)').count()) await win.locator('.weekday:not(.is-active)').first().click()
+        for (let i = 0; i < 2; i++) await win.click('.wizard-foot .btn-primary')
         await win.click('.wizard-foot .btn-primary:has-text("Crear mi plan")')
         await win.waitForSelector('.activity-card', { timeout: 15000 })
         const reasons = await win.locator('.activity-reason').count()
