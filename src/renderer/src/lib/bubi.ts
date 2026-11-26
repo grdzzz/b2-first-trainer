@@ -1,6 +1,7 @@
 // Conexión de Bubi con la app: señales de eventos reales (acierto, fallo, logro…) e inactividad del usuario.
 import { useSyncExternalStore } from 'react'
 import type { BubiSignal } from '@shared/mascot'
+import type { CosmeticSlot } from '@shared/learning/game'
 
 // ---------- Señales ----------
 type Listener = (signal: BubiSignal) => void
@@ -78,8 +79,28 @@ function subscribeMotion(cb: () => void): () => void {
   return () => mq?.removeEventListener('change', cb)
 }
 
+/** Preferencia de la app (Ajustes → Animaciones): «reduced» o «none» equivalen a movimiento reducido. */
+function appMotionReduced(): boolean {
+  return typeof document !== 'undefined' && (document.documentElement.dataset.motion === 'reduced' || document.documentElement.dataset.motion === 'none')
+}
+const motionSubs = new Set<() => void>()
+export function notifyMotionChange(): void {
+  for (const s of motionSubs) s()
+}
+
 export function useReducedMotion(): boolean {
-  return useSyncExternalStore(subscribeMotion, () => !!mq?.matches, () => false)
+  return useSyncExternalStore(
+    (cb) => {
+      motionSubs.add(cb)
+      const off = subscribeMotion(cb)
+      return () => {
+        motionSubs.delete(cb)
+        off()
+      }
+    },
+    () => !!mq?.matches || appMotionReduced(),
+    () => false
+  )
 }
 
 // ---------- Saludo de bienvenida: solo una vez por sesión ----------
@@ -89,4 +110,36 @@ export function takeWelcome(): boolean {
   if (welcomed) return false
   welcomed = true
   return true
+}
+
+// ---------- Accesorios (armario) y clics: un solo almacén para todos los Bubi ----------
+
+export type Outfit = Partial<Record<CosmeticSlot, string>>
+let outfit: Outfit = {}
+const outfitSubs = new Set<() => void>()
+
+export function setOutfit(next: Outfit): void {
+  if (JSON.stringify(next) === JSON.stringify(outfit)) return
+  outfit = next
+  for (const s of outfitSubs) s()
+}
+
+export function useOutfit(): Outfit {
+  return useSyncExternalStore(
+    (cb) => {
+      outfitSubs.add(cb)
+      return () => outfitSubs.delete(cb)
+    },
+    () => outfit,
+    () => outfit
+  )
+}
+
+let pokeHandler: (() => void) | null = null
+/** El proveedor de aprendizaje cuenta los clics a Bubi (logro «Bubi's Friend»). */
+export function setPokeHandler(fn: (() => void) | null): void {
+  pokeHandler = fn
+}
+export function bubiPoked(): void {
+  pokeHandler?.()
 }

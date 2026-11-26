@@ -22,16 +22,17 @@ module.exports = [
         await win.waitForSelector('.app-booting .sk-region', { timeout: 10000 })
         assertEqual(await win.evaluate(() => document.documentElement.dataset.theme), 'dark', 'El esqueleto usa el tema oscuro guardado')
         await finishEntryAnimations(win)
-        const S = ['.page-header .eyebrow', '.page-header h1', '.stats-row .stat', '.home-practice', '.paper-grid .paper-card']
+        // 2.0: cabecera y primera fila del panel (sesión de hoy) en el mismo sitio y con el mismo alto.
+        const S = ['.page-header .eyebrow', '.page-header h1', '.page-header .btn-lg', '.dash-mod.mod-today .home-practice']
         const sk = await boxes(win, S, '.sk-region')
         await shot(win, 'esqueleto-arranque')
-        await win.waitForSelector('.app:not(.app-booting) .home-practice:not([aria-hidden])', { timeout: 20000 })
+        await win.waitForSelector('.app:not(.app-booting) .dash-mod.mod-today .home-practice:not([aria-hidden])', { timeout: 20000 })
         await sleep(400)
         await finishEntryAnimations(win)
         const real = await boxes(win, S)
-        // La altura de cada bloque es la misma; la posición también, porque no hay tarjetas extra (nivel oculto, con examen).
-        for (const k of S) assert(Math.abs(sk[k].h - real[k].h) <= 1, `Inicio: «${k}» cambia de alto (${sk[k].h} → ${real[k].h})`)
-        sameBoxes(sk, real, ['.page-header .eyebrow', '.page-header h1'], 'Inicio')
+        // Sin tarjetas extra (nivel oculto, sin intentos a medias): misma posición y altura.
+        sameBoxes(sk, real, ['.page-header .eyebrow', '.page-header h1', '.page-header .btn-lg'], 'Inicio')
+        assert(Math.abs(sk['.dash-mod.mod-today .home-practice'].y - real['.dash-mod.mod-today .home-practice'].y) <= 1, 'Inicio: la sesión de hoy empieza en el mismo sitio')
       })
     }
   },
@@ -94,7 +95,14 @@ module.exports = [
       await withApp({ settings: existingUser() }, async ({ win }) => {
         await win.waitForSelector('.home-header')
         await sleep(800)
-        await assertStillAtBottomEdge(win, '.stats-row .stat')
+        await win.click('[data-nav=stats]')
+        await win.waitForSelector('.stats-page:not(.sk-region)')
+        await win.click('[data-nav=practice]')
+        await waitReal(win, '.page .sheet-card')
+        await win.click('[data-nav=profile]')
+        await waitReal(win, '.profile-page .stats-row .stat')
+        await sleep(600)
+        await assertStillAtBottomEdge(win, '.profile-page .stats-row .stat')
         await win.click('[data-nav=practice]')
         await waitReal(win, '.page .sheet-card')
         await sleep(600)

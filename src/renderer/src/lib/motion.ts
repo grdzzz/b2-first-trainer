@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 
 export function prefersReducedMotion(): boolean {
-  return typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+  if (typeof window === 'undefined') return false
+  const m = document.documentElement.dataset.motion
+  return m === 'reduced' || m === 'none' || !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
 }
 
 /** Número que «cuenta» desde 0 (o desde el valor anterior) hasta `value`. */

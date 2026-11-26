@@ -99,8 +99,8 @@ export interface PlanDoc {
   schemaVersion: number
   config: PlanConfig | null
   sessions: Record<string, PlanSession>
-  /** Actividades previstas movidas a otro día: id → nuevo día. */
-  moves: Record<string, { date: string; updatedAt: string }>
+  /** Actividades movidas a otro día: id → nuevo día (y la actividad, para añadirla a la sesión de ese día). */
+  moves: Record<string, { date: string; updatedAt: string; activity?: PlanActivity }>
   updatedAt: string
 }
 
@@ -229,7 +229,10 @@ export function parsePlan(raw: unknown): PlanDoc {
   const moves: PlanDoc['moves'] = {}
   for (const [id, v] of Object.entries((r.moves && typeof r.moves === 'object' ? r.moves : {}) as Record<string, unknown>)) {
     const m = v as Record<string, unknown>
-    if (m && isDay(m.date)) moves[id] = { date: m.date as string, updatedAt: typeof m.updatedAt === 'string' ? m.updatedAt : new Date(0).toISOString() }
+    if (m && isDay(m.date)) {
+      const activity = parseActivity(m.activity)
+      moves[id] = { date: m.date as string, updatedAt: typeof m.updatedAt === 'string' ? m.updatedAt : new Date(0).toISOString(), ...(activity ? { activity } : {}) }
+    }
   }
   return { schemaVersion: PLAN_VERSION, config: parsePlanConfig(r.config), sessions, moves, updatedAt: typeof r.updatedAt === 'string' ? r.updatedAt : new Date(0).toISOString() }
 }
@@ -309,6 +312,19 @@ export function planMilestones(config: PlanConfig, today: string, horizonDays = 
     }
   }
   return out.filter((m) => m.date <= end).sort((a, b) => a.date.localeCompare(b.date) || a.kind.localeCompare(b.kind))
+}
+
+/** Actividades movidas a un día (para añadirlas a su sesión o mostrarlas en el calendario). */
+export function movedTo(doc: PlanDoc, day: string): PlanActivity[] {
+  return Object.values(doc.moves)
+    .filter((m) => m.date === day && m.activity)
+    .map((m) => ({ ...m.activity!, status: 'todo' as const, reasons: [{ code: 'moved' as const }, ...m.activity!.reasons.filter((r) => r.code !== 'moved')].slice(0, 3) }))
+}
+
+/** ¿Se ha movido esta actividad a otro día distinto de `day`? */
+export function movedAway(doc: PlanDoc, id: string, day: string): boolean {
+  const m = doc.moves[id]
+  return !!m && m.date !== day
 }
 
 /** Huella estable de un objeto (para detectar cambios que obligan a replanificar). */

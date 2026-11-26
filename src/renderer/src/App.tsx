@@ -1,10 +1,14 @@
 import { lazy, Suspense, useRef } from 'react'
-import { BarChart3, CloudOff, History, Library, MonitorSmartphone, NotebookPen, Settings as SettingsIcon, TriangleAlert } from 'lucide-react'
+import { CloudOff, MonitorSmartphone, TriangleAlert } from 'lucide-react'
 import { AppProvider, useApp, useThemeEffect, type Route } from './lib/store'
+import { LearningProvider } from './lib/learning'
+import { Sidebar, useSidebarCollapsed } from './components/Sidebar'
+import { CommandPalette } from './components/CommandPalette'
+import { Celebrations } from './components/Celebrations'
+import { ShortcutsHelp } from './components/ShortcutsHelp'
 import { Toasts } from './components/Toasts'
 import { HomeScreen } from './screens/HomeScreen'
 import { LibraryScreen } from './screens/LibraryScreen'
-import { UpdateBanner } from './components/UpdateBanner'
 import { Onboarding } from './components/Onboarding'
 import { Tour } from './components/Tour'
 import { Modal } from './components/Modal'
@@ -22,6 +26,12 @@ const ResultsScreen = lazy(() => import('./screens/ResultsScreen').then((m) => (
 const PracticeScreen = lazy(() => import('./screens/PracticeScreen').then((m) => ({ default: m.PracticeScreen })))
 const ReviewScreen = lazy(() => import('./screens/ReviewScreen').then((m) => ({ default: m.ReviewScreen })))
 const SheetScreen = lazy(() => import('./screens/SheetScreen').then((m) => ({ default: m.SheetScreen })))
+const PlanScreen = lazy(() => import('./screens/PlanScreen').then((m) => ({ default: m.PlanScreen })))
+const NotebookScreen = lazy(() => import('./screens/NotebookScreen').then((m) => ({ default: m.NotebookScreen })))
+const StatsScreen = lazy(() => import('./screens/StatsScreen').then((m) => ({ default: m.StatsScreen })))
+const ProfileScreen = lazy(() => import('./screens/ProfileScreen').then((m) => ({ default: m.ProfileScreen })))
+const AchievementsScreen = lazy(() => import('./screens/AchievementsScreen').then((m) => ({ default: m.AchievementsScreen })))
+const WardrobeScreen = lazy(() => import('./screens/WardrobeScreen').then((m) => ({ default: m.WardrobeScreen })))
 
 export function App() {
   return (
@@ -31,24 +41,10 @@ export function App() {
   )
 }
 
-const NAV: Array<{ route: Route['name']; label: () => string; icon: typeof Library }> = [
-  { route: 'home', label: () => t('nav.home'), icon: BarChart3 },
-  { route: 'library', label: () => t('nav.library'), icon: Library },
-  { route: 'practice', label: () => t('nav.practice'), icon: NotebookPen },
-  { route: 'history', label: () => t('nav.history'), icon: History },
-  { route: 'settings', label: () => t('nav.settings'), icon: SettingsIcon }
-]
-
-function activeSection(route: Route): Route['name'] {
-  if (route.name === 'exam') return 'library'
-  if (route.name === 'results') return 'history'
-  if (route.name === 'sheet' || route.name === 'review') return 'practice'
-  return route.name
-}
-
 function Shell() {
-  const { ready, loadError, missingDataPath, dataProblem, lockConflict, dismissLockConflict, settings, route, navigate, reload } = useApp()
+  const { ready, loadError, missingDataPath, dataProblem, lockConflict, dismissLockConflict, settings, route, reload } = useApp()
   useThemeEffect(settings, ready)
+  const [collapsed, setCollapsed] = useSidebarCollapsed()
   // ¿Ya usaba la app antes de abrirla esta vez? (para la prueba de nivel y las novedades)
   const wasOnboarded = useRef<boolean | null>(null)
   if (ready && !loadError && !missingDataPath && wasOnboarded.current === null) wasOnboarded.current = settings.onboarded
@@ -90,46 +86,23 @@ function Shell() {
   if (!settings.placement) return <PlacementTest existing={wasOnboarded.current === true} />
 
   const focusMode = route.name === 'attempt'
-  const section = activeSection(route)
 
   return (
-    <div className={`app${focusMode ? ' app-focus' : ''}`}>
+    <LearningProvider>
+    <div className={`app${focusMode ? ' app-focus' : ''}${collapsed && !focusMode ? ' is-collapsed' : ''}`}>
       <a className="skip-link" href="#main">{t('nav.skip')}</a>
-      {!focusMode && (
-        <nav className="sidebar" aria-label={t('nav.main')}>
-          <div className="brand">
-            <span className="brand-mark" aria-hidden>B2</span>
-            <span className="brand-text">
-              <span className="brand-name">First Trainer</span>
-              <span className="brand-sub">{t('app.tagline')}</span>
-            </span>
-          </div>
-          <ul className="nav-list">
-            {NAV.map(({ route: r, label, icon: Icon }) => (
-              <li key={r}>
-                <button
-                  type="button"
-                  data-nav={r}
-                  className={`nav-item${section === r ? ' is-active' : ''}`}
-                  aria-current={section === r ? 'page' : undefined}
-                  onClick={() => navigate({ name: r } as Route)}
-                >
-                  <Icon size={18} aria-hidden />
-                  {label()}
-                </button>
-              </li>
-            ))}
-          </ul>
-          <UpdateBanner />
-          <p className="sidebar-foot">{t('app.offline')}</p>
-        </nav>
-      )}
+      {!focusMode && <Sidebar collapsed={collapsed} onToggle={() => setCollapsed(!collapsed)} />}
       <main id="main" className="main" tabIndex={-1}>
         <Suspense fallback={<RouteSkeleton route={route} />}>
-          <Screen route={route} />
+          <div className="route-view" key={routeKey(route)}>
+            <Screen route={route} />
+          </div>
         </Suspense>
       </main>
       <Toasts />
+      <CommandPalette />
+      <ShortcutsHelp />
+      <Celebrations />
       <Tour />
       <WhatsNew existingUser={wasOnboarded.current === true} />
       <Modal
@@ -150,7 +123,25 @@ function Shell() {
         </div>
       </Modal>
     </div>
+    </LearningProvider>
   )
+}
+
+/** Cada pantalla (y cada examen, hoja…) monta de nuevo con una transición suave. */
+function routeKey(route: Route): string {
+  switch (route.name) {
+    case 'exam':
+      return `exam:${route.examId}`
+    case 'attempt':
+    case 'results':
+      return `${route.name}:${route.attemptId}`
+    case 'sheet':
+      return `sheet:${route.sheetId}`
+    case 'review':
+      return `review:${route.session?.kind ?? 'due'}:${route.session?.value ?? ''}`
+    default:
+      return route.name
+  }
 }
 
 function Screen({ route }: { route: Route }) {
@@ -168,12 +159,24 @@ function Screen({ route }: { route: Route }) {
     case 'practice':
       return <PracticeScreen />
     case 'review':
-      return <ReviewScreen />
+      return <ReviewScreen session={route.session} />
     case 'sheet':
       return <SheetScreen key={route.sheetId} sheetId={route.sheetId} />
     case 'history':
       return <HistoryScreen />
     case 'settings':
-      return <SettingsScreen />
+      return <SettingsScreen section={route.section} />
+    case 'plan':
+      return <PlanScreen tab={route.tab} />
+    case 'notebook':
+      return <NotebookScreen errorId={route.errorId} add={route.add} />
+    case 'stats':
+      return <StatsScreen />
+    case 'profile':
+      return <ProfileScreen />
+    case 'achievements':
+      return <AchievementsScreen />
+    case 'wardrobe':
+      return <WardrobeScreen />
   }
 }

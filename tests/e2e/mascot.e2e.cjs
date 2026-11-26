@@ -92,7 +92,8 @@ module.exports = [
         await waitReal(win, '.page .sheet-card')
         await win.click('.review-banner .btn-primary')
         await win.waitForSelector('.review-card .bubi')
-        assert((await state(win, '.review-card .bubi')).startsWith('thinking'), 'Piensa antes de responder')
+        // 2.0: «resolviendo un ejercicio» (piensa con una pieza de puzle en las manos).
+        assert((await state(win, '.review-card .bubi')).startsWith('solving'), 'Piensa antes de responder')
         const opt = win.locator('.review-card .sheet-option')
         if (await opt.count()) await opt.last().click()
         else await win.locator('.review-card .gap-input').fill('zzz')
