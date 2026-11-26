@@ -168,3 +168,100 @@
     --focus-ring: Highlight;
   }
 }
+
+/* =====================================================================
+ * 2.0 · Variantes de tema, colores de acento, densidad y movimiento.
+ * Las variantes oscuras (OLED, Midnight Blue) usan data-theme='dark' + data-variant, así heredan todas las
+ * reglas del tema oscuro. Contrastes comprobados en tests/themes.test.ts (WCAG AA).
+ * ===================================================================== */
+:root[data-theme='dark'][data-variant='oled'] {
+  --bg: #000000;
+  --bg-sunken: #000000;
+  --surface: #0b0b0d;
+  --surface-raised: #131316;
+  --surface-hover: #18181c;
+  --border: #25252a;
+  --border-strong: #37373e;
+  --text: #ecebe6;
+  --text-muted: #a8aab0;
+  --text-subtle: #9a9ca2;
+  --sk-base: #151518;
+  --sk-shine: #1f1f23;
+  --shadow-sm: none;
+  --shadow-md: 0 0 0 1px #1d1d22;
+  --shadow-lg: 0 0 0 1px #25252a, 0 20px 52px rgba(0, 0, 0, 0.8);
+}
+
+:root[data-theme='dark'][data-variant='midnight'] {
+  --bg: #0b1020;
+  --bg-sunken: #080c18;
+  --surface: #111831;
+  --surface-raised: #172042;
+  --surface-hover: #1b2549;
+  --border: #243056;
+  --border-strong: #34437a;
+  --text: #e8ebf7;
+  --text-muted: #aab2ce;
+  --text-subtle: #9aa3c2;
+  --sk-base: #1a2340;
+  --sk-shine: #24305a;
+}
+
+/* Colores de acento (índigo es el de la marca y el predeterminado). */
+:root[data-accent='teal'] { --accent: #0f6e6a; --accent-hover: #0b5956; --accent-soft: #e0f2f1; --accent-text: #0e6663; --focus-ring: #0f6e6a; }
+:root[data-accent='violet'] { --accent: #6b3fc4; --accent-hover: #5a32a8; --accent-soft: #efe9fb; --accent-text: #6237b8; --focus-ring: #6b3fc4; }
+:root[data-accent='rose'] { --accent: #b3265e; --accent-hover: #951e4e; --accent-soft: #fbe8ef; --accent-text: #a8235a; --focus-ring: #b3265e; }
+:root[data-accent='amber'] { --accent: #8a5300; --accent-hover: #724400; --accent-soft: #fbefdc; --accent-text: #7f4c00; --focus-ring: #8a5300; }
+:root[data-accent='green'] { --accent: #1d7044; --accent-hover: #175b37; --accent-soft: #e2f2e8; --accent-text: #1a6a40; --focus-ring: #1d7044; }
+:root[data-theme='dark'][data-accent='teal'] { --accent: #5fd0c0; --accent-hover: #7fdccf; --accent-soft: #173532; --accent-text: #6fd6c8; --focus-ring: #7fdccf; }
+:root[data-theme='dark'][data-accent='violet'] { --accent: #b69bff; --accent-hover: #c8b3ff; --accent-soft: #2b2347; --accent-text: #c1a9ff; --focus-ring: #c8b3ff; }
+:root[data-theme='dark'][data-accent='rose'] { --accent: #ff8fb5; --accent-hover: #ffa8c6; --accent-soft: #3b1a28; --accent-text: #ff9fc0; --focus-ring: #ffa8c6; }
+:root[data-theme='dark'][data-accent='amber'] { --accent: #f0c36a; --accent-hover: #f5d48f; --accent-soft: #3a2c10; --accent-text: #f2cb7c; --focus-ring: #f5d48f; }
+:root[data-theme='dark'][data-accent='green'] { --accent: #6fd39a; --accent-hover: #8de0b0; --accent-soft: #173322; --accent-text: #7ad9a3; --focus-ring: #8de0b0; }
+
+/* Colores de las destrezas del plan (mismos en todas las pantallas: calendario, plan, errores…). */
+:root {
+  --sk-useOfEnglish: #2e46c0;
+  --sk-reading: #a2520c;
+  --sk-writing: #8a3a8f;
+  --sk-listening: #0f7468;
+  --sk-speaking: #b02a5e;
+  --rarity-common: #5b6170;
+  --rarity-rare: #2a62c9;
+  --rarity-epic: #8a3a8f;
+  --rarity-legendary: #a86800;
+  --xp: #b26b00;
+  --xp-soft: #fdf1d8;
+}
+:root[data-theme='dark'] {
+  --sk-useOfEnglish: #8fa1ff;
+  --sk-reading: #f2a766;
+  --sk-writing: #df9be3;
+  --sk-listening: #5fd0c0;
+  --sk-speaking: #ff8fb8;
+  --rarity-common: #aab0bd;
+  --rarity-rare: #7fb0ff;
+  --rarity-epic: #df9be3;
+  --rarity-legendary: #f0c36a;
+  --xp: #f0c36a;
+  --xp-soft: #3a2c10;
+}
+
+/* Densidad compacta: menos aire entre elementos (mismas proporciones). */
+:root[data-density='compact'] {
+  --space-3: 0.625rem;
+  --space-4: 0.8125rem;
+  --space-5: 1rem;
+  --space-6: 1.25rem;
+  --space-8: 1.625rem;
+  --space-10: 2rem;
+  --space-12: 2.5rem;
+}
+
+/* Movimiento: «reduced» quita lo decorativo; «none» quita todas las animaciones. */
+:root[data-motion='reduced'],
+:root[data-motion='none'] {
+  --dur-fast: 0ms;
+  --dur-base: 0ms;
+  --dur-slow: 0ms;
+}

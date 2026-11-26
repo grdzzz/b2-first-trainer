@@ -4,7 +4,7 @@ import path from 'node:path'
 import { randomBytes } from 'node:crypto'
 import type { Attempt, Exam, FileRef, Settings } from '../shared/types'
 import type { PracticeProgress, PracticeSheet } from '../shared/practice'
-import { DEFAULT_SETTINGS, SCHEMA_VERSION } from '../shared/types'
+import { ACCENTS, DASHBOARD_MODULES, DEFAULT_APPEARANCE, DEFAULT_SETTINGS, SCHEMA_VERSION, THEMES, type DashboardModule } from '../shared/types'
 import { isSafeId } from '../shared/ids'
 import { parsePlacement } from '../shared/placement'
 
@@ -432,9 +432,33 @@ function mergeReminder(raw: unknown): Settings['reminder'] {
   }
 }
 
+function mergeAppearance(raw: unknown): Settings['appearance'] {
+  const r = (raw && typeof raw === 'object' ? raw : {}) as Partial<Settings['appearance']>
+  return {
+    accent: ACCENTS.includes(r.accent as Settings['appearance']['accent']) ? (r.accent as Settings['appearance']['accent']) : DEFAULT_APPEARANCE.accent,
+    density: r.density === 'compact' ? 'compact' : 'comfortable',
+    motion: r.motion === 'reduced' || r.motion === 'none' ? r.motion : 'full'
+  }
+}
+
+function mergeDashboard(raw: unknown): Settings['dashboard'] {
+  const r = (raw && typeof raw === 'object' ? raw : {}) as Partial<Settings['dashboard']>
+  const valid = (v: unknown): v is DashboardModule => DASHBOARD_MODULES.includes(v as DashboardModule)
+  const order = Array.isArray(r.order) ? Array.from(new Set(r.order.filter(valid))) : []
+  // Los módulos nuevos (de versiones posteriores) se añaden al final.
+  for (const m of DASHBOARD_MODULES) if (!order.includes(m)) order.push(m)
+  const hidden = Array.isArray(r.hidden) ? Array.from(new Set(r.hidden.filter(valid))) : []
+  return { order, hidden }
+}
+
+/** Tema nativo de la ventana (OLED y Midnight son variantes oscuras). */
+export function nativeThemeOf(theme: Settings['theme']): 'system' | 'light' | 'dark' {
+  return theme === 'system' || theme === 'light' ? theme : 'dark'
+}
+
 export function mergeSettings(raw: Partial<Settings> | null | undefined): Settings {
   const r = raw ?? {}
-  const theme = r.theme === 'light' || r.theme === 'dark' || r.theme === 'system' ? r.theme : DEFAULT_SETTINGS.theme
+  const theme = THEMES.includes(r.theme as Settings['theme']) ? (r.theme as Settings['theme']) : DEFAULT_SETTINGS.theme
   const fontScale = typeof r.fontScale === 'number' && Number.isFinite(r.fontScale) ? Math.min(1.5, Math.max(0.85, r.fontScale)) : DEFAULT_SETTINGS.fontScale
   const autosave = typeof r.autosaveSeconds === 'number' && Number.isFinite(r.autosaveSeconds) ? Math.min(60, Math.max(1, Math.round(r.autosaveSeconds))) : DEFAULT_SETTINGS.autosaveSeconds
   const g: Partial<Settings['grading']> = r.grading ?? {}
@@ -450,6 +474,9 @@ export function mergeSettings(raw: Partial<Settings> | null | undefined): Settin
     mascot: typeof r.mascot === 'boolean' ? r.mascot : DEFAULT_SETTINGS.mascot,
     reminder: mergeReminder(r.reminder),
     placement: parsePlacement(r.placement),
+    appearance: mergeAppearance(r.appearance),
+    gamification: typeof r.gamification === 'boolean' ? r.gamification : DEFAULT_SETTINGS.gamification,
+    dashboard: mergeDashboard(r.dashboard),
     grading: {
       ignoreCase: typeof g.ignoreCase === 'boolean' ? g.ignoreCase : DEFAULT_SETTINGS.grading.ignoreCase,
       ignoreExtraSpaces: typeof g.ignoreExtraSpaces === 'boolean' ? g.ignoreExtraSpaces : DEFAULT_SETTINGS.grading.ignoreExtraSpaces,

@@ -3,7 +3,8 @@ import path from 'node:path'
 import os from 'node:os'
 import { existsSync, promises as fs, readFileSync, rmSync, writeFileSync, mkdirSync } from 'node:fs'
 import { randomUUID } from 'node:crypto'
-import { DataStore, copyAppData, otherDeviceLock, releaseLock, releaseLockSync, resolveChosenFolder, writeJsonAtomic, writeLock, type LockInfo } from './storage'
+import { DataStore, nativeThemeOf, copyAppData, otherDeviceLock, releaseLock, releaseLockSync, resolveChosenFolder, writeJsonAtomic, writeLock, type LockInfo } from './storage'
+import { LearningStore, LEARNING_DOCS, type LearningDocName, type LearningMeta } from './learningStore'
 import { checkForUpdates, getUpdateStatus, initUpdater, installUpdate } from './updater'
 import { applyReminderSettings, initReminder, startedInBackground, staysInBackground, stopReminder, type ReminderRoute } from './reminder'
 import { handleMediaProtocol, mediaSchemePrivileges } from './media'
@@ -48,6 +49,8 @@ const dataRoot = process.env.B2FT_DATA_DIR || customDataDir || DEFAULT_DATA_DIR
 // Una carpeta elegida que ya no existe (unidad de red o nube no montada) no se recrea vacía: se avisa.
 const dataAvailable = !customDataDir || existsSync(customDataDir)
 const store = new DataStore(dataRoot)
+const learning = new LearningStore(dataRoot)
+let learningMeta: LearningMeta | null = null
 const HOST = os.hostname()
 /** Identificador aleatorio de esta instalación (dos ordenadores pueden llamarse igual, p. ej. «MacBook-Pro»). */
 const DEVICE = installationId()
@@ -136,7 +139,7 @@ function registerIpc(): void {
   handle('settings:get', () => store.getSettings())
   handle('settings:save', async (s: Settings) => {
     const saved = await store.saveSettings(s)
-    nativeTheme.themeSource = saved.theme
+    nativeTheme.themeSource = nativeThemeOf(saved.theme)
     currentSettings = saved
     applyReminderSettings(saved)
     return saved
@@ -260,8 +263,44 @@ function registerIpc(): void {
     if (res.canceled || !res.filePaths[0]) return null
     return store.backupTo(res.filePaths[0])
   })
-  handle('app:setTheme', (t: 'system' | 'light' | 'dark') => {
-    if (t === 'system' || t === 'light' || t === 'dark') nativeTheme.themeSource = t
+  handle('app:setTheme', (t: Settings['theme']) => {
+    if (t === 'system' || t === 'light' || t === 'dark' || t === 'oled' || t === 'midnight') nativeTheme.themeSource = nativeThemeOf(t)
+  })
+
+  // ---------- Aprendizaje (2.0) ----------
+  handle('learning:load', async () => {
+    if (!learningMeta) learningMeta = await learning.migrate(app.getVersion())
+    const [notebook, game, plan] = await Promise.all([learning.read('notebook'), learning.read('game'), learning.read('plan')])
+    return {
+      notebook: notebook.doc,
+      game: game.doc,
+      plan: plan.doc,
+      meta: learningMeta,
+      corrupt: [...notebook.corrupt, ...game.corrupt, ...plan.corrupt],
+      pending: notebook.pending || game.pending || plan.pending
+    }
+  })
+  handle('learning:save', (name: LearningDocName, value: unknown) => {
+    if (!LEARNING_DOCS.includes(name)) throw new Error('Documento no válido.')
+    return learning.save(name, value)
+  })
+  handle('learning:openBackup', async () => {
+    const rel = learningMeta?.backup
+    if (!rel) throw new Error('No hay copia de seguridad previa a 2.0.')
+    const full = path.resolve(store.root, rel)
+    if (!full.startsWith(path.resolve(store.root) + path.sep)) throw new Error('Ruta no válida.')
+    const err = await shell.openPath(full)
+    if (err) throw new Error(err)
+  })
+  handle('files:saveImage', async (defaultName: string, bytes: Uint8Array) => {
+    if (!(bytes instanceof Uint8Array) || bytes.byteLength > 15 * 1024 * 1024) throw new Error('Imagen no válida.')
+    // Solo PNG (firma \x89PNG).
+    if (bytes[0] !== 0x89 || bytes[1] !== 0x50 || bytes[2] !== 0x4e || bytes[3] !== 0x47) throw new Error('La imagen debe ser PNG.')
+    const name = String(defaultName ?? 'progreso.png').replace(/[\\/:*?"<>|]/g, '_').slice(0, 80)
+    const res = await dialog.showSaveDialog(mainWindow!, { defaultPath: name.endsWith('.png') ? name : `${name}.png`, filters: [{ name: 'Imagen PNG', extensions: ['png'] }] })
+    if (res.canceled || !res.filePath) return null
+    await fs.writeFile(res.filePath, bytes)
+    return res.filePath
   })
 
   handle('updates:status', () => getUpdateStatus())
@@ -381,6 +420,7 @@ async function start(): Promise<void> {
   if (dataAvailable) {
     try {
       await store.init()
+      await learning.init()
       // Aviso si la carpeta (sincronizada) está abierta ahora mismo en otro ordenador.
       // Al abrir y después cada 30 s (también mientras se usa la app, por si el otro equipo la abre más tarde).
       await lockBeat()
@@ -393,7 +433,7 @@ async function start(): Promise<void> {
   }
   const usable = dataAvailable && !dataError
   const settings = await (usable ? store : new DataStore(DEFAULT_DATA_DIR)).getSettings().catch(() => ({ ...DEFAULT_SETTINGS }))
-  nativeTheme.themeSource = settings.theme
+  nativeTheme.themeSource = nativeThemeOf(settings.theme)
   currentSettings = settings
 
   // Solo se concede el micrófono (para Speaking); cualquier otro permiso se deniega.

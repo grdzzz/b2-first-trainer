@@ -3,6 +3,29 @@ import type { Attempt, Exam, FileRef, Settings } from './types'
 import type { PracticeProgress, PracticeSheet } from './practice'
 import type { UpdateStatus } from './updates'
 import type { WhisperStatus } from './whisper'
+import type { NotebookDoc } from './learning/notebook'
+import type { GameDoc } from './learning/game'
+import type { PlanDoc } from './learning/plan'
+
+export interface LearningMetaInfo {
+  dataVersion: number
+  migratedAt: string
+  appVersion: string
+  backup: string | null
+  backupFiles: number
+  backupError?: string
+}
+
+export interface LearningBundle {
+  notebook: NotebookDoc
+  game: GameDoc
+  plan: PlanDoc
+  meta: LearningMetaInfo
+  corrupt: string[]
+  pending: boolean
+}
+
+export type LearningDocs = { notebook: NotebookDoc; game: GameDoc; plan: PlanDoc }
 
 export interface ListResult<T> {
   items: T[]
@@ -90,7 +113,16 @@ export interface BridgeApi {
   openDataFolder(): Promise<void>
   /** Copia la carpeta de datos a una carpeta elegida por el usuario. */
   backupData(): Promise<string | null>
-  setThemeSource(theme: 'system' | 'light' | 'dark'): Promise<void>
+  setThemeSource(theme: Settings['theme']): Promise<void>
+
+  /** Datos de aprendizaje (cuaderno, progresión, plan). La primera vez hace la migración a 2.0. */
+  loadLearning(): Promise<LearningBundle>
+  /** Guarda un documento (fusionándolo con lo que haya en disco) y devuelve el resultado. */
+  saveLearning<K extends keyof LearningDocs>(name: K, doc: LearningDocs[K]): Promise<LearningDocs[K]>
+  /** Abre la carpeta con la copia de seguridad previa a 2.0. */
+  openLearningBackup(): Promise<void>
+  /** Guarda una imagen PNG en un archivo elegido por el usuario. */
+  saveImageFile(defaultName: string, bytes: Uint8Array): Promise<string | null>
 
   getUpdateStatus(): Promise<UpdateStatus>
   checkForUpdates(): Promise<UpdateStatus>
