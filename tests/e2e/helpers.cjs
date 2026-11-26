@@ -36,7 +36,8 @@ function existingUser(extra = {}) {
 /**
  * Abre la app con una carpeta de datos y un perfil (userData) propios.
  * `settings`: contenido inicial de settings.json (null = instalación nueva).
- * `seenVersion`: marca las novedades como vistas (para que el panel no tape la pantalla).
+ * `seenVersion`: marca las novedades como vistas (para que el panel no tape la pantalla); con una versión
+ * (p. ej. '1.9.2') simula venir de ella.
  */
 async function launch({ settings = null, dataDir, userData, seenVersion = true, size = { width: 1280, height: 860 } } = {}) {
   dataDir = dataDir || tempDir('b2ft-data-')
@@ -54,7 +55,12 @@ async function launch({ settings = null, dataDir, userData, seenVersion = true, 
   win.on('console', (m) => {
     if (m.type() === 'error') errors.push(m.text())
   })
-  if (settings && seenVersion) {
+  if (settings && typeof seenVersion === 'string') {
+    // Simula venir de una versión anterior concreta (p. ej. '1.9.2').
+    await win.waitForSelector('.app:not(.app-booting) .sidebar, .onboarding, .placement', { timeout: 30000 })
+    await win.evaluate((v) => localStorage.setItem('b2ft.whatsNew.seen', v), seenVersion)
+    await win.reload()
+  } else if (settings && seenVersion) {
     await win.waitForSelector('.app:not(.app-booting) .sidebar, .onboarding, .placement', { timeout: 30000 })
     const version = await win.evaluate(() => window.api.getAppInfo().then((i) => i.version))
     await win.evaluate((v) => localStorage.setItem('b2ft.whatsNew.seen', v), version)

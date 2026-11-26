@@ -358,7 +358,7 @@ module.exports = [
   {
     name: 'novedades: si cambian menús o secciones se ofrece un recorrido opcional que se puede hacer o saltar',
     async run() {
-      await withApp({ settings: CALM, seenVersion: false }, async ({ win }) => {
+      await withApp({ settings: CALM, seenVersion: '1.9.2' }, async ({ win }) => {
         await win.waitForSelector('dialog[open] .whats-new')
         await win.waitForSelector('dialog[open] .whats-new-tour')
         await win.click('dialog[open] button:has-text("Ver el recorrido")')
@@ -372,7 +372,7 @@ module.exports = [
         assert(steps >= 9, `Recorre todas las secciones (${steps} pasos)`)
       })
       // «Ahora no»: se cierra sin recorrido y no vuelve a salir.
-      await withApp({ settings: CALM, seenVersion: false }, async ({ win }) => {
+      await withApp({ settings: CALM, seenVersion: '1.9.2' }, async ({ win }) => {
         await win.waitForSelector('dialog[open] .whats-new')
         await win.click('dialog[open] button:has-text("Ahora no")')
         await sleep(300)
