@@ -1,6 +1,9 @@
 // i18n mínima y tipada. Para añadir un idioma: crear `locales/xx.ts` con la misma forma que `es.ts`
 // y registrarlo en `dictionaries`.
-import { es } from './es'
+import { es as es1 } from './es'
+import { es2 } from './es2'
+
+const es = { ...es1, ...es2, nav: { ...es1.nav, ...es2.nav2 }, settings: { ...es1.settings, themes: es2.themes }, home: { ...es1.home, ...es2.home2 }, review: { ...es1.review, ...es2.review2 }, common: { ...es1.common, ...es2.common2 }, sheet: { ...es1.sheet, ...es2.sheet2 } }
 
 type Dict = typeof es
 type Leaves<T, P extends string = ''> = {

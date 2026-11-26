@@ -3,6 +3,8 @@ import type { Attempt, Exam, GradingOptions, ReminderSettings, Settings } from '
 import { DEFAULT_SETTINGS } from '@shared/types'
 import type { PracticeProgress, PracticeSheet } from '@shared/practice'
 import { newId } from '@shared/ids'
+import type { ReviewSessionSpec } from '@shared/learning/notebook'
+import { notifyMotionChange } from './bubi'
 import { t } from '../i18n'
 
 export type Route =
@@ -13,17 +15,31 @@ export type Route =
   | { name: 'results'; attemptId: string }
   | { name: 'history' }
   | { name: 'practice' }
-  | { name: 'review' }
+  | { name: 'review'; session?: ReviewSessionSpec }
   | { name: 'sheet'; sheetId: string }
-  | { name: 'settings' }
+  | { name: 'settings'; section?: string }
+  | { name: 'plan'; tab?: 'today' | 'calendar' | 'readiness' | 'setup' }
+  | { name: 'notebook'; errorId?: string; add?: boolean }
+  | { name: 'stats' }
+  | { name: 'profile' }
+  | { name: 'achievements' }
+  | { name: 'wardrobe' }
 
 /** Cambio parcial de ajustes (los grupos anidados también pueden ser parciales). */
-export type SettingsPatch = Partial<Omit<Settings, 'grading' | 'reminder'>> & { grading?: Partial<GradingOptions>; reminder?: Partial<ReminderSettings> }
+export type SettingsPatch = Partial<Omit<Settings, 'grading' | 'reminder' | 'appearance' | 'dashboard'>> & { grading?: Partial<GradingOptions>; reminder?: Partial<ReminderSettings>; appearance?: Partial<Settings['appearance']>; dashboard?: Partial<Settings['dashboard']> }
 
 export interface Toast {
   id: number
   kind: 'info' | 'success' | 'error'
   message: string
+  /** Acción opcional (p. ej. «Deshacer»). */
+  action?: { label: string; run(): void }
+}
+
+export interface NotifyOptions {
+  action?: Toast['action']
+  /** Milisegundos visible (por defecto 4 s; errores 8 s; con acción 7 s). */
+  duration?: number
 }
 
 interface AppState {
@@ -46,7 +62,7 @@ interface AppState {
   route: Route
   toasts: Toast[]
   navigate(route: Route): void
-  notify(kind: Toast['kind'], message: string): void
+  notify(kind: Toast['kind'], message: string, opts?: NotifyOptions): void
   dismissToast(id: number): void
   updateSettings(patch: SettingsPatch): Promise<void>
   saveExam(exam: Exam): Promise<Exam>
@@ -95,10 +111,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const dismissToast = useCallback((id: number) => setToasts((ts) => ts.filter((x) => x.id !== id)), [])
   const notify = useCallback(
-    (kind: Toast['kind'], message: string) => {
+    (kind: Toast['kind'], message: string, opts?: NotifyOptions) => {
       const id = ++toastId.current
-      setToasts((ts) => [...ts.slice(-3), { id, kind, message }])
-      window.setTimeout(() => dismissToast(id), kind === 'error' ? 8000 : 4000)
+      setToasts((ts) => [...ts.slice(-3), { id, kind, message, ...(opts?.action ? { action: opts.action } : {}) }])
+      window.setTimeout(() => dismissToast(id), opts?.duration ?? (kind === 'error' ? 8000 : opts?.action ? 7000 : 4000))
     },
     [dismissToast]
   )
@@ -143,7 +159,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => window.api.onLockConflict((lock) => setLockConflict(lock)), [])
 
   const updateSettings = useCallback(async (patch: SettingsPatch) => {
-    const next = { ...settingsRef.current, ...patch, grading: { ...settingsRef.current.grading, ...(patch.grading ?? {}) }, reminder: { ...settingsRef.current.reminder, ...(patch.reminder ?? {}) } }
+    const next = { ...settingsRef.current, ...patch, grading: { ...settingsRef.current.grading, ...(patch.grading ?? {}) }, reminder: { ...settingsRef.current.reminder, ...(patch.reminder ?? {}) }, appearance: { ...settingsRef.current.appearance, ...(patch.appearance ?? {}) }, dashboard: { ...settingsRef.current.dashboard, ...(patch.dashboard ?? {}) } }
     setSettings(next)
     try {
       setSettings(await window.api.saveSettings(next))
@@ -233,26 +249,47 @@ export function AppProvider({ children }: { children: ReactNode }) {
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }
 
+/** Tema efectivo: claro u oscuro y, si es oscuro, su variante (OLED o Midnight Blue). */
+export function resolveTheme(theme: Settings['theme'], systemDark: boolean): { base: 'light' | 'dark'; variant?: 'oled' | 'midnight' } {
+  if (theme === 'oled' || theme === 'midnight') return { base: 'dark', variant: theme }
+  return { base: theme === 'dark' || (theme === 'system' && systemDark) ? 'dark' : 'light' }
+}
+
+/** Aplica tema, acento, densidad, movimiento y tamaño de texto al documento. */
+export function applyAppearance(theme: Settings['theme'], appearance: Settings['appearance'], systemDark: boolean): void {
+  const root = document.documentElement
+  const r = resolveTheme(theme, systemDark)
+  root.dataset.theme = r.base
+  if (r.variant) root.dataset.variant = r.variant
+  else delete root.dataset.variant
+  if (appearance.accent !== 'indigo') root.dataset.accent = appearance.accent
+  else delete root.dataset.accent
+  if (appearance.density === 'compact') root.dataset.density = 'compact'
+  else delete root.dataset.density
+  const motionChanged = (root.dataset.motion ?? 'full') !== appearance.motion
+  if (appearance.motion !== 'full') root.dataset.motion = appearance.motion
+  else delete root.dataset.motion
+  if (motionChanged) notifyMotionChange()
+  try {
+    localStorage.setItem('b2ft.appearance', JSON.stringify({ theme: r.base, variant: r.variant ?? null, accent: appearance.accent, density: appearance.density, motion: appearance.motion }))
+    localStorage.setItem('b2ft.theme', r.base)
+  } catch {
+    /* sin almacenamiento local */
+  }
+}
+
 /** Aplica tema y tamaño de texto al documento. */
 export function useThemeEffect(settings: Settings, ready = true): void {
   useEffect(() => {
     // Hasta tener los ajustes se mantiene el tema de la última vez (ver main.tsx).
     if (!ready) return
     const mq = window.matchMedia('(prefers-color-scheme: dark)')
-    const apply = () => {
-      const dark = settings.theme === 'dark' || (settings.theme === 'system' && mq.matches)
-      document.documentElement.dataset.theme = dark ? 'dark' : 'light'
-      try {
-        localStorage.setItem('b2ft.theme', dark ? 'dark' : 'light')
-      } catch {
-        /* sin almacenamiento local */
-      }
-    }
+    const apply = () => applyAppearance(settings.theme, settings.appearance, mq.matches)
     apply()
     void window.api.setThemeSource(settings.theme).catch(() => undefined)
     mq.addEventListener('change', apply)
     return () => mq.removeEventListener('change', apply)
-  }, [settings.theme, ready])
+  }, [settings.theme, settings.appearance, ready])
 
   useEffect(() => {
     document.documentElement.style.setProperty('--font-scale', String(settings.fontScale))

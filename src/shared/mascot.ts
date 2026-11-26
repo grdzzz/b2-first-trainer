@@ -5,10 +5,31 @@
 // tienen prioridad: una celebración no la interrumpe un clic, pero un logro sí interrumpe un saludo.
 
 /** Estados de fondo que pide cada pantalla. */
-export type BubiBase = 'idle' | 'welcome' | 'cheer' | 'sad' | 'thinking' | 'sleeping' | 'celebration'
+export type BubiBase =
+  | 'idle'
+  | 'welcome'
+  | 'cheer'
+  | 'sad'
+  | 'thinking'
+  | 'sleeping'
+  | 'celebration'
+  // 2.0: actividades (Bubi acompaña lo que estás haciendo)
+  | 'calendar'
+  | 'reading'
+  | 'writing'
+  | 'computer'
+  | 'music'
+  | 'solving'
+  | 'yawn'
+  | 'resting'
+  | 'studying'
+  | 'dance'
+  | 'trophy'
+
+export const ACTIVITY_BASES: BubiBase[] = ['calendar', 'reading', 'writing', 'computer', 'music', 'solving', 'yawn', 'resting', 'studying', 'dance', 'trophy']
 
 /** Reacciones de un solo uso (vuelven al estado de fondo al terminar). */
-export type BubiReaction = 'welcome' | 'happy' | 'sad' | 'surprised' | 'celebration' | 'wakeUp' | 'poke'
+export type BubiReaction = 'welcome' | 'happy' | 'sad' | 'surprised' | 'celebration' | 'wakeUp' | 'poke' | 'levelUp' | 'dance'
 
 /** Lo que se dibuja en cada momento. */
 export type BubiState = BubiBase | BubiReaction | 'hover'
@@ -23,7 +44,9 @@ export const REACTION_PRIORITY: Record<BubiReaction, number> = {
   happy: 3,
   sad: 3,
   surprised: 4,
-  celebration: 5
+  dance: 4,
+  celebration: 5,
+  levelUp: 6
 }
 
 /** Duración de cada reacción (ms); coincide con las animaciones CSS. */
@@ -34,7 +57,9 @@ export const REACTION_MS: Record<BubiReaction, number> = {
   happy: 1500,
   sad: 2000,
   surprised: 1200,
-  celebration: 2600
+  celebration: 2600,
+  levelUp: 3000,
+  dance: 2400
 }
 
 /** Número de variantes de cada reacción (para que no se repita siempre igual). */
@@ -45,7 +70,9 @@ export const REACTION_VARIANTS: Record<BubiReaction, number> = {
   happy: 2,
   sad: 2,
   surprised: 2,
-  celebration: 2
+  celebration: 2,
+  levelUp: 1,
+  dance: 2
 }
 
 /** Clics seguidos (en esta ventana de tiempo) que «marean» a Bubi. */
@@ -109,8 +136,9 @@ export function bubiReducer(m: BubiMachine, e: BubiEvent): BubiMachine {
       return m.base === e.base ? m : { ...m, base: e.base }
 
     case 'SIGNAL':
-      // Un logro: primero sorpresa y luego celebración.
+      // Un logro: primero sorpresa y luego celebración. Subir de nivel: salto con trofeo y baile.
       if (e.signal === 'achievement') return start(m, 'surprised', e.rnd, 'celebration')
+      if (e.signal === 'levelUp') return start(m, 'levelUp', e.rnd, 'dance')
       return start(m, e.signal, e.rnd)
 
     case 'REACTION_END': {
@@ -141,7 +169,7 @@ export function bubiReducer(m: BubiMachine, e: BubiEvent): BubiMachine {
 
     case 'INACTIVE':
       // No se duerme mientras piensa (se está cargando o procesando algo) ni en plena reacción importante.
-      if (m.dozing || m.base === 'thinking' || m.base === 'sleeping') return m
+      if (m.dozing || m.base === 'thinking' || m.base === 'sleeping' || m.base === 'resting' || m.base === 'yawn') return m
       if (m.reaction && REACTION_PRIORITY[m.reaction.name] >= 3) return m
       return { ...m, dozing: true, reaction: null, hovering: false }
 
@@ -154,7 +182,8 @@ export function bubiReducer(m: BubiMachine, e: BubiEvent): BubiMachine {
 export function bubiView(m: BubiMachine): { state: BubiState; variant: number } {
   if (m.dozing) return { state: 'sleeping', variant: 0 }
   if (m.reaction) return { state: m.reaction.name, variant: m.reaction.variant }
-  if (m.hovering && m.base !== 'sleeping' && m.base !== 'celebration') return { state: 'hover', variant: 0 }
+  // Con una actividad (leer, escribir…) no deja lo que está haciendo al pasar el ratón.
+  if (m.hovering && m.base !== 'sleeping' && m.base !== 'celebration' && !ACTIVITY_BASES.includes(m.base)) return { state: 'hover', variant: 0 }
   return { state: m.base, variant: 0 }
 }
 
@@ -162,8 +191,10 @@ export function bubiView(m: BubiMachine): { state: BubiState; variant: number } 
 
 export type BubiEyes = 'open' | 'happy' | 'closed' | 'wide'
 export type BubiMouth = 'smile' | 'grin' | 'open' | 'frown' | 'wavy' | 'o' | 'small' | 'sleep'
-export type BubiArms = 'down' | 'up' | 'wave' | 'chin' | 'droop'
-export type BubiExtra = 'zzz' | 'question' | 'sweat' | 'sparks' | 'bang' | 'stars' | null
+export type BubiArms = 'down' | 'up' | 'wave' | 'chin' | 'droop' | 'hold'
+export type BubiExtra = 'zzz' | 'question' | 'sweat' | 'sparks' | 'bang' | 'stars' | 'notes' | null
+/** Objeto que lleva Bubi en las manos según la actividad. */
+export type BubiProp = 'book' | 'pencil' | 'laptop' | 'calendar' | 'trophy' | 'puzzle' | null
 
 export interface BubiExpression {
   eyes: BubiEyes
@@ -172,6 +203,7 @@ export interface BubiExpression {
   /** Hacia dónde miran las pupilas (unidades del dibujo). */
   look: [number, number]
   extra: BubiExtra
+  prop?: BubiProp
 }
 
 export function bubiExpression(state: BubiState, variant = 0): BubiExpression {
@@ -206,6 +238,29 @@ export function bubiExpression(state: BubiState, variant = 0): BubiExpression {
         : { eyes: 'wide', mouth: 'o', arms: 'up', look: [0, -1], extra: 'bang' }
     case 'celebration':
       return { eyes: 'happy', mouth: 'open', arms: 'up', look: [0, 0], extra: 'sparks' }
+    case 'calendar':
+      return { eyes: 'open', mouth: 'small', arms: 'hold', look: [-1, 2.6], extra: null, prop: 'calendar' }
+    case 'reading':
+    case 'studying':
+      return { eyes: 'open', mouth: 'smile', arms: 'hold', look: [0, 3], extra: null, prop: 'book' }
+    case 'writing':
+      return { eyes: 'open', mouth: 'small', arms: 'hold', look: [1.4, 3], extra: null, prop: 'pencil' }
+    case 'computer':
+      return { eyes: 'open', mouth: 'smile', arms: 'hold', look: [0, 2.4], extra: null, prop: 'laptop' }
+    case 'music':
+      return { eyes: 'happy', mouth: 'smile', arms: 'down', look: [0, 0], extra: 'notes' }
+    case 'solving':
+      return { eyes: 'open', mouth: 'small', arms: 'hold', look: [2, -2.4], extra: 'question', prop: 'puzzle' }
+    case 'yawn':
+      return { eyes: 'closed', mouth: 'o', arms: 'up', look: [0, 0], extra: null }
+    case 'resting':
+      return { eyes: 'closed', mouth: 'smile', arms: 'droop', look: [0, 0], extra: null }
+    case 'dance':
+      return variant === 1 ? { eyes: 'happy', mouth: 'grin', arms: 'wave', look: [0, 0], extra: 'notes' } : { eyes: 'happy', mouth: 'open', arms: 'up', look: [0, 0], extra: 'notes' }
+    case 'trophy':
+      return { eyes: 'happy', mouth: 'grin', arms: 'hold', look: [0, 0], extra: 'sparks', prop: 'trophy' }
+    case 'levelUp':
+      return { eyes: 'happy', mouth: 'open', arms: 'up', look: [0, -1], extra: 'stars' }
   }
 }
 

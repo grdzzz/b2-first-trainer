@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { BellRing, BookOpenCheck, Gauge, Sparkles, Cloud, Compass, Database, Download, FolderOpen, FolderSync, HardDriveDownload, Mic, Monitor, Moon, NotebookPen, Palette, RefreshCw, RotateCcw, SpellCheck, Sun, UserRound } from 'lucide-react'
+import { Archive, BellRing, BookOpenCheck, Circle, LayoutDashboard, Stars, Trophy, Gauge, Sparkles, Cloud, Compass, Database, Download, FolderOpen, FolderSync, HardDriveDownload, Mic, Monitor, Moon, NotebookPen, Palette, RefreshCw, RotateCcw, SpellCheck, Sun, UserRound } from 'lucide-react'
 import { ConfirmDialog } from '../components/Modal'
 import { Mascot, MascotSvg } from '../components/Mascot'
 import { SkText } from '../components/Skeleton'
@@ -8,7 +8,8 @@ import { PlacementLevel } from '../components/PlacementResult'
 import type { DataLocation } from '@shared/api'
 import { Modal } from '../components/Modal'
 import type { AppInfo } from '@shared/api'
-import type { ThemePreference } from '@shared/types'
+import { ACCENTS, DASHBOARD_MODULES, type ThemePreference } from '@shared/types'
+import { useLearningOptional } from '../lib/learning'
 import { errorMessage, useApp } from '../lib/store'
 import { formatDate, t } from '../i18n'
 import { useUpdateStatus } from '../lib/updates'
@@ -17,12 +18,15 @@ import type { UpdateStatus } from '@shared/updates'
 const THEMES: Array<{ id: ThemePreference; icon: typeof Sun }> = [
   { id: 'system', icon: Monitor },
   { id: 'light', icon: Sun },
-  { id: 'dark', icon: Moon }
+  { id: 'dark', icon: Moon },
+  { id: 'oled', icon: Circle },
+  { id: 'midnight', icon: Stars }
 ]
 
 const SECTIONS: Array<{ id: string; label: () => string; icon: typeof Sun }> = [
   { id: 'set-profile', label: () => t('settings.profile'), icon: UserRound },
   { id: 'set-appearance', label: () => t('settings.appearance'), icon: Palette },
+  { id: 'set-gamification', label: () => t('appearance.gamificationShort'), icon: Trophy },
   { id: 'set-grading', label: () => t('settings.gradingShort'), icon: SpellCheck },
   { id: 'set-data', label: () => t('settings.data'), icon: Database },
   { id: 'set-reminder', label: () => t('settings.reminderShort'), icon: BellRing },
@@ -131,12 +135,21 @@ function PracticeSection() {
   )
 }
 
-export function SettingsScreen() {
+export function SettingsScreen({ section }: { section?: string }) {
   const { settings, updateSettings, notify } = useApp()
+  const learning = useLearningOptional()
   const [info, setInfo] = useState<AppInfo | null>(null)
   useEffect(() => {
     window.api.getAppInfo().then(setInfo).catch(() => undefined)
   }, [])
+  // Abrir directamente una sección (desde la paleta de comandos o el perfil).
+  useEffect(() => {
+    if (section) window.requestAnimationFrame(() => document.getElementById(`set-${section}`)?.scrollIntoView({ block: 'start' }))
+  }, [section])
+  const appearance = (patch: Partial<typeof settings.appearance>) => {
+    void updateSettings({ appearance: patch })
+    learning?.featureUsed('appearance')
+  }
 
   const backup = async () => {
     try {
@@ -175,7 +188,7 @@ export function SettingsScreen() {
           </div>
           <div className="segmented" role="radiogroup" aria-labelledby="theme-label">
             {THEMES.map(({ id, icon: Icon }) => (
-              <button key={id} type="button" role="radio" aria-checked={settings.theme === id} className={`segmented-item${settings.theme === id ? ' is-selected' : ''}`} onClick={() => void updateSettings({ theme: id })}>
+              <button key={id} type="button" role="radio" aria-checked={settings.theme === id} className={`segmented-item${settings.theme === id ? ' is-selected' : ''}`} onClick={() => { void updateSettings({ theme: id }); learning?.featureUsed('appearance') }}>
                 <Icon size={15} aria-hidden /> {t(`settings.themes.${id}`)}
               </button>
             ))}
@@ -190,6 +203,57 @@ export function SettingsScreen() {
             <input id="font-scale" type="range" min={0.9} max={1.4} step={0.05} value={settings.fontScale} onChange={(e) => void updateSettings({ fontScale: Number(e.target.value) })} aria-valuetext={`${Math.round(settings.fontScale * 100)}%`} />
             <span className="tabular">{Math.round(settings.fontScale * 100)}%</span>
           </div>
+        </div>
+        <div className="setting">
+          <div>
+            <p className="setting-name" id="accent-label">{t('appearance.accent')}</p>
+            <p className="setting-desc">{t('appearance.accentDesc')}</p>
+          </div>
+          <div className="swatches" role="radiogroup" aria-labelledby="accent-label">
+            {ACCENTS.map((a) => (
+              <button key={a} type="button" role="radio" aria-checked={settings.appearance.accent === a} className={`swatch accent-${a}${settings.appearance.accent === a ? ' is-active' : ''}`} title={t(`appearance.accents.${a}`)} aria-label={t(`appearance.accents.${a}`)} onClick={() => appearance({ accent: a })} />
+            ))}
+          </div>
+        </div>
+        <div className="setting">
+          <div>
+            <p className="setting-name" id="density-label">{t('appearance.density')}</p>
+            <p className="setting-desc">{t('appearance.densityDesc')}</p>
+          </div>
+          <div className="segmented" role="radiogroup" aria-labelledby="density-label">
+            {(['comfortable', 'compact'] as const).map((d) => (
+              <button key={d} type="button" role="radio" aria-checked={settings.appearance.density === d} className={`segmented-item${settings.appearance.density === d ? ' is-selected' : ''}`} onClick={() => appearance({ density: d })}>{t(`appearance.densities.${d}`)}</button>
+            ))}
+          </div>
+        </div>
+        <div className="setting">
+          <div>
+            <p className="setting-name" id="motion-label">{t('appearance.motion')}</p>
+            <p className="setting-desc">{t('appearance.motionDesc')}</p>
+          </div>
+          <div className="segmented" role="radiogroup" aria-labelledby="motion-label">
+            {(['full', 'reduced', 'none'] as const).map((m) => (
+              <button key={m} type="button" role="radio" aria-checked={settings.appearance.motion === m} className={`segmented-item${settings.appearance.motion === m ? ' is-selected' : ''}`} onClick={() => appearance({ motion: m })}>{t(`appearance.motions.${m}`)}</button>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="card settings-section" aria-labelledby="s-gamification" id="set-gamification">
+        <SectionTitle id="s-gamification" icon={Trophy}>{t('appearance.gamification')}</SectionTitle>
+        <label className="setting setting-toggle">
+          <div>
+            <span className="setting-name">{t('appearance.gamificationToggle')}</span>
+            <span className="setting-desc">{t('appearance.gamificationDesc')}</span>
+          </div>
+          <input type="checkbox" className="toggle" checked={settings.gamification} onChange={(e) => void updateSettings({ gamification: e.target.checked })} />
+        </label>
+        <div className="setting">
+          <div>
+            <p className="setting-name"><LayoutDashboard size={15} aria-hidden /> {t('appearance.dashboard')}</p>
+            <p className="setting-desc">{t('appearance.dashboardDesc', { n: settings.dashboard.hidden.length })}</p>
+          </div>
+          <button type="button" className="btn btn-secondary btn-sm" onClick={() => void updateSettings({ dashboard: { order: DASHBOARD_MODULES, hidden: [] } })}>{t('appearance.dashboardReset')}</button>
         </div>
       </section>
 
@@ -234,6 +298,21 @@ export function SettingsScreen() {
           </div>
         </div>
         <p className="text-subtle text-sm">{t('settings.restoreHint')}</p>
+        {learning?.meta && (
+          <div className="setting">
+            <div>
+              <p className="setting-name"><Archive size={15} aria-hidden /> {t('migration.settingTitle')}</p>
+              <p className="setting-desc">
+                {learning.meta.backup ? t('migration.settingBackup', { date: formatDate(learning.meta.migratedAt), n: learning.meta.backupFiles }) : learning.meta.backupError ? t('migration.settingError', { error: learning.meta.backupError }) : t('migration.settingNone')}
+              </p>
+            </div>
+            {learning.meta.backup && (
+              <button type="button" className="btn btn-secondary btn-sm" onClick={() => window.api.openLearningBackup().catch((e) => notify('error', errorMessage(e)))}>
+                <FolderOpen size={15} aria-hidden /> {t('migration.open')}
+              </button>
+            )}
+          </div>
+        )}
       </section>
 
       <ReminderSection />

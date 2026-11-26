@@ -197,7 +197,29 @@ export interface Attempt {
   aiGeneral?: string
 }
 
-export type ThemePreference = 'system' | 'light' | 'dark'
+export type ThemePreference = 'system' | 'light' | 'dark' | 'oled' | 'midnight'
+export const THEMES: ThemePreference[] = ['system', 'light', 'dark', 'oled', 'midnight']
+
+export type AccentColor = 'indigo' | 'teal' | 'violet' | 'rose' | 'amber' | 'green'
+export const ACCENTS: AccentColor[] = ['indigo', 'teal', 'violet', 'rose', 'amber', 'green']
+
+export interface AppearanceSettings {
+  accent: AccentColor
+  density: 'comfortable' | 'compact'
+  /** Intensidad de las animaciones: completas, reducidas (también si el sistema lo pide) o ninguna. */
+  motion: 'full' | 'reduced' | 'none'
+}
+
+export const DEFAULT_APPEARANCE: AppearanceSettings = { accent: 'indigo', density: 'comfortable', motion: 'full' }
+
+/** Módulos del inicio que se pueden ocultar y reordenar. */
+export type DashboardModule = 'today' | 'goal' | 'progress' | 'review' | 'week' | 'missions' | 'evolution' | 'milestones' | 'achievements' | 'quick' | 'resume'
+export const DASHBOARD_MODULES: DashboardModule[] = ['resume', 'today', 'goal', 'progress', 'review', 'week', 'missions', 'evolution', 'milestones', 'achievements', 'quick']
+
+export interface DashboardSettings {
+  order: DashboardModule[]
+  hidden: DashboardModule[]
+}
 
 export interface Settings {
   schemaVersion: number
@@ -219,6 +241,10 @@ export interface Settings {
   reminder: ReminderSettings
   /** Resultado de la prueba de nivel inicial (obligatoria una vez; null = aún no hecha). */
   placement: PlacementResult | null
+  appearance: AppearanceSettings
+  /** Mostrar XP, niveles, logros y misiones (los datos se siguen guardando aunque se oculten). */
+  gamification: boolean
+  dashboard: DashboardSettings
 }
 
 export interface ReminderSettings {
@@ -252,7 +278,10 @@ export const DEFAULT_SETTINGS: Settings = {
   onboarded: false,
   mascot: true,
   reminder: DEFAULT_REMINDER,
-  placement: null
+  placement: null,
+  appearance: DEFAULT_APPEARANCE,
+  gamification: true,
+  dashboard: { order: DASHBOARD_MODULES, hidden: [] }
 }
 
 export const PAPER_ORDER: PaperType[] = ['reading', 'writing', 'listening', 'speaking']

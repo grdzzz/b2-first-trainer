@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ArrowLeft, Check, Minus, RotateCcw, Trash2, X } from 'lucide-react'
+import { ArrowLeft, BookX, Check, Minus, RotateCcw, Trash2, X } from 'lucide-react'
 import type { Attempt, SelfAssessment as SA } from '@shared/types'
 import { regrade, createAttempt } from '@shared/attempts'
 import { pendingMistakes, formatDuration } from '@shared/stats'
@@ -126,6 +126,11 @@ export function ResultsScreen({ attemptId }: { attemptId: string }) {
           {auto && exam && (
             <button type="button" className="btn btn-primary" onClick={startReview} disabled={pending.length === 0} title={pending.length ? '' : t('results.noPending')}>
               <RotateCcw size={16} aria-hidden /> {t('results.review', { n: pending.length })}
+            </button>
+          )}
+          {r.questions.some((q) => q.correct === false) && (
+            <button type="button" className="btn btn-secondary" onClick={() => app.navigate({ name: 'notebook' })}>
+              <BookX size={16} aria-hidden /> {t('sheet.seeErrors')}
             </button>
           )}
           <button type="button" className="icon-btn" onClick={() => setConfirmDelete(true)} aria-label={t('history.delete')} title={t('history.delete')}>

@@ -1,5 +1,5 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { ArrowLeft, ArrowRight, CheckCircle2, Clock3, Download, Lightbulb, RotateCcw, Trophy, XCircle } from 'lucide-react'
+import { ArrowLeft, ArrowRight, BookX, CheckCircle2, Clock3, Download, Lightbulb, RotateCcw, Trophy, XCircle } from 'lucide-react'
 import {
   checkItem,
   countItems,
@@ -167,6 +167,36 @@ function SheetRunner({ sheet, nextSheet }: { sheet: PracticeSheet; nextSheet: Pr
     }
   }
 
+  // Atajos: Ctrl/Cmd + Intro comprueba; Alt + ↓/↑ salta al siguiente/anterior hueco sin responder.
+  const checkRef = useRef(check)
+  checkRef.current = check
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (document.querySelector('dialog[open]')) return
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        if (!checked && Object.keys(answers).length > 0) {
+          e.preventDefault()
+          checkRef.current()
+        }
+        return
+      }
+      if (e.altKey && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+        e.preventDefault()
+        const fields = Array.from(document.querySelectorAll<HTMLElement>('.sheet-page .gap-input:not(:disabled), .sheet-page .sheet-options'))
+        const pending = fields.filter((f) => (f instanceof HTMLInputElement ? !f.value.trim() : !f.querySelector('.is-selected')))
+        const list = pending.length ? pending : fields
+        const current = fields.findIndex((f) => f.contains(document.activeElement))
+        const ordered = e.key === 'ArrowDown' ? list.filter((f) => fields.indexOf(f) > current) : list.filter((f) => fields.indexOf(f) < current).reverse()
+        const target = ordered[0] ?? (e.key === 'ArrowDown' ? list[0] : list[list.length - 1])
+        const focusable = target instanceof HTMLInputElement ? target : target?.querySelector<HTMLElement>('.is-selected, .sheet-option')
+        focusable?.focus()
+        focusable?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [checked, answers])
+
   let counter = 0
   const numbers = sheet.tasks.map((task) => task.items.map(() => ++counter))
   const best = progressRef.current.best
@@ -222,6 +252,11 @@ function SheetRunner({ sheet, nextSheet }: { sheet: PracticeSheet; nextSheet: Pr
               <button type="button" className="btn btn-secondary" onClick={retry}>
                 <RotateCcw size={16} aria-hidden /> {t('sheet.retry')}
               </button>
+              {score.correct < total && (
+                <button type="button" className="btn btn-ghost" onClick={() => app.navigate({ name: 'notebook' })}>
+                  <BookX size={16} aria-hidden /> {t('sheet.seeErrors')}
+                </button>
+              )}
               {nextSheet && (
                 <button type="button" className="btn btn-primary" onClick={() => app.navigate({ name: 'sheet', sheetId: nextSheet.id })}>
                   {t('sheet.next')} <ArrowRight size={16} aria-hidden />
@@ -244,7 +279,7 @@ function SheetRunner({ sheet, nextSheet }: { sheet: PracticeSheet; nextSheet: Pr
       {!checked && (
         <div className="sheet-footer">
           <p className="text-muted text-sm">{answered === 0 ? t('sheet.checkNone') : answered < total ? t('sheet.checkHint', { n: total - answered }) : t('sheet.checkReady')}</p>
-          <button type="button" className="btn btn-primary btn-lg" onClick={check} disabled={answered === 0}>
+          <button type="button" className="btn btn-primary btn-lg" onClick={check} disabled={answered === 0} aria-keyshortcuts="Control+Enter" title={t('sheet.checkShortcut')}>
             <CheckCircle2 size={18} aria-hidden /> {t('sheet.check')}
           </button>
         </div>
@@ -334,7 +369,29 @@ export function Explanation({ ok, expected, explain, given }: { ok: boolean | nu
 
 export function OptionButtons({ options, value, answer, checked, onPick, label, wide }: { options: string[]; value?: string; answer: number; checked: boolean; onPick(i: number): void; label: string; wide?: boolean }) {
   return (
-    <div className={`sheet-options${wide ? ' is-wide' : ''}`} role="radiogroup" aria-label={label}>
+    <div
+      className={`sheet-options${wide ? ' is-wide' : ''}`}
+      role="radiogroup"
+      aria-label={label}
+      aria-keyshortcuts="A B C D"
+      onKeyDown={(e) => {
+        // A, B, C, D eligen opción; flechas para moverse entre ellas.
+        if (checked || e.ctrlKey || e.metaKey || e.altKey) return
+        const i = OPTION_LETTERS.indexOf(e.key.toUpperCase())
+        if (i >= 0 && i < options.length) {
+          e.preventDefault()
+          onPick(i)
+          return
+        }
+        if (e.key === 'ArrowDown' || e.key === 'ArrowRight' || e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+          const buttons = Array.from(e.currentTarget.querySelectorAll<HTMLButtonElement>('.sheet-option'))
+          const at = buttons.indexOf(document.activeElement as HTMLButtonElement)
+          const next = buttons[(at + (e.key === 'ArrowDown' || e.key === 'ArrowRight' ? 1 : -1) + buttons.length) % buttons.length]
+          next?.focus()
+          e.preventDefault()
+        }
+      }}
+    >
       {options.map((o, i) => {
         const selected = value === String(i)
         const state = checked ? (i === answer ? ' is-key' : selected ? ' is-wrong' : '') : ''

@@ -1,6 +1,6 @@
 // Skeletons de cada pantalla: misma estructura y clases que la pantalla real, con bloques en lugar de datos.
-import { BarChart3, History, Library, NotebookPen, Settings as SettingsIcon } from 'lucide-react'
-import { PAPER_ORDER } from '@shared/types'
+import { Search } from 'lucide-react'
+import { NAV_GROUPS, readCollapsed } from './Sidebar'
 import { PRACTICE_SKILLS } from '@shared/practice'
 import { skillLabel } from './SkillBadge'
 import { Sk, SkButton, SkChip, SkCircle, SkeletonRegion, SkLines, SkText } from './Skeleton'
@@ -22,36 +22,41 @@ function HeaderSk({ eyebrow = '8em', title = '9em', sub, action, className = '' 
 }
 
 // ---------- Arranque: barra lateral real (no depende de datos) + inicio ----------
-const NAV = [
-  { label: () => t('nav.home'), icon: BarChart3 },
-  { label: () => t('nav.library'), icon: Library },
-  { label: () => t('nav.practice'), icon: NotebookPen },
-  { label: () => t('nav.history'), icon: History },
-  { label: () => t('nav.settings'), icon: SettingsIcon }
-]
-
 export function BootSkeleton() {
+  const collapsed = readCollapsed()
   return (
-    <div className="app app-booting">
-      <nav className="sidebar" aria-hidden inert>
+    <div className={`app app-booting${collapsed ? ' is-collapsed' : ''}`}>
+      <nav className={`sidebar sidebar-v2${collapsed ? ' is-collapsed' : ''}`} aria-hidden inert>
         <div className="brand">
           <span className="brand-mark">B2</span>
-          <span className="brand-text">
-            <span className="brand-name">First Trainer</span>
-            <span className="brand-sub">{t('app.tagline')}</span>
-          </span>
+          {!collapsed && (
+            <span className="brand-text">
+              <span className="brand-name">First Trainer</span>
+              <span className="brand-sub">{t('app.tagline')}</span>
+            </span>
+          )}
         </div>
-        <ul className="nav-list">
-          {NAV.map(({ label, icon: Icon }, i) => (
-            <li key={i}>
-              <span className={`nav-item${i === 0 ? ' is-active' : ''}`}>
-                <Icon size={18} aria-hidden />
-                {label()}
-              </span>
-            </li>
+        <span className="nav-search">
+          <Search size={16} aria-hidden />
+          {!collapsed && <span>{t('palette.search')}</span>}
+        </span>
+        <div className="nav-groups">
+          {NAV_GROUPS.map((g, gi) => (
+            <div key={g.label} className="nav-group">
+              {!collapsed && <p className="nav-group-label">{t(g.label)}</p>}
+              <ul className="nav-list">
+                {g.items.map(({ label, icon: Icon }, i) => (
+                  <li key={label}>
+                    <span className={`nav-item${gi === 0 && i === 0 ? ' is-active' : ''}`}>
+                      <Icon size={18} aria-hidden />
+                      {!collapsed && <span className="nav-label">{t(label)}</span>}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
           ))}
-        </ul>
-        <p className="sidebar-foot">{t('app.offline')}</p>
+        </div>
       </nav>
       <main className="main">
         <HomeSkeleton />
@@ -63,31 +68,30 @@ export function BootSkeleton() {
 // ---------- Inicio ----------
 export function HomeSkeleton() {
   return (
-    <SkeletonRegion className="page">
-      <HeaderSk className="home-header" eyebrow="11em" title="8.5em" sub="24em" />
-      <section className="stats-row">
+    <SkeletonRegion className="page home-page">
+      <header className="page-header home-header">
+        <div>
+          <p className="eyebrow"><SkText w="11em" /></p>
+          <h1 className="h1"><SkText w="8.5em" /></h1>
+          <p className="text-muted home-sub"><SkText w="24em" /></p>
+        </div>
+        <div className="row-gap">
+          <SkButton label={t('home.continueStudying')} className="btn-primary btn-lg" />
+          <SkButton label={t('home.customize')} className="btn-ghost btn-sm" />
+        </div>
+      </header>
+      <div className="dash-grid">
+        <div className="dash-mod mod-today"><HomePracticeSkeleton /></div>
         {[0, 1, 2].map((i) => (
-          <div key={i} className="stat">
-            <Sk className="stat-icon" />
-            <span className="stat-value"><SkText w="1.6em" /></span>
-            <span className="stat-label"><SkText w="7em" /></span>
+          <div key={i} className="dash-mod">
+            <section className="card dash-card sk-card">
+              <h2 className="h-small"><SkText w="8em" /></h2>
+              <p className="dash-big"><SkText w="3em" /></p>
+              <SkLines n={2} last="60%" />
+            </section>
           </div>
         ))}
-      </section>
-      <HomePracticeSkeleton />
-      <section>
-        <h2 className="section-title"><SkText w="9em" /></h2>
-        <div className="paper-grid">
-          {PAPER_ORDER.map((type) => (
-            <div key={type} className={`card paper-card paper-${type} sk-card`}>
-              <div className="paper-card-head"><SkText w="6em" /></div>
-              <div className="paper-card-value"><SkText w="1.6em" /></div>
-              <div className="meter" aria-hidden><span style={{ width: 0 }} /></div>
-              <div className="paper-card-foot"><span /><span className="text-sm"><SkText w="5em" /></span></div>
-            </div>
-          ))}
-        </div>
-      </section>
+      </div>
     </SkeletonRegion>
   )
 }
@@ -95,7 +99,7 @@ export function HomeSkeleton() {
 /** Tarjeta de práctica del inicio mientras cargan las hojas. */
 export function HomePracticeSkeleton() {
   return (
-    <section className="card home-practice" aria-hidden>
+    <section className="card home-practice home-today" aria-hidden>
       <div className="mascot mascot-side home-bubi">
         <SkCircle size={88} />
         <div className="mascot-bubble sk-bubble"><SkLines n={2} last="70%" /></div>
@@ -296,6 +300,180 @@ export function AttemptSkeleton() {
   )
 }
 
+// ---------- Mi plan ----------
+export function PlanSkeleton({ inline }: { inline?: boolean }) {
+  const body = (
+    <div className="plan-today">
+      <section className="card today-hero">
+        <div className="mascot mascot-side today-bubi"><SkCircle size={88} /><div className="mascot-bubble sk-bubble"><SkLines n={2} last="70%" /></div></div>
+        <div className="today-head">
+          <p className="eyebrow"><SkText w="9em" /></p>
+          <h2 className="h2"><SkText w="14em" /></h2>
+          <div className="today-meter"><span className="meter"><span style={{ width: 0 }} /></span><span className="text-sm"><SkText w="6em" /></span></div>
+          <div className="row-gap"><SkButton label={t('plan.startSession')} className="btn-primary" /></div>
+        </div>
+      </section>
+      <ol className="activity-list">
+        {[0, 1, 2].map((i) => (
+          <li key={i} className="activity-card">
+            <Sk className="activity-icon" />
+            <div className="activity-body">
+              <div className="activity-top"><h3 className="activity-title"><SkText w="14em" /></h3></div>
+              <div className="activity-meta text-sm"><SkText w="16em" /></div>
+              <p className="activity-reason text-sm"><SkText w="22em" /></p>
+            </div>
+            <div className="activity-actions"><SkButton label={t('plan.start')} className="btn-primary btn-sm" /></div>
+          </li>
+        ))}
+      </ol>
+    </div>
+  )
+  if (inline) return <SkeletonRegion label={t('plan.loading')}>{body}</SkeletonRegion>
+  return (
+    <SkeletonRegion className="page plan-page" label={t('plan.loading')}>
+      <header className="page-header">
+        <div>
+          <p className="eyebrow">{t('plan.eyebrow')}</p>
+          <h1 className="h1">{t('plan.title')}</h1>
+          <p className="text-muted"><SkText w="22em" /></p>
+        </div>
+      </header>
+      <div className="tabs">
+        {[t('plan.tabs.today'), t('plan.tabs.calendar'), t('plan.tabs.readiness'), t('plan.tabs.setup')].map((l, i) => <span key={l} className={`tab${i === 0 ? ' is-active' : ''}`}><span className="sk-seg-icon" />{l}</span>)}
+      </div>
+      <div className="tab-panel">{body}</div>
+    </SkeletonRegion>
+  )
+}
+
+/** Calendario mientras se calcula la previsión. */
+export function CalendarSkeleton() {
+  return (
+    <SkeletonRegion className="card calendar" label={t('plan.loading')}>
+      <header className="calendar-head"><h2 className="h-small calendar-title"><SkText w="12em" /></h2></header>
+      <div className="calendar-grid view-week"><div className="calendar-cells">{Array.from({ length: 7 }, (_, i) => <div key={i} className="cal-day"><span className="cal-day-head"><SkText w="1.2em" /></span></div>)}</div></div>
+    </SkeletonRegion>
+  )
+}
+
+// ---------- Mis errores ----------
+export function NotebookSkeleton() {
+  return (
+    <SkeletonRegion className="page page-wide notebook-page" label={t('notebook.loading')}>
+      <header className="page-header">
+        <div>
+          <p className="eyebrow">{t('notebook.eyebrow')}</p>
+          <h1 className="h1">{t('notebook.title')}</h1>
+          <p className="text-muted"><SkText w="26em" /></p>
+        </div>
+        <SkButton label={t('notebook.add')} className="btn-secondary" />
+      </header>
+      <section className="notebook-sessions">{[0, 1, 2, 3].map((i) => <span key={i} className="session-chip sk sk-btn">{t('notebook.sessionRecurring')} 00</span>)}</section>
+      <ul className="notebook-list view-cards">
+        {Array.from({ length: 6 }, (_, i) => (
+          <li key={i} className="error-item">
+            <span className="error-main">
+              <span className="error-top"><SkText w="10em" /></span>
+              <span className="error-q"><SkText w={i % 2 ? '80%' : '92%'} /></span>
+              <span className="error-compare"><SkText w="60%" /></span>
+              <span className="error-foot text-xs"><SkText w="8em" /></span>
+            </span>
+          </li>
+        ))}
+      </ul>
+    </SkeletonRegion>
+  )
+}
+
+// ---------- Estadísticas ----------
+export function StatsSkeleton() {
+  return (
+    <SkeletonRegion className="page stats-page" label={t('stats.loading')}>
+      <header className="page-header">
+        <div>
+          <p className="eyebrow">{t('stats.eyebrow')}</p>
+          <h1 className="h1">{t('stats.title')}</h1>
+          <p className="text-muted">{t('stats.sub')}</p>
+        </div>
+      </header>
+      <section className="stats-row">
+        {[0, 1, 2, 3].map((i) => (
+          <div key={i} className="stat">
+            <Sk className="stat-icon" />
+            <span className="stat-value"><SkText w="1.6em" /></span>
+            <span className="stat-label"><SkText w="7em" /></span>
+          </div>
+        ))}
+      </section>
+      <section className="card"><h2 className="section-title"><SkText w="10em" /></h2><SkLines n={5} /></section>
+    </SkeletonRegion>
+  )
+}
+
+// ---------- Perfil ----------
+export function ProfileSkeleton() {
+  return (
+    <SkeletonRegion className="page profile-page" label={t('profile.loading')}>
+      <section className="card profile-hero">
+        <SkCircle size={112} />
+        <div className="profile-id">
+          <p className="eyebrow">{t('profile.eyebrow')}</p>
+          <h1 className="h1"><SkText w="8em" /></h1>
+          <p className="text-muted"><SkText w="16em" /></p>
+        </div>
+      </section>
+      <section className="stats-row profile-stats">
+        {[0, 1, 2, 3].map((i) => (
+          <div key={i} className="stat"><Sk className="stat-icon" /><span className="stat-value"><SkText w="2em" /></span><span className="stat-label"><SkText w="6em" /></span></div>
+        ))}
+      </section>
+      <section className="card"><h2 className="section-title"><SkText w="10em" /></h2><Sk h="7rem" r="var(--radius-md)" /></section>
+    </SkeletonRegion>
+  )
+}
+
+// ---------- Logros ----------
+export function AchievementsSkeleton() {
+  return (
+    <SkeletonRegion className="page achievements-page" label={t('achievements.loading')}>
+      <header className="page-header">
+        <div>
+          <p className="eyebrow">{t('achievements.eyebrow')}</p>
+          <h1 className="h1">{t('achievements.title')}</h1>
+          <p className="text-muted">{t('achievements.sub')}</p>
+        </div>
+        <SkCircle size={96} />
+      </header>
+      <ul className="ach-grid">
+        {Array.from({ length: 8 }, (_, i) => (
+          <li key={i} className="ach-card">
+            <span className="ach-card-main"><SkCircle size={56} /><span className="ach-name"><SkText w="8em" /></span><span className="ach-desc text-sm"><SkLines n={2} /></span></span>
+          </li>
+        ))}
+      </ul>
+    </SkeletonRegion>
+  )
+}
+
+// ---------- Armario de Bubi ----------
+export function WardrobeSkeleton() {
+  return (
+    <SkeletonRegion className="page wardrobe-page" label={t('wardrobe.loading')}>
+      <header className="page-header">
+        <div>
+          <p className="eyebrow">{t('wardrobe.eyebrow')}</p>
+          <h1 className="h1">{t('wardrobe.title')}</h1>
+          <p className="text-muted"><SkText w="18em" /></p>
+        </div>
+      </header>
+      <div className="wardrobe">
+        <section className="card wardrobe-stage"><div className="stage-bubi"><SkCircle size={200} /></div></section>
+        <section className="card wardrobe-items"><ul className="cos-grid">{Array.from({ length: 6 }, (_, i) => <li key={i}><span className="cos-item"><Sk className="cos-thumb" /><span className="cos-name"><SkText w="6em" /></span></span></li>)}</ul></section>
+      </div>
+    </SkeletonRegion>
+  )
+}
+
 /** Skeleton para la pantalla que se está cargando (pantallas que se cargan bajo demanda). */
 export function RouteSkeleton({ route }: { route: Route }) {
   switch (route.name) {
@@ -309,6 +487,18 @@ export function RouteSkeleton({ route }: { route: Route }) {
       return <AttemptSkeleton />
     case 'home':
       return <HomeSkeleton />
+    case 'plan':
+      return <PlanSkeleton />
+    case 'notebook':
+      return <NotebookSkeleton />
+    case 'stats':
+      return <StatsSkeleton />
+    case 'profile':
+      return <ProfileSkeleton />
+    case 'achievements':
+      return <AchievementsSkeleton />
+    case 'wardrobe':
+      return <WardrobeSkeleton />
     default:
       return <GenericSkeleton />
   }
